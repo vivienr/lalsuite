@@ -4677,7 +4677,11 @@ int arg_parse_check( int argc, char *argv[], MetadataTable procparams )
         {
           bankSimParams.approx = EOB;
         }
-        else if ( ! strcmp( "PhenSpinTayloRD", optarg ) )
+        else if ( ! strcmp( "EOBNR", optarg ) )
+        {
+          bankSimParams.approx = EOBNR;
+        }
+        else if ( ! strcmp( "PhenSpinTaylorRD", optarg ) )
         {
           approximant = PhenSpinTaylorRD;
         }

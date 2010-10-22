@@ -2880,7 +2880,7 @@ int arg_parse_check(int argc, char *argv[], MetadataTable procparams)
                     approximant = FindChirpPTF;
                 } else {
                     fprintf(stderr, "invalid argument to --%s:\n"
-                            "unknown order specified: "
+                            "unknown approximant specified: "
                             "%s (must be either FindChirpSP, BCV, BCVC, BCVSpin, FindChirpPTF\n"
                             "TaylorT1, TaylorT2, TaylorT3, GeneratePPN, PadeT1, EOB, EOBNR or PhenSpinTaylorRD)\n",
                             long_options[option_index].name, optarg);
@@ -3093,6 +3093,8 @@ int arg_parse_check(int argc, char *argv[], MetadataTable procparams)
                     bankSimParams.approx = PadeT1;
                 } else if (!strcmp("EOB", optarg)) {
                     bankSimParams.approx = EOB;
+                } else if (!strcmp("EOBNR", optarg)) {
+                    bankSimParams.approx = EOBNR;
 		} else if (!strcmp("PhenSpinTaylorRD", optarg)) {
 		  bankSimParams.approx = PhenSpinTaylorRD;		
                 } else if (!strcmp("GeneratePPN", optarg)) {
@@ -3102,7 +3104,7 @@ int arg_parse_check(int argc, char *argv[], MetadataTable procparams)
                 } else {
                     fprintf(stderr, "invalid argument to --%s:\n"
                             "unknown approximant specified: %s\n(must be one of TaylorT1, "
-                            "TaylorT2, TaylorT3, PadeT1, EOB, PhenSpinTayloRD, GeneratePPN, FrameFile)\n",
+                            "TaylorT2, TaylorT3, PadeT1, EOB, EOBNR, PhenSpinTaylorRD, GeneratePPN, FrameFile)\n",
                             long_options[option_index].name, optarg);
                     exit(1);
                 }
