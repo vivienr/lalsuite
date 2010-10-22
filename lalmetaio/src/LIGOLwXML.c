@@ -557,8 +557,12 @@ LALWriteLIGOLwXMLTable (
               tablePtr.snglInspiralTable->eta,
               tablePtr.snglInspiralTable->kappa,
               tablePtr.snglInspiralTable->chi,
-              tablePtr.snglInspiralTable->s1z,
-              tablePtr.snglInspiralTable->s2z,
+              tablePtr.snglInspiralTable->spin1x,
+              tablePtr.snglInspiralTable->spin1y,
+              tablePtr.snglInspiralTable->spin1z,
+              tablePtr.snglInspiralTable->spin2x,
+              tablePtr.snglInspiralTable->spin2y,
+              tablePtr.snglInspiralTable->spin2z,
               tablePtr.snglInspiralTable->tau0,
               tablePtr.snglInspiralTable->tau2,
               tablePtr.snglInspiralTable->tau3,
@@ -732,8 +736,12 @@ LALWriteLIGOLwXMLTable (
               tablePtr.multiInspiralTable->eta,
               tablePtr.multiInspiralTable->chi,
               tablePtr.multiInspiralTable->kappa,
-              tablePtr.multiInspiralTable->s1z,
-              tablePtr.multiInspiralTable->s2z,
+              tablePtr.multiInspiralTable->spin1x,
+              tablePtr.multiInspiralTable->spin1y,
+              tablePtr.multiInspiralTable->spin1z,
+              tablePtr.multiInspiralTable->spin2x,
+              tablePtr.multiInspiralTable->spin2y,
+              tablePtr.multiInspiralTable->spin2z,
               tablePtr.multiInspiralTable->tau0,
               tablePtr.multiInspiralTable->tau2,
               tablePtr.multiInspiralTable->tau3,
@@ -1386,8 +1394,12 @@ int XLALWriteLIGOLwXMLSnglInspiralTable(
 	fputs("\t\t<Column Name=\"sngl_inspiralgroup:sngl_inspiral:eta\" Type=\"real_4\"/>\n", xml->fp);
 	fputs("\t\t<Column Name=\"sngl_inspiralgroup:sngl_inspiral:kappa\" Type=\"real_4\"/>\n", xml->fp);
 	fputs("\t\t<Column Name=\"sngl_inspiralgroup:sngl_inspiral:chi\" Type=\"real_4\"/>\n", xml->fp);
-	fputs("\t\t<Column Name=\"sngl_inspiralgroup:sngl_inspiral:s1z\" Type=\"real_4\"/>\n", xml->fp);
-	fputs("\t\t<Column Name=\"sngl_inspiralgroup:sngl_inspiral:s2z\" Type=\"real_4\"/>\n", xml->fp);
+	fputs("\t\t<Column Name=\"sngl_inspiralgroup:sngl_inspiral:spin1x\" Type=\"real_4\"/>\n", xml->fp);
+	fputs("\t\t<Column Name=\"sngl_inspiralgroup:sngl_inspiral:spin1y\" Type=\"real_4\"/>\n", xml->fp);
+	fputs("\t\t<Column Name=\"sngl_inspiralgroup:sngl_inspiral:spin1z\" Type=\"real_4\"/>\n", xml->fp);
+	fputs("\t\t<Column Name=\"sngl_inspiralgroup:sngl_inspiral:spin2x\" Type=\"real_4\"/>\n", xml->fp);
+	fputs("\t\t<Column Name=\"sngl_inspiralgroup:sngl_inspiral:spin2y\" Type=\"real_4\"/>\n", xml->fp);
+	fputs("\t\t<Column Name=\"sngl_inspiralgroup:sngl_inspiral:spin2z\" Type=\"real_4\"/>\n", xml->fp);
 	fputs("\t\t<Column Name=\"sngl_inspiralgroup:sngl_inspiral:tau0\" Type=\"real_4\"/>\n", xml->fp);
 	fputs("\t\t<Column Name=\"sngl_inspiralgroup:sngl_inspiral:tau2\" Type=\"real_4\"/>\n", xml->fp);
 	fputs("\t\t<Column Name=\"sngl_inspiralgroup:sngl_inspiral:tau3\" Type=\"real_4\"/>\n", xml->fp);
@@ -1432,7 +1444,7 @@ int XLALWriteLIGOLwXMLSnglInspiralTable(
 	/* rows */
 
 	for(; sngl_inspiral; sngl_inspiral = sngl_inspiral->next) {
-		if( fprintf(xml->fp,"%s\"process:process_id:0\",\"%s\",\"%s\",\"%s\",%d,%d,%.16g,%d,%d,%.16g,%.16g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%u,%.8g,%u,%.8g,%u,%.16g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,\"sngl_inspiral:event_id:0\"",
+		if( fprintf(xml->fp,"%s\"process:process_id:0\",\"%s\",\"%s\",\"%s\",%d,%d,%.16g,%d,%d,%.16g,%.16g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%u,%.8g,%u,%.8g,%u,%.16g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,\"sngl_inspiral:event_id:0\"",
 			   row_head,
 			   sngl_inspiral->ifo,
 			   sngl_inspiral->search,
@@ -1454,8 +1466,12 @@ int XLALWriteLIGOLwXMLSnglInspiralTable(
 			   sngl_inspiral->eta,
 			   sngl_inspiral->kappa,
 			   sngl_inspiral->chi,
-			   sngl_inspiral->s1z,
-			   sngl_inspiral->s2z,
+			   sngl_inspiral->spin1x,
+			   sngl_inspiral->spin1y,
+			   sngl_inspiral->spin1z,
+			   sngl_inspiral->spin2x,
+			   sngl_inspiral->spin2y,
+			   sngl_inspiral->spin2z,
 			   sngl_inspiral->tau0,
 			   sngl_inspiral->tau2,
 			   sngl_inspiral->tau3,

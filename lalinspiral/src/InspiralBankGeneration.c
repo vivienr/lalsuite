@@ -424,18 +424,18 @@ LALInspiralBankGeneration(
 
   case PhenSpinTaylorRD:
 
-    s1z = malloc (input->nPointss1z * sizeof(REAL8));
-    s2z = malloc (input->nPointss2z * sizeof(REAL8));
-    ds1z = ( input->s1zMax - input->s1zMin) / (REAL8) input->nPointss1z;
-    ds2z = ( input->s2zMax - input->s2zMin) / (REAL8) input->nPointss2z;
+    s1z = malloc (input->nPointsSpin1z * sizeof(REAL8));
+    s2z = malloc (input->nPointsSpin2z * sizeof(REAL8));
+    ds1z = ( input->spin1zMax - input->spin1zMin) / (REAL8) input->nPointsSpin1z;
+    ds2z = ( input->spin2zMax - input->spin2zMin) / (REAL8) input->nPointsSpin2z;
 
-    for (i=0; i < input->nPointss1z; i++)
+    for (i=0; i < input->nPointsSpin1z; i++)
     {
-      s1z[i] = input->s1zMin + ds1z *((REAL4)(i)+0.5);
+      s1z[i] = input->spin1zMin + ds1z *((REAL4)(i)+0.5);
     }
-    for (i=0; i < input->nPointss2z; i++)
+    for (i=0; i < input->nPointsSpin2z; i++)
     {
-      s2z[i] = input->s2zMin + ds2z *((REAL4)(i)+0.5);
+      s2z[i] = input->spin2zMin + ds2z *((REAL4)(i)+0.5);
     }
 
     /* Use LALInspiralCreateCoarseBank(). */
@@ -449,9 +449,9 @@ LALInspiralBankGeneration(
     }
     *first = bank;
 
-    for ( s1zcnt = 0; s1zcnt < input->nPointss1z; s1zcnt++ )
+    for ( s1zcnt = 0; s1zcnt < input->nPointsSpin1z; s1zcnt++ )
     {
-      for ( s2zcnt = 0; s2zcnt < input->nPointss2z; s2zcnt++ )
+      for ( s2zcnt = 0; s2zcnt < input->nPointsSpin2z; s2zcnt++ )
 	{
 	  for( cnt = 0; cnt < *ntiles; cnt++ )
 	    {
@@ -467,8 +467,8 @@ LALInspiralBankGeneration(
 	      bank->mchirp  = coarseList[cnt].params.chirpMass;
 	      bank->mtotal  = coarseList[cnt].params.totalMass;
 	      bank->eta     = coarseList[cnt].params.eta;
-	      bank->s1z  = (REAL4) s1z[s1zcnt];
-	      bank->s2z  = (REAL4) s2z[s2zcnt];
+	      bank->spin1z  = (REAL4) s1z[s1zcnt];
+	      bank->spin2z  = (REAL4) s2z[s2zcnt];
 	      bank->tau0    = coarseList[cnt].params.t0;
 	      bank->tau2    = coarseList[cnt].params.t2;
 	      bank->tau3    = coarseList[cnt].params.t3;
