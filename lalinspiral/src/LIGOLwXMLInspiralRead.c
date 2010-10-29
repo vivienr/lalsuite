@@ -1023,7 +1023,7 @@ InspiralTmpltBankFromLIGOLw (
     {"beta",    -1, 12},
     {"f_final", -1, 13},
     {"end_time", -1, 14},
-    {"end_time_ns ", -1, 15},
+    {"end_time_ns", -1, 15},
     {"event_id",-1, 16},
     {"ifo", -1, 17},
     {"Gamma0", -1, 18},
@@ -1040,11 +1040,10 @@ InspiralTmpltBankFromLIGOLw (
     {"chi",    -1, 29},
     {"spin1x", -1, 30},
     {"spin1y", -1, 31},
-    {"spin1z", -1, 30},
-    {"spin2x", -1, 31},
-    {"spin2y", -1, 30},
-    {"spin2z", -1, 31},
-
+    {"spin1z", -1, 32},
+    {"spin2x", -1, 33},
+    {"spin2y", -1, 34},
+    {"spin2z", -1, 35},
     {NULL,      0, 0}
   };
 
@@ -1061,7 +1060,7 @@ InspiralTmpltBankFromLIGOLw (
   }
 
 
-  /* open the procress_params table from the bank file */
+  /* open the process_params table from the bank file */
   mioStatus = MetaioOpenTable( env, fileName, "process_params" );
   if ( mioStatus )
   {
@@ -2170,7 +2169,6 @@ LALExtTriggerTableFromLIGOLw (
         else if ( tableDir[j].idx == 15 )
         {
           thisEvent->start_time = i4colData;
-          /*  printf("start time:%d\n",i4colData); */
         }
         else if ( tableDir[j].idx == 16 )
         {
