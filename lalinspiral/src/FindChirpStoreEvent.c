@@ -146,6 +146,12 @@ LALFindChirpStoreEvent (
   thisEvent->eta     = (REAL4) input->fcTmplt->tmplt.eta;
   thisEvent->kappa   = (REAL4) input->fcTmplt->tmplt.kappa;
   thisEvent->chi     = (REAL4) input->fcTmplt->tmplt.chi;
+  thisEvent->spin1x  = (REAL4) input->fcTmplt->tmplt.spin1[0];
+  thisEvent->spin1y  = (REAL4) input->fcTmplt->tmplt.spin1[1];
+  thisEvent->spin1z  = (REAL4) input->fcTmplt->tmplt.spin1[2];
+  thisEvent->spin2x  = (REAL4) input->fcTmplt->tmplt.spin2[0];
+  thisEvent->spin2y  = (REAL4) input->fcTmplt->tmplt.spin2[1];
+  thisEvent->spin2z  = (REAL4) input->fcTmplt->tmplt.spin2[2];
   thisEvent->tau0    = (REAL4) input->fcTmplt->tmplt.t0;
   thisEvent->tau2    = (REAL4) input->fcTmplt->tmplt.t2;
   thisEvent->tau3    = (REAL4) input->fcTmplt->tmplt.t3;

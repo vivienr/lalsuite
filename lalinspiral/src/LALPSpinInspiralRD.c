@@ -673,7 +673,9 @@ void LALPSpinInspiralRDFreqDom (
   ASSERT(params->totalMass > 0., status,
 	 LALINSPIRALH_ESIZE, LALINSPIRALH_MSGESIZE);
 
-  LALInspiralInit(status->statusPtr, params, &paramsInit);
+  LALInspiralSetup (status->statusPtr, &(paramsInit.ak), params);
+  CHECKSTATUSPTR(status);
+  LALInspiralChooseModel(status->statusPtr, &(paramsInit.func), &(paramsInit.ak), params);
   CHECKSTATUSPTR(status);
 
   if (paramsInit.nbins==0)
@@ -681,7 +683,7 @@ void LALPSpinInspiralRDFreqDom (
       DETATCHSTATUSPTR(status);
       RETURN (status);
     }
-
+  
   nbins=paramsInit.nbins;
 
   if (nbins<signalvec->length) nbins=signalvec->length;
@@ -726,13 +728,13 @@ void LALPSpinInspiralRDFreqDom (
   norm=0.;
   j=1;
   for (i=1;i<nbins/2;i++) {
-    mod+=sqrt(fsignalvec->data[2*i]*fsignalvec->data[2*i]+fsignalvec->data[2*i+1]*fsignalvec->data[2*i+1]);
-    ph+=atan2(fsignalvec->data[2*i+1],fsignalvec->data[2*i+1]);
+    mod+=sqrt(fsignalvec->data[i]*fsignalvec->data[i]+fsignalvec->data[nbins-i]*fsignalvec->data[nbins-i]);
+    ph+=atan2(fsignalvec->data[nbins-i],fsignalvec->data[i]);
     if (i%sub==0) {
       mod/=(REAL4)(sub);
       ph/=(REAL4)(sub);
-      signalvec->data[2*j]=mod*cos(ph);
-      signalvec->data[2*j+1]=mod*sin(ph);
+      signalvec->data[j]=mod*cos(ph);
+      signalvec->data[signalvec->length-j]=mod*sin(ph);
       norm+=2.*mod*mod;
       mod=0.;
       ph=0.;
@@ -741,12 +743,12 @@ void LALPSpinInspiralRDFreqDom (
   }
   signalvec->data[0]=0.;
   if (i%sub==0)
-    signalvec->data[1]=(mod+fsignalvec->data[1])/((REAL4)(sub));
+    signalvec->data[nbins/2]=(mod+fsignalvec->data[nbins/2])/((REAL4)(sub));
   else {
     fprintf(stdout,"Qui non dovrei entrarci mai\n");
-    signalvec->data[1]=fsignalvec->data[1];
+    signalvec->data[nbins/2]=fsignalvec->data[nbins/2];
   }
-  norm+=signalvec->data[0]*signalvec->data[0]+signalvec->data[1]*signalvec->data[1];
+  norm+=signalvec->data[0]*signalvec->data[0]+signalvec->data[nbins/2]*signalvec->data[nbins/2];
   //  fprintf(stdout,"FFTnorm=%11.3e\n",norm/signalvec->length);
 
   XLALDestroyREAL4Vector(fsignalvec);
@@ -899,14 +901,6 @@ void LALPSpinInspiralRDEngine (
   
   /* Compute some parameters*/
   
-  /*  if (signalvec1) fprintf(stdout,"E: nbins=%d L=%d\n",paramsInit->nbins,signalvec1->length);
-      if (hh) fprintf(stdout,"E: nbins=%d L=%d\n",paramsInit->nbins,hh->length);*/
-
-  if (paramsInit->nbins==0)
-    {
-      DETATCHSTATUSPTR(status);
-      RETURN (status);
-    }
   ak   = paramsInit->ak;
 
   mparams = &PSIRDparameters;
@@ -1513,7 +1507,7 @@ void LALPSpinInspiralRDEngine (
 
  /* Test that omega/unitHz < NYQUIST */
   
-  while( energy <= 0.9*enold && omega >= 0.999*omegaold && omega/unitHz < params->tSampling && !(isnan(omega)) && omega < omegamatch);
+  while( energy <= 0.9*enold && omega >= 0.999*omegaold && omega/unitHz < params->tSampling && !(isnan(omega)) && omega < omegamatch );
 
  /* if code stopped since evolving quantities became nan write an error message */
   if (isnan(omega)){
