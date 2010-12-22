@@ -281,6 +281,7 @@ LALFindChirpChisqVeto (
     case EOBNR:
     case PhenSpinTaylorRD:
     case FindChirpSP:
+    case IMRPhenomB:
       break;
     default:
       ABORT( status, FINDCHIRPCHISQH_EIAPX, FINDCHIRPCHISQH_MSGEIAPX );

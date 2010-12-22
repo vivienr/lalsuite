@@ -109,6 +109,7 @@ LALFindChirpDataInit (
     case BCV:
     case BCVSpin:
     case AmpCorPPN:
+    case IMRPhenomB:
       break;
     default:
       ABORT( status, FINDCHIRPH_EUAPX, FINDCHIRPH_MSGEUAPX );
