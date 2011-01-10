@@ -214,7 +214,7 @@ LALInspiralWave(
             * account h+, hx and orientation of the system*/
            LALSTPNWaveform(status->statusPtr, signalvec, params);
            CHECKSTATUSPTR(status);
-	   break;
+           break;
       case PhenSpinTaylorRD:
            LALPSpinInspiralRD(status->statusPtr, signalvec, params);
            CHECKSTATUSPTR(status);
