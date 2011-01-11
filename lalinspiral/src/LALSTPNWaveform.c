@@ -998,10 +998,10 @@ LALSTPNWaveformEngine (
     break;
     
   default:
-    //case (View)
+    //case (View):
     for (j=0;j<3;j++) {
       initS1[j] = params->spin1[j] * (params->mass1 * params->mass1) / (params->totalMass * params->totalMass);
-      initS2[j] = params->spin2[j] * (params->mass1 * params->mass1) / (params->totalMass * params->totalMass);
+      initS2[j] = params->spin2[j] * (params->mass2 * params->mass2) / (params->totalMass * params->totalMass);
     }
     initLNh[0] = sin(params->inclination);
     initLNh[1] = 0.;

@@ -100,6 +100,8 @@ int main(void) {
     injParams.spin2y = 0.5;
     injParams.spin2z = 0.6;
 
+    ppnParams.axisChoice = TotalJ;
+
     ppnParams.deltaT = 1.0 / 4096.0;
 
     fprintf(stderr, "Lower cut-off frequency used will be %fHz\n", injParams.f_lower);
