@@ -826,7 +826,7 @@ void LALPSpinInspiralRDEngine (
   REAL8 iotaddot,iotadotold,alphaddot,alphadotold;
 
   REAL4 mchi1,mchi2;
-  REAL4 cosa1,cosa2,cosg;
+  //  REAL4 cosa1,cosa2,cosg;
   REAL4 LNmag;
 
   REAL8 energy=0.;
@@ -955,13 +955,13 @@ void LALPSpinInspiralRDEngine (
   mchi2=sqrt( params->spin2[0]*params->spin2[0] + params->spin2[1]*params->spin2[1] + params->spin2[2]*params->spin2[2] );
 
   /* Cosinus of the angle between the spin vectors */
-  cosg  = (params->spin1[0]*params->spin2[0] + params->spin1[1]*params->spin2[1] + params->spin1[2]*params->spin2[2])/ mchi1/mchi2;
+  //cosg  = (params->spin1[0]*params->spin2[0] + params->spin1[1]*params->spin2[1] + params->spin1[2]*params->spin2[2])/ mchi1/mchi2;
 
   switch (params->axisChoice) {
     
   case OrbitalL:
-    cosa1 = params->spin1[2]/mchi1;
-    cosa2 = params->spin2[2]/mchi2;
+    //cosa1 = params->spin1[2]/mchi1;
+    //cosa2 = params->spin2[2]/mchi2;
     initLNh[0]=0.;
     initLNh[1]=0.;
     initLNh[2]=1.;
@@ -973,8 +973,8 @@ void LALPSpinInspiralRDEngine (
     break;
     
   case TotalJ:
-    cosa1 = params->spin1[2]/mchi1;
-    cosa2 = params->spin2[2]/mchi2;
+    //cosa1 = params->spin1[2]/mchi1;
+    //cosa2 = params->spin2[2]/mchi2;
     for (j=0;j<3;j++) {
       iS1[j] = params->spin1[j] * params->mass1 * params->mass1;
       iS2[j] = params->spin2[j] * params->mass2 * params->mass2;
@@ -1010,8 +1010,8 @@ void LALPSpinInspiralRDEngine (
     break;
   default:
     //case View:
-    cosa1 = (params->spin1[2]*cos(params->inclination)+params->spin1[0]*sin(params->inclination))/mchi1; 
-    cosa2 = (params->spin1[2]*cos(params->inclination)+params->spin2[0]*sin(params->inclination))/mchi2; 
+    //cosa1 = (params->spin1[2]*cos(params->inclination)+params->spin1[0]*sin(params->inclination))/mchi1; 
+    //cosa2 = (params->spin1[2]*cos(params->inclination)+params->spin2[0]*sin(params->inclination))/mchi2; 
     for (i=0;i<3;i++) {
       initS1[i]=params->spin1[i]*params->mass1*params->mass1;
       initS2[i]=params->spin2[i]*params->mass2*params->mass2;
