@@ -1947,8 +1947,8 @@ int main( int argc, char *argv[] )
       case EOB:
       case EOBNR:
       case FindChirpPTF:
-      case PhenSpinTaylorRD:
       case IMRPhenomB:
+      case PhenSpinTaylorRD:
         if ( vrbflg )
           fprintf( stdout, "findchirp conditioning data for TD or PTF\n" );
         LAL_CALL( LALFindChirpTDData( &status, fcSegVec, dataSegVec,
@@ -2232,8 +2232,8 @@ int main( int argc, char *argv[] )
           case PadeT1:
           case EOB:
           case EOBNR:
-  	  case PhenSpinTaylorRD:
           case IMRPhenomB:
+          case PhenSpinTaylorRD:
             LAL_CALL( LALFindChirpTDTemplate( &status, fcFilterInput->fcTmplt,
                   bankCurrent, fcTmpltParams ), &status );
             break;
@@ -2423,8 +2423,8 @@ int main( int argc, char *argv[] )
               case PadeT1:
               case EOB:
               case EOBNR:
-	      case PhenSpinTaylorRD:
               case IMRPhenomB:
+              case PhenSpinTaylorRD:
                 /* construct normalization for time domain templates... */
                 LAL_CALL( LALFindChirpTDNormalize( &status,
                       fcFilterInput->fcTmplt, fcFilterInput->segment,
@@ -2702,8 +2702,8 @@ int main( int argc, char *argv[] )
               case PadeT1:
               case EOB:
               case EOBNR:
-	      case PhenSpinTaylorRD:
               case IMRPhenomB:
+              case PhenSpinTaylorRD:
                 /* recompute the template norm since it has been over written */
                 /* ( When doing the chisq test and the bank veto for          */
                 /* time domain searches that don't use the                    */
@@ -2812,9 +2812,9 @@ int main( int argc, char *argv[] )
         case PadeT1:
         case EOB:
         case EOBNR:
-        case PhenSpinTaylorRD:
         case FindChirpSP:
         case IMRPhenomB:
+        case PhenSpinTaylorRD:
           /* the chisq bins need to be re-computed for the next template */
           for ( i = 0; i < fcSegVec->length ; ++i )
           {
@@ -3639,7 +3639,7 @@ fprintf( a, "  --dynamic-range-exponent X   set dynamic range scaling to 2^X\n")
 fprintf( a, "\n");\
 fprintf( a, "  --approximant APPROX         set approximant of the waveform to APPROX\n");\
 fprintf( a, "                               (FindChirpSP|BCV|BCVC|BCVSpin|TaylorT1|TaylorT2|IMRPhenomB\n");\
-fprintf( a, "                                  TaylorT3|PadeT1|EOB|GeneratePPN|FindChirpPTF) \n");\
+fprintf( a, "                                  TaylorT3|PadeT1|EOB|GeneratePPN|FindChirpPTF|PhenSpinTaylorRD) \n");\
 fprintf( a, "  --order ORDER                set the pN order of the waveform to ORDER\n");\
 fprintf( a, "                               (twoPN|twoPointFivePN|threePN|threePointFivePN|\n");\
 fprintf( a, "                                  pseudoFourPN) \n");\
@@ -3706,7 +3706,7 @@ fprintf( a, "  --enable-bank-sim-max        compute the maximum match over the b
 fprintf( a, "  --disable-bank-sim-max       do not maximize the match over the bank\n");\
 fprintf( a, "  --sim-approximant APX        set approximant of the injected waveform to APX\n");\
 fprintf( a, "                                 (TaylorT1|TaylorT2|TaylorT3|PadeT1|EOB|\n");\
-fprintf( a, "                                  GeneratePPN|FrameFile) \n");\
+fprintf( a, "                                  GeneratePPN|FrameFile|PhenSpinTaylorRD) \n");\
 fprintf( a, "  --sim-frame-file F           read the bank sim waveform from frame named F\n");\
 fprintf( a, "  --sim-frame-channel C        read the bank sim waveform from frame channel C\n");\
 fprintf( a, "  --sim-minimum-mass M         set minimum mass of bank injected signal to M\n");\
@@ -4690,7 +4690,7 @@ int arg_parse_check( int argc, char *argv[], MetadataTable procparams )
         }
         else if ( ! strcmp( "PhenSpinTaylorRD", optarg ) )
         {
-          approximant = PhenSpinTaylorRD;
+          bankSimParams.approx = PhenSpinTaylorRD;
         }
         else if ( ! strcmp( "GeneratePPN", optarg ) )
         {
