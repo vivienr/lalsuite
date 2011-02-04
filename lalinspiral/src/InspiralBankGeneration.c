@@ -1,3 +1,4 @@
+
 /*
 *  Copyright (C) 2007 Chad Hanna, Duncan Brown, Benjamin Owen, B.S. Sathyaprakash, Anand Sengupta, Thomas Cokelaer, Evan Ochsner
 *
@@ -45,8 +46,10 @@ LALInspiralBankGeneration(
   REAL8 q         = 0;
   INT4  chicnt    = 0;
   INT4  kappacnt  = 0;
-  INT4  s1zcnt    = 0;
-  INT4  s2zcnt    = 0;
+  INT4  spincnt   = 0;
+  INT4  spinGrid  = 0;
+  INT4  chiGrid   = 0;
+  INT4  dimGrid   = 1;
   INT4  numTmplts = 0;
   INT4  i;
   REAL8 *chi, *kappa, dChi, dKappa;
@@ -424,18 +427,36 @@ LALInspiralBankGeneration(
 
   case PhenSpinTaylorRD:
 
-    s1z = malloc (input->nPointsSpin1z * sizeof(REAL8));
-    s2z = malloc (input->nPointsSpin2z * sizeof(REAL8));
-    ds1z = ( input->spin1zMax - input->spin1zMin) / (REAL8) input->nPointsSpin1z;
-    ds2z = ( input->spin2zMax - input->spin2zMin) / (REAL8) input->nPointsSpin2z;
-
-    for (i=0; i < input->nPointsSpin1z; i++)
-    {
-      s1z[i] = input->spin1zMin + ds1z *((REAL4)(i)+0.5);
+    if ((input->nPointsSpin1z>1)||(input->nPointsSpin2z>1)) {
+      spinGrid=1;
+      dimGrid=input->nPointsSpin1z*input->nPointsSpin2z;
     }
-    for (i=0; i < input->nPointsSpin2z; i++)
-    {
-      s2z[i] = input->spin2zMin + ds2z *((REAL4)(i)+0.5);
+    else {
+      chiGrid=1;
+      dimGrid=input->nPointsChi;
+    }
+    
+    s1z = malloc (dimGrid * sizeof(REAL8));
+    s2z = malloc (dimGrid * sizeof(REAL8));
+
+    if (spinGrid==1) {
+      ds1z = ( input->spin1zMax - input->spin1zMin) / (REAL8) input->nPointsSpin1z;
+      ds2z = ( input->spin2zMax - input->spin2zMin) / (REAL8) input->nPointsSpin2z;
+      for (i=0; i<dimGrid; i++) { 
+	s1z[i] = input->spin1zMin + ds1z *((REAL4)(i/input->nPointsSpin2z)+0.5);
+	s2z[i] = input->spin2zMin + ds2z *((REAL4)(i%input->nPointsSpin1z)+0.5);
+      }
+    }
+    else {
+      if (chiGrid==1) {
+	dimGrid=input->nPointsChi;
+	chi = malloc (input->nPointsChi * sizeof(REAL8));
+	dChi = 2.*( input->chiMax + input->chiMin) / (REAL8) input->nPointsChi;
+	for (i=0; i < dimGrid; i++)  
+	  { 
+	    s1z[i] = s2z[i]=-input->chiMax + dChi *((REAL4)(i)+0.5);
+	  }
+      }
     }
 
     /* Use LALInspiralCreateCoarseBank(). */
@@ -449,47 +470,42 @@ LALInspiralBankGeneration(
     }
     *first = bank;
 
-    for ( s1zcnt = 0; s1zcnt < input->nPointsSpin1z; s1zcnt++ )
-    {
-      for ( s2zcnt = 0; s2zcnt < input->nPointsSpin2z; s2zcnt++ )
-	{
-	  for( cnt = 0; cnt < *ntiles; cnt++ )
-	    {
-	      /* restrict the bank boundaries to the region of validity of PTF */
-	      bank = bank->next = (SnglInspiralTable *) LALCalloc( 1, sizeof(SnglInspiralTable ) );
-	      if (bank == NULL)
-		{
-		  ABORT( status, LALINSPIRALBANKH_EMEM, LALINSPIRALBANKH_MSGEMEM );
-		}
-	      numTmplts     = numTmplts + 1 ;
-	      bank->mass1   = coarseList[cnt].params.mass1;
-	      bank->mass2   = coarseList[cnt].params.mass2;
-	      bank->mchirp  = coarseList[cnt].params.chirpMass;
-	      bank->mtotal  = coarseList[cnt].params.totalMass;
-	      bank->eta     = coarseList[cnt].params.eta;
-	      bank->spin1z  = (REAL4) s1z[s1zcnt];
-	      bank->spin2z  = (REAL4) s2z[s2zcnt];
-	      bank->tau0    = coarseList[cnt].params.t0;
-	      bank->tau2    = coarseList[cnt].params.t2;
-	      bank->tau3    = coarseList[cnt].params.t3;
-	      bank->tau4    = coarseList[cnt].params.t4;
-	      bank->tau5    = coarseList[cnt].params.t5;
-	      bank->ttotal  = coarseList[cnt].params.tC;
-	      bank->psi0    = coarseList[cnt].params.psi0;
-	      bank->psi3    = coarseList[cnt].params.psi3;
-	      bank->f_final = coarseList[cnt].params.fFinal;
-	      bank->eta     = coarseList[cnt].params.eta;
-	      bank->beta    = coarseList[cnt].params.beta;
-	      
-	      /* Copy the 10 metric co-efficients ... */
-	      memcpy (bank->Gamma, coarseList[cnt].metric.Gamma, 10*sizeof(REAL4));
-	      
-	    }
-	}
+    for ( spincnt = 0; spincnt < dimGrid; spincnt++ ) {
+      for( cnt = 0; cnt < *ntiles; cnt++ ) {
+	/* restrict the bank boundaries to the region of validity of PTF */
+	bank = bank->next = (SnglInspiralTable *) LALCalloc( 1, sizeof(SnglInspiralTable ) );
+	if (bank == NULL)
+	  {
+	    ABORT( status, LALINSPIRALBANKH_EMEM, LALINSPIRALBANKH_MSGEMEM );
+	  }
+	numTmplts     = numTmplts + 1 ;
+	bank->mass1   = coarseList[cnt].params.mass1;
+	bank->mass2   = coarseList[cnt].params.mass2;
+	bank->mchirp  = coarseList[cnt].params.chirpMass;
+	bank->mtotal  = coarseList[cnt].params.totalMass;
+	bank->eta     = coarseList[cnt].params.eta;
+	bank->spin1z  = (REAL4) s1z[spincnt];
+	bank->spin2z  = (REAL4) s2z[spincnt];	     
+	bank->tau0    = coarseList[cnt].params.t0;
+	bank->tau2    = coarseList[cnt].params.t2;
+	bank->tau3    = coarseList[cnt].params.t3;
+	bank->tau4    = coarseList[cnt].params.t4;
+	bank->tau5    = coarseList[cnt].params.t5;
+	bank->ttotal  = coarseList[cnt].params.tC;
+	bank->psi0    = coarseList[cnt].params.psi0;
+	bank->psi3    = coarseList[cnt].params.psi3;
+	bank->f_final = coarseList[cnt].params.fFinal;
+	bank->eta     = coarseList[cnt].params.eta;
+	bank->beta    = coarseList[cnt].params.beta;
+	
+	/* Copy the 10 metric co-efficients ... */
+	memcpy (bank->Gamma, coarseList[cnt].metric.Gamma, 10*sizeof(REAL4));
+      }
     }
 
     free(s1z);
     free(s2z);
+
     /* Free first template, which is blank. */
     bank = (*first)->next;
     LALFree( *first );
@@ -499,11 +515,11 @@ LALInspiralBankGeneration(
     *ntiles = numTmplts;
     break;
 
-  default:
-    ABORT( status, LALINSPIRALBANKH_ECHOICE, LALINSPIRALBANKH_MSGECHOICE );
-
-  }
-
-  DETATCHSTATUSPTR(status);
-  RETURN(status);
+    default:
+      ABORT( status, LALINSPIRALBANKH_ECHOICE, LALINSPIRALBANKH_MSGECHOICE );
+      
+    }
+    
+    DETATCHSTATUSPTR(status);
+    RETURN(status);
 }
