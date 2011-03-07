@@ -2625,48 +2625,65 @@ LALMultiInspiralTableFromLIGOLw (
           {"bank_chisq_dof",          -1, 40},
           {"cont_chisq",              -1, 41},
           {"cont_chisq_dof",          -1, 42},
-          {"sigmasq_h1",              -1, 43},
-          {"sigmasq_h2",              -1, 44},
-          {"sigmasq_l",               -1, 45},
-          {"sigmasq_g",               -1, 46},
-          {"sigmasq_t",               -1, 47},
-          {"sigmasq_v",               -1, 48},
-          {"chisq_h1",                -1, 49},
-          {"chisq_h2",                -1, 50},
-          {"chisq_l",                 -1, 51},
-          {"chisq_g",                 -1, 52},
-          {"chisq_t",                 -1, 53},
-          {"chisq_v",                 -1, 54},
-          {"ra",                      -1, 55},
-          {"dec",                     -1, 56},
-          {"ligo_angle",              -1, 57},
-          {"ligo_angle_sig",          -1, 58},
-          {"inclination",             -1, 59},
-          {"polarization",            -1, 60},
-          {"null_statistic",          -1, 61},
-	  {"null_stat_h1h2",          -1, 62},
-	  {"null_stat_degen",         -1, 63},
-          {"event_id",                -1, 64},
-          {"h1quad_re",               -1, 65},
-          {"h1quad_im",               -1, 66},
-          {"h2quad_re",               -1, 67},
-          {"h2quad_im",               -1, 68},
-          {"l1quad_re",               -1, 69},
-          {"l1quad_im",               -1, 70},
-          {"g1quad_re",               -1, 72},
-          {"g1quad_im",               -1, 72},
-          {"t1quad_re",               -1, 73},
-          {"t1quad_im",               -1, 74},
-          {"v1quad_re",               -1, 75},
-          {"v1quad_im",               -1, 76},
-          {"coh_snr_h1h2",            -1, 77},
-          {"cohSnrSqLocal",           -1, 78},
-          {"autoCorrCohSq",           -1, 79},
-          {"crossCorrCohSq",          -1, 80},
-          {"autoCorrNullSq",          -1, 81},
-          {"crossCorrNullSq",         -1, 82},
-          {"ampMetricEigenVal1",      -1, 83},
-          {"ampMetricEigenVal2",      -1, 84},
+          {"trace_snr",               -1, 43},
+          {"snr_h1",                  -1, 44},
+          {"snr_h2",                  -1, 45},
+          {"snr_l",                   -1, 46},
+          {"snr_g",                   -1, 47},
+          {"snr_t",                   -1, 48},
+          {"snr_v",                   -1, 49},
+          {"amp_term_1",              -1, 50},
+          {"amp_term_2",              -1, 51},
+          {"amp_term_3",              -1, 52},
+          {"amp_term_4",              -1, 53},
+          {"amp_term_5",              -1, 54},
+          {"amp_term_6",              -1, 55},
+          {"amp_term_7",              -1, 56},
+          {"amp_term_8",              -1, 57},
+          {"amp_term_9",              -1, 58},
+          {"amp_term_10",             -1, 59},
+          {"sigmasq_h1",              -1, 60},
+          {"sigmasq_h2",              -1, 61},
+          {"sigmasq_l",               -1, 62},
+          {"sigmasq_g",               -1, 63},
+          {"sigmasq_t",               -1, 64},
+          {"sigmasq_v",               -1, 65},
+          {"chisq_h1",                -1, 66},
+          {"chisq_h2",                -1, 67},
+          {"chisq_l",                 -1, 68},
+          {"chisq_g",                 -1, 69},
+          {"chisq_t",                 -1, 70},
+          {"chisq_v",                 -1, 71},
+          {"ra",                      -1, 72},
+          {"dec",                     -1, 73},
+          {"ligo_angle",              -1, 74},
+          {"ligo_angle_sig",          -1, 75},
+          {"inclination",             -1, 76},
+          {"polarization",            -1, 77},
+          {"null_statistic",          -1, 78},
+	  {"null_stat_h1h2",          -1, 79},
+	  {"null_stat_degen",         -1, 80},
+          {"event_id",                -1, 81},
+          {"h1quad_re",               -1, 82},
+          {"h1quad_im",               -1, 83},
+          {"h2quad_re",               -1, 84},
+          {"h2quad_im",               -1, 85},
+          {"l1quad_re",               -1, 86},
+          {"l1quad_im",               -1, 87},
+          {"g1quad_re",               -1, 88},
+          {"g1quad_im",               -1, 89},
+          {"t1quad_re",               -1, 90},
+          {"t1quad_im",               -1, 91},
+          {"v1quad_re",               -1, 92},
+          {"v1quad_im",               -1, 93},
+          {"coh_snr_h1h2",            -1, 94},
+          {"cohSnrSqLocal",           -1, 95},
+          {"autoCorrCohSq",           -1, 96},
+          {"crossCorrCohSq",          -1, 97},
+          {"autoCorrNullSq",          -1, 98},
+          {"crossCorrNullSq",         -1, 99},
+          {"ampMetricEigenVal1",      -1, 100},
+          {"ampMetricEigenVal2",      -1, 101},
           {NULL,                       0, 0}
     };
 
@@ -2856,6 +2873,27 @@ LALMultiInspiralTableFromLIGOLw (
       {
         thisEvent->coa_phase = r4colData;
       }
+
+          {"snr_h1",                  -1, 44},
+          {"snr_h2",                  -1, 45},
+          {"snr_l",                   -1, 46},
+          {"snr_g",                   -1, 47},
+          {"snr_t",                   -1, 48},
+          {"snr_v",                   -1, 49},
+          {"amp_term_1",              -1, 50},
+          {"amp_term_2",              -1, 51},
+          {"amp_term_3",              -1, 52},
+          {"amp_term_4",              -1, 53},
+          {"amp_term_5",              -1, 54},
+          {"amp_term_6",              -1, 55},
+          {"amp_term_7",              -1, 56},
+          {"amp_term_8",              -1, 57},
+          {"amp_term_9",              -1, 58},
+          {"amp_term_10",             -1, 59},
+          {"sigmasq_h1",              -1, 60},
+          {"sigmasq_h2",              -1, 61},
+
+
       else if ( tableDir[j].idx == 25 )
       {
         thisEvent->mass1 = r4colData;
@@ -2930,89 +2968,157 @@ LALMultiInspiralTableFromLIGOLw (
       }
       else if ( tableDir[j].idx == 43 )
       {
-        thisEvent->sigmasq_h1 = r8colData;
+        thisEvent->trace_snr = r8colData;
       }
       else if ( tableDir[j].idx == 44 )
       {
-        thisEvent->sigmasq_h2 = r8colData;
+        thisEvent->snr_h1 = r4colData;
       }
       else if ( tableDir[j].idx == 45 )
       {
-        thisEvent->sigmasq_l = r8colData;
+        thisEvent->snr_h2 = r4colData;
       }
       else if ( tableDir[j].idx == 46 )
       {
-        thisEvent->sigmasq_g = r8colData;
+        thisEvent->snr_l = r4colData;
       }
       else if ( tableDir[j].idx == 47 )
       {
-        thisEvent->sigmasq_t = r8colData;
+        thisEvent->snr_g = r4colData;
       }
       else if ( tableDir[j].idx == 48 )
       {
-        thisEvent->sigmasq_v = r8colData;
+        thisEvent->snr_t = r4colData;
       }
       else if ( tableDir[j].idx == 49 )
       {
-        thisEvent->chisq_h1 = r4colData;
+        thisEvent->snr_v = r4colData;
       }
       else if ( tableDir[j].idx == 50 )
       {
-        thisEvent->chisq_h2 = r4colData;
+        thisEvent->amp_term_1 = r4colData;
       }
       else if ( tableDir[j].idx == 51 )
       {
-        thisEvent->chisq_l = r4colData;
+        thisEvent->amp_term_2 = r4colData;
       }
       else if ( tableDir[j].idx == 52 )
       {
-        thisEvent->chisq_g = r4colData;
+        thisEvent->amp_term_3 = r4colData;
       }
       else if ( tableDir[j].idx == 53 )
       {
-        thisEvent->chisq_t = r4colData;
+        thisEvent->amp_term_4 = r4colData;
       }
       else if ( tableDir[j].idx == 54 )
       {
-        thisEvent->chisq_v = r4colData;
+        thisEvent->amp_term_5 = r4colData;
       }
       else if ( tableDir[j].idx == 55 )
       {
-        thisEvent->ra = r4colData;
+        thisEvent->amp_term_6 = r4colData;
       }
       else if ( tableDir[j].idx == 56 )
       {
-        thisEvent->dec = r4colData;
+        thisEvent->amp_term_7 = r4colData;
       }
       else if ( tableDir[j].idx == 57 )
       {
-        thisEvent->ligo_angle = r4colData;
+        thisEvent->amp_term_8 = r4colData;
       }
       else if ( tableDir[j].idx == 58 )
       {
-        thisEvent->ligo_angle_sig = r4colData;
+        thisEvent->amp_term_9 = r4colData;
       }
       else if ( tableDir[j].idx == 59 )
       {
-        thisEvent->inclination = r4colData;
+        thisEvent->amp_term_10 = r4colData;
       }
       else if ( tableDir[j].idx == 60 )
       {
-        thisEvent->polarization = r4colData;
+        thisEvent->sigmasq_h1 = r8colData;
       }
       else if ( tableDir[j].idx == 61 )
       {
-        thisEvent->null_statistic = r4colData;
+        thisEvent->sigmasq_h2 = r8colData;
       }
       else if ( tableDir[j].idx == 62 )
       {
-        thisEvent->null_stat_h1h2 = r4colData;
+        thisEvent->sigmasq_l = r8colData;
       }
       else if ( tableDir[j].idx == 63 )
       {
-        thisEvent->null_stat_degen = r4colData;
+        thisEvent->sigmasq_g = r8colData;
       }
       else if ( tableDir[j].idx == 64 )
+      {
+        thisEvent->sigmasq_t = r8colData;
+      }
+      else if ( tableDir[j].idx == 65 )
+      {
+        thisEvent->sigmasq_v = r8colData;
+      }
+      else if ( tableDir[j].idx == 66 )
+      {
+        thisEvent->chisq_h1 = r4colData;
+      }
+      else if ( tableDir[j].idx == 67 )
+      {
+        thisEvent->chisq_h2 = r4colData;
+      }
+      else if ( tableDir[j].idx == 68 )
+      {
+        thisEvent->chisq_l = r4colData;
+      }
+      else if ( tableDir[j].idx == 69 )
+      {
+        thisEvent->chisq_g = r4colData;
+      }
+      else if ( tableDir[j].idx == 70 )
+      {
+        thisEvent->chisq_t = r4colData;
+      }
+      else if ( tableDir[j].idx == 71 )
+      {
+        thisEvent->chisq_v = r4colData;
+      }
+      else if ( tableDir[j].idx == 72 )
+      {
+        thisEvent->ra = r4colData;
+      }
+      else if ( tableDir[j].idx == 73 )
+      {
+        thisEvent->dec = r4colData;
+      }
+      else if ( tableDir[j].idx == 74 )
+      {
+        thisEvent->ligo_angle = r4colData;
+      }
+      else if ( tableDir[j].idx == 75 )
+      {
+        thisEvent->ligo_angle_sig = r4colData;
+      }
+      else if ( tableDir[j].idx == 76 )
+      {
+        thisEvent->inclination = r4colData;
+      }
+      else if ( tableDir[j].idx == 77 )
+      {
+        thisEvent->polarization = r4colData;
+      }
+      else if ( tableDir[j].idx == 78 )
+      {
+        thisEvent->null_statistic = r4colData;
+      }
+      else if ( tableDir[j].idx == 79 )
+      {
+        thisEvent->null_stat_h1h2 = r4colData;
+      }
+      else if ( tableDir[j].idx == 80 )
+      {
+        thisEvent->null_stat_degen = r4colData;
+      }
+      else if ( tableDir[j].idx == 81 )
       {
         if ( tableDir[j].pos > 0 )
         {
@@ -3033,83 +3139,83 @@ LALMultiInspiralTableFromLIGOLw (
           }
         }
       }
-      else if ( tableDir[j].idx == 65 )
+      else if ( tableDir[j].idx == 82 )
       {
         thisEvent->h1quad.re = r4colData;
       }
-      else if ( tableDir[j].idx == 66 )
+      else if ( tableDir[j].idx == 83 )
       {
         thisEvent->h1quad.im = r4colData;
       }
-      else if ( tableDir[j].idx == 67 )
+      else if ( tableDir[j].idx == 84 )
       {
         thisEvent->h2quad.re = r4colData;
       }
-      else if ( tableDir[j].idx == 68 )
+      else if ( tableDir[j].idx == 85 )
       {
         thisEvent->h2quad.im = r4colData;
       }
-      else if ( tableDir[j].idx == 69 )
+      else if ( tableDir[j].idx == 86 )
       {
         thisEvent->l1quad.re = r4colData;
       }
-      else if ( tableDir[j].idx == 70 )
+      else if ( tableDir[j].idx == 87 )
       {
         thisEvent->l1quad.im = r4colData;
       }
-      else if ( tableDir[j].idx == 71 )
+      else if ( tableDir[j].idx == 88 )
       {
         thisEvent->g1quad.re = r4colData;
       }
-      else if ( tableDir[j].idx == 72 )
+      else if ( tableDir[j].idx == 89 )
       {
         thisEvent->g1quad.im = r4colData;
       }
-      else if ( tableDir[j].idx == 73 )
+      else if ( tableDir[j].idx == 90 )
       {
         thisEvent->t1quad.re = r4colData;
       }
-      else if ( tableDir[j].idx == 74 )
+      else if ( tableDir[j].idx == 91 )
       {
         thisEvent->t1quad.im = r4colData;
       }
-      else if ( tableDir[j].idx == 75 )
+      else if ( tableDir[j].idx == 92 )
       {
         thisEvent->v1quad.re = r4colData;
       }
-      else if ( tableDir[j].idx == 76 )
+      else if ( tableDir[j].idx == 93 )
       {
         thisEvent->v1quad.im = r4colData;
       }
-      else if ( tableDir[j].idx == 77 )
+      else if ( tableDir[j].idx == 94 )
       {
         thisEvent->coh_snr_h1h2 = r4colData;
       }
-      else if ( tableDir[j].idx == 78 )
+      else if ( tableDir[j].idx == 95 )
       {
         thisEvent->cohSnrSqLocal = r4colData;
       }
-      else if ( tableDir[j].idx == 79 )
+      else if ( tableDir[j].idx == 96 )
       {
         thisEvent->autoCorrCohSq = r4colData;
       }
-      else if ( tableDir[j].idx == 80 )
+      else if ( tableDir[j].idx == 97 )
       {
         thisEvent->crossCorrCohSq = r4colData;
       }
-      else if ( tableDir[j].idx == 81 )
+      else if ( tableDir[j].idx == 98 )
       {
         thisEvent->autoCorrNullSq = r4colData;
       }
-      else if ( tableDir[j].idx == 82 )
+      else if ( tableDir[j].idx == 99 )
       {
         thisEvent->crossCorrNullSq = r4colData;
       }
-      else if ( tableDir[j].idx == 83 )
+      else if ( tableDir[j].idx == 100 )
       {
         thisEvent->ampMetricEigenVal1 = r8colData;
       }
-      else if ( tableDir[j].idx == 84 )
+      else if ( tableDir[j].idx == 101 )
       {
         thisEvent->ampMetricEigenVal2 = r8colData;
       }
