@@ -101,7 +101,7 @@ static void print_usage(char *program)
       "   --input-ifo      input_ifo   the name of the input IFO triggers\n"\
       "   --output-ifo     output_ifo  the name of the IFO for which to create the bank\n"\
       "   --parameter-test test        set parameters with which to test coincidence:\n"\
-      "                                (m1_and_m2|psi0_and_psi3|no_test)\n"\
+      "                                (m1_and_m2|psi0_and_psi3|masses_and_spins|no_test)\n"\
       "  --data-type DATA_TYPE         specify the data type, must be one of\n"\
       "                                (playground_only|exclude_play|all_data)\n"\
       "\n"\
@@ -254,11 +254,15 @@ int main( int argc, char *argv[] )
         {
           test = psi0_and_psi3;
         }
+        else if ( ! strcmp( "mass_and_spins", optarg ) )
+        {
+          test = masses_and_spins;
+        }
         else if ( ! strcmp( "mchirp_and_eta", optarg ) )
         {
           fprintf( stderr, "invalid argument to --%s:\n"
               "mchirp_and_eta test specified, not implemented for trigbank: "
-              "%s (must be m1_and_m2, psi0_and_psi3, no_test)\n",
+              "%s (must be m1_and_m2, psi0_and_psi3, masses_and_spins no_test)\n",
               long_options[option_index].name, optarg );
           exit( 1 );
         }
@@ -270,7 +274,7 @@ int main( int argc, char *argv[] )
         {
           fprintf( stderr, "invalid argument to --%s:\n"
               "unknown test specified: "
-              "%s (must be m1_and_m2, psi0_and_psi3,no_test, or mchirp_and_eta)\n",
+              "%s (must be m1_and_m2, psi0_and_psi3, masses_and_spins, no_test, or mchirp_and_eta)\n",
               long_options[option_index].name, optarg );
           exit( 1 );
         }

@@ -1,4 +1,3 @@
-
 /*
 *  Copyright (C) 2007 Chad Hanna, Duncan Brown, Benjamin Owen, B.S. Sathyaprakash, Anand Sengupta, Thomas Cokelaer, Evan Ochsner
 *
@@ -451,10 +450,11 @@ LALInspiralBankGeneration(
       if (chiGrid==1) {
 	dimGrid=input->nPointsChi;
 	chi = malloc (input->nPointsChi * sizeof(REAL8));
-	dChi = 2.*( input->chiMax + input->chiMin) / (REAL8) input->nPointsChi;
+	if (input->chiMin==0.) input->chiMin=-input->chiMax;
+	dChi = ( input->chiMax - input->chiMin) / (REAL8) input->nPointsChi;
 	for (i=0; i < dimGrid; i++)  
 	  { 
-	    s1z[i] = s2z[i]=-input->chiMax + dChi *((REAL4)(i)+0.5);
+	    s1z[i] = s2z[i]=input->chiMin + dChi *((REAL4)(i)+0.5);
 	  }
       }
     }

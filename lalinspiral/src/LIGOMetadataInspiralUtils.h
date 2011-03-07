@@ -44,6 +44,7 @@ typedef enum
   no_test,
   m1_and_m2,
   psi0_and_psi3,
+  masses_and_spins,
   mchirp_and_eta,
   tau0_and_tau3,
   ellipsoid
@@ -280,6 +281,12 @@ LALCompareSnglInspiralByMass (
 
 int
 LALCompareSnglInspiralByPsi (
+    const void *a,
+    const void *b
+    );
+
+int
+LALCompareSnglInspiralByMassesAndSpins (
     const void *a,
     const void *b
     );

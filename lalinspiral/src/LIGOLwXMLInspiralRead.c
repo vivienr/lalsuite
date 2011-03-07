@@ -2873,27 +2873,6 @@ LALMultiInspiralTableFromLIGOLw (
       {
         thisEvent->coa_phase = r4colData;
       }
-
-          {"snr_h1",                  -1, 44},
-          {"snr_h2",                  -1, 45},
-          {"snr_l",                   -1, 46},
-          {"snr_g",                   -1, 47},
-          {"snr_t",                   -1, 48},
-          {"snr_v",                   -1, 49},
-          {"amp_term_1",              -1, 50},
-          {"amp_term_2",              -1, 51},
-          {"amp_term_3",              -1, 52},
-          {"amp_term_4",              -1, 53},
-          {"amp_term_5",              -1, 54},
-          {"amp_term_6",              -1, 55},
-          {"amp_term_7",              -1, 56},
-          {"amp_term_8",              -1, 57},
-          {"amp_term_9",              -1, 58},
-          {"amp_term_10",             -1, 59},
-          {"sigmasq_h1",              -1, 60},
-          {"sigmasq_h2",              -1, 61},
-
-
       else if ( tableDir[j].idx == 25 )
       {
         thisEvent->mass1 = r4colData;

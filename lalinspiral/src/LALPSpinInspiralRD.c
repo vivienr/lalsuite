@@ -369,6 +369,7 @@ void LALPSpinInspiralRDderivatives(REAL8Vector * values,
  * \ingroup psird
  * \brief Main module to produce waveforms 
  */
+
 void LALPSpinInspiralRD(LALStatus * status,
 			REAL4Vector * signalvec, InspiralTemplate * params)
 {
@@ -753,6 +754,7 @@ void LALPSpinInspiralRDFreqDom(LALStatus * status,
  * Main function
  *
  */
+
 NRCSID(LALPSPININSPIRALRDENGINEC, "$Id$");
 
 /**

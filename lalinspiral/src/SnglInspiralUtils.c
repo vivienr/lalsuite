@@ -425,6 +425,53 @@ LALCompareSnglInspiralByPsi (
   }
 }
 
+int
+LALCompareSnglInspiralByMassesAndSpins (
+    const void *a,
+    const void *b
+    )
+/* </lalVerbatim> */
+{
+  const SnglInspiralTable *aPtr = *((const SnglInspiralTable * const *)a);
+  const SnglInspiralTable *bPtr = *((const SnglInspiralTable * const *)b);
+
+  if ( aPtr->mass1 > bPtr->mass1 )
+  {
+    return 1;
+  }
+  else if ( aPtr->mass1 < bPtr->mass1 )
+  {
+    return -1;
+  }
+  else if ( aPtr->mass2 > bPtr->mass2 )
+  {
+    return 1;
+  }
+  else if ( aPtr->mass2 < bPtr->mass2 )
+  {
+    return -1;
+  }
+  else if ( aPtr->spin1z > bPtr->spin1z) 
+  {
+    return -1;
+  }
+  else if ( aPtr->spin1z < bPtr->spin1z) 
+  {
+    return -1;
+  }
+  else if ( aPtr->spin2z > bPtr->spin2z) 
+  {
+    return -1;
+  }
+  else if ( aPtr->spin2z < bPtr->spin2z) 
+  {
+    return -1;
+  }
+  else 
+  {
+    return 0;
+  }
+}
 
 
 /* <lalVerbatim file="SnglInspiralUtilsCP"> */
@@ -1732,6 +1779,13 @@ LALCreateTrigBank(
     LALInfo( status, "sorting events by psi... " );
     qsort( eventHandle, numEvents, sizeof(eventHandle[0]),
         LALCompareSnglInspiralByPsi );
+    LALInfo( status, "done\n" );
+  }
+  else if ( *test == masses_and_spins )
+  {
+    LALInfo( status, "sorting events by masses and spins... " );
+    qsort( eventHandle, numEvents, sizeof(eventHandle[0]),
+        LALCompareSnglInspiralByMassesAndSpins );
     LALInfo( status, "done\n" );
   }
   else
