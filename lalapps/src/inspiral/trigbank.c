@@ -254,7 +254,7 @@ int main( int argc, char *argv[] )
         {
           test = psi0_and_psi3;
         }
-        else if ( ! strcmp( "mass_and_spins", optarg ) )
+        else if ( ! strcmp( "masses_and_spins", optarg ) )
         {
           test = masses_and_spins;
         }
