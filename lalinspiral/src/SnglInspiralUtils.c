@@ -543,6 +543,7 @@ LALCompareSnglInspiral (
 {
   INT8 ta, tb;
   REAL4 dm1, dm2;
+  REAL4 ds1z,ds2z;
   REAL4 dmchirp, deta;
   REAL4 dpsi0, dpsi3;
 
@@ -629,6 +630,25 @@ LALCompareSnglInspiral (
       else
       {
         LALInfo( status, "Triggers fail mchirp, eta coincidence test" );
+        params->match = 0;
+      }
+    }
+    else if ( params->test == masses_and_spins )
+    {
+      dm1 = fabs( aPtr->mass1 - bPtr->mass1 );
+      dm2 = fabs( aPtr->mass2 - bPtr->mass2 );
+      ds1z = fabs( aPtr->spin1z - bPtr->spin1z );
+      ds2z = fabs( aPtr->spin2z - bPtr->spin2z );
+
+      /* compare mass and spin parameters */
+      if ( dm1 <= params->dm && dm2 <= params->dm && ds1z <= params->dsz && ds2z <= params->dsz )
+      {
+        LALInfo( status, "Triggers are coincident in masses and spins" );
+        params->match = 1;
+      }
+      else
+      {
+        LALInfo( status, "Triggers are not coincident in masses and spins" );
         params->match = 0;
       }
     }
@@ -1831,6 +1851,24 @@ LALCreateTrigBank(
         prevEvent = prevEvent->next = eventHandle[i];
         LALInfo( status, "+" );
       }
+    }
+    else if ( *test == masses_and_spins )
+    {
+      if ( (prevEvent->mass1 == eventHandle[i]->mass1)  &&
+	   (prevEvent->mass2 == eventHandle[i]->mass2)  &&
+           (prevEvent->spin1z == eventHandle[i]->spin1z)  &&
+	   (prevEvent->spin2z == eventHandle[i]->spin2z))
+	{
+	  /* discard the event as it is a duplicate */
+	  LALFreeSnglInspiral( status->statusPtr, &(eventHandle[i]) );
+	  LALInfo( status, "-" );
+	}
+      else
+	{
+	  /* add the event to the linked list */
+	  prevEvent = prevEvent->next = eventHandle[i];
+	  LALInfo( status, "+" );
+	}
     }
     else
     {

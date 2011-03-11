@@ -75,6 +75,7 @@ tagSnglInspiralAccuracy
   REAL4       dpsi3;
   REAL4       dtau0;
   REAL4       dtau3;
+  REAL4       dsz;
   SnglInspiralParameterTest test;
   INT4        exttrig;
 }
