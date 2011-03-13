@@ -11,10 +11,7 @@ from matplotlib import pyplot
 from pylal import rate
 
 
-L10s_per_Mpc3 = 1./50.0 #FIXME
-
-
-def compute_posterior(vA, vA2, dvA, mu_in=None, prior=None):
+def compute_posterior(vA, err, dvA, mu_in=None, prior=None):
     '''
     This function computes the posterior distribution on the rate parameter
     mu resulting from an experiment which was sensitive to a volume vA. This
@@ -45,14 +42,14 @@ def compute_posterior(vA, vA2, dvA, mu_in=None, prior=None):
        mu = numpy.arange(0,mu_max,mu_min)
        prior = numpy.ones(len(mu))
 
-    if vA2 == 0:
+    if err == 0:
         # we have perfectly measured our efficiency in this mass bin
 	# so the posterior is given by eqn (11) in BCB
 	post = prior*(1+mu*vA*dvA)*numpy.exp(-mu*vA)
     else:
         # we have uncertainty in our efficiency in this mass bin and
 	# want to marginalize it out using eqn (24) of BCB
-	k = vA**2/vA2
+	k = 1./err # k is 1./fractional_error
 	# FIXME it remains to check whether using a Gamma distribution for
 	# the volume error model is sensible
 	post = prior*( (1.0 + mu*vA/k)**(-k-1) + (mu*vA*dvA)*(1.0 + 1.0/k)/(1.0 + mu*vA/k)**(k+2) )
@@ -292,15 +289,15 @@ def filter_injections_by_mass(injs, mlow, mhigh, bin_type):
     return newinjs
 
 
-def compute_luminosity_vs_mass(found, missed, mass_bins, bin_type, bootnum=1, catalog=None, dbins=None, relerr=0.0, syserr=0.0, ploteff=False,logd=False):
+def compute_volume_vs_mass(found, missed, mass_bins, bin_type, bootnum=1, catalog=None, dbins=None, relerr=0.0, syserr=0.0, ploteff=False,logd=False):
     """
     Compute the average luminosity an experiment was sensitive to given the sets
     of found and missed injections and assuming luminosity is unformly distributed
     in space.
     """
     # mean and std estimate for luminosity (in L10s)
-    lumArray = rate.BinnedArray(mass_bins)
-    lum2Array = rate.BinnedArray(mass_bins)
+    volArray = rate.BinnedArray(mass_bins)
+    vol2Array = rate.BinnedArray(mass_bins)
 
     # found/missed stats
     foundArray = rate.BinnedArray(mass_bins)
@@ -324,12 +321,12 @@ def compute_luminosity_vs_mass(found, missed, mass_bins, bin_type, bootnum=1, ca
         eff, err = mean_efficiency(newfound, newmissed, dbins, bootnum=bootnum, randerr=relerr, syserr=syserr)
         effvmass.append(eff)
         errvmass.append(err)
-        lum, lerr = [L10s_per_Mpc3*v for v in integrate_efficiency(dbins, eff, err, logd)]
+        vol, volerr = integrate_efficiency(dbins, eff, err, logd)
 
-        lumArray[(mc,)] = lum
-        lum2Array[(mc,)] = lerr
+        volArray[(mc,)] = vol
+        vol2Array[(mc,)] = volerr
 
-    return lumArray, lum2Array, foundArray, missedArray, effvmass, errvmass
+    return volArray, vol2Array, foundArray, missedArray, effvmass, errvmass
 
 
 def log_volume_derivative_fit(x, vols, xhat):
