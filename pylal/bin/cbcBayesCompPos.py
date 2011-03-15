@@ -28,10 +28,13 @@ import random
 
 #related third party imports
 import numpy as np
+from numpy import floor
+
 import matplotlib as mpl
 mpl.use("AGG")
 from matplotlib import pyplot as plt
 from matplotlib import colors as mpl_colors
+from matplotlib import cm as mpl_cm
 
 
 from scipy import stats
@@ -46,12 +49,12 @@ __version__= "git id %s"%git_version.id
 __date__= git_version.date
 
 #List of parameters to plot/bin . Need to match (converted) column names.
-oneDMenu=['mtotal','m1','m2','mchirp','mc','distance','distMPC','dist','iota','psi','eta','a1','a2','phi1','theta1','phi2','theta2','costilt1','costilt2']
+oneDMenu=['mtotal','m1','m2','mchirp','mc','distance','distMPC','dist','iota','psi','eta','a1','a2','phi1','theta1','phi2','theta2','costilt1','costilt2','costhetas','cosbeta']
 #List of parameter pairs to bin . Need to match (converted) column names.
 twoDGreedyMenu=[['mc','eta'],['mchirp','eta'],['m1','m2'],['mtotal','eta'],['distance','iota'],['dist','iota'],['dist','m1'],['ra','dec'],['dist','cos(iota)']]
 #Bin size/resolution for binning. Need to match (converted) column names.
 
-greedyBinSizes={'mc':0.0001,'m1':0.1,'m2':0.1,'mass1':0.1,'mass2':0.1,'mtotal':0.1,'eta':0.001,'iota':0.01,'time':1e-4,'distance':1.0,'dist':1.0,'mchirp':0.001,'a1':0.02,'a2':0.02,'phi1':0.05,'phi2':0.05,'theta1':0.05,'theta2':0.05,'ra':0.05,'dec':0.005,'psi':0.1,'cos(iota)':0.01, 'cos(tilt1)':0.01, 'cos(tilt2)':0.01, 'tilt1':0.05, 'tilt2':0.05}
+greedyBinSizes={'mc':0.0001,'m1':0.1,'m2':0.1,'mass1':0.1,'mass2':0.1,'mtotal':0.1,'eta':0.001,'iota':0.01,'time':1e-4,'distance':1.0,'dist':1.0,'mchirp':0.001,'a1':0.02,'a2':0.02,'phi1':0.05,'phi2':0.05,'theta1':0.05,'theta2':0.05,'ra':0.05,'dec':0.005,'psi':0.1,'cos(iota)':0.01, 'cos(tilt1)':0.01, 'cos(tilt2)':0.01, 'tilt1':0.05, 'tilt2':0.05, 'cos(thetas)':0.01, 'cos(beta)':0.01}
 
 #Confidence levels
 OneDconfidenceLevels=[0.9]
@@ -59,8 +62,8 @@ TwoDconfidenceLevels=OneDconfidenceLevels
 
 #2D plots list
 #twoDplots=[['mc','eta'],['mchirp','eta'],['m1','m2'],['mtotal','eta'],['distance','iota'],['dist','iota'],['RA','dec'],['ra','dec'],['m1','dist'],['m2','dist'],['psi','iota'],['psi','distance'],['psi','dist'],['psi','phi0'],['dist','cos(iota)']]
-twoDplots=[['m1','m2'],['mass1','mass2'],['RA','dec'],['ra','dec']]
-allowed_params=['mtotal','m1','m2','mchirp','mc','distance','distMPC','dist','iota','psi','eta','ra','dec','a1','a2','phi1','theta1','phi2','theta2','cos(iota)','cos(tilt1)','cos(tilt2)','tilt1','tilt2']
+twoDplots=[['m1','m2'],['mass1','mass2'],['RA','dec'],['ra','dec'],['cos(thetas)','cos(beta)']]
+allowed_params=['mtotal','m1','m2','mchirp','mc','distance','distMPC','dist','iota','psi','eta','ra','dec','a1','a2','phi1','theta1','phi2','theta2','cos(iota)','cos(tilt1)','cos(tilt2)','tilt1','tilt2','cos(thetas)','cos(beta)']
 
 def open_url(url,username,password):
 
@@ -221,7 +224,7 @@ def compare_plots_one_param_line_hist(list_of_pos_by_name,param,cl,color_by_name
 
     patch_list=[]
     max_y=0
-    
+
     for name,posterior in list_of_pos_by_name.items():
         colour=color_by_name[name]
         myfig.gca(autoscale_on=True)
@@ -232,14 +235,14 @@ def compare_plots_one_param_line_hist(list_of_pos_by_name,param,cl,color_by_name
             n,bins=np.histogram(posterior[param].samples,bins=100,normed=True,new=True)
         except:
             n,bins=np.histogram(posterior[param].samples,bins=100,normed=True)
-        
+
         locmaxy=max(n)
         if locmaxy>max_y: max_y=locmaxy
         (n, bins, patches)=plt.hist(posterior[param].samples,bins=bins,histtype='step',label=name,normed=True,hold=True,color=color_by_name[name])#range=(min_pos,max_pos)
 
         patch_list.append(patches[0])
 
-    
+
 
     top_cl_intervals_list={}
     pos_names=list_of_pos_by_name.keys()
@@ -277,6 +280,84 @@ def compare_plots_one_param_line_hist(list_of_pos_by_name,param,cl,color_by_name
         plt.plot([injpar,injpar],[0,max_y],'r-.',scalex=False,scaley=False,linewidth=4,label='Injection')
 
     #
+
+    return myfig,top_cl_intervals_list#,rkde
+
+#
+def compare_plots_one_param_line_hist_cum(list_of_pos_by_name,param,cl,color_by_name,cl_lines_flag=True):
+
+    """
+    Plots a gaussian kernel density estimate for a set
+    of Posteriors onto the same axis.
+
+    @param list_of_pos: a list of Posterior class instances.
+
+    @param plot1DParams: a dict; {paramName:Nbins}
+
+    """
+
+    from scipy import seterr as sp_seterr
+
+    #Create common figure
+    myfig=plt.figure(figsize=(18,12),dpi=300)
+    myfig.add_axes([0.1,0.1,0.65,0.85])
+    list_of_pos=list_of_pos_by_name.values()
+    list_of_pos_names=list_of_pos_by_name.keys()
+
+    injvals=[]
+
+    patch_list=[]
+    max_y=1.
+
+    for name,posterior in list_of_pos_by_name.items():
+        colour=color_by_name[name]
+        myfig.gca(autoscale_on=True)
+        if posterior[param].injval:
+            injvals.append(posterior[param].injval)
+
+        try:
+            n,bins=np.histogram(posterior[param].samples,bins=100,normed=True,new=True)
+        except:
+            n,bins=np.histogram(posterior[param].samples,bins=100,normed=True)
+
+        (n, bins, patches)=plt.hist(posterior[param].samples,bins=bins,histtype='step',label=name,normed=True,hold=True,color=color_by_name[name],cumulative='True')#range=(min_pos,max_pos)
+
+        patch_list.append(patches[0])
+
+    top_cl_intervals_list={}
+    pos_names=list_of_pos_by_name.keys()
+
+
+    for name,posterior in list_of_pos_by_name.items():
+        #toppoints,injectionconfidence,reses,injection_area,cl_intervals=bppu.greedy_bin_one_param(posterior,{param:greedyBinSizes[param]},[cl])
+        cl_intervals=posterior[param].prob_interval([cl])
+        colour=color_by_name[name]
+        if cl_intervals[0] is not None and cl_lines_flag:
+            try:
+                plt.plot([cl_intervals[0][0],cl_intervals[0][0]],[0,max_y],color=colour,linestyle='--')
+                plt.plot([cl_intervals[0][1],cl_intervals[0][1]],[0,max_y],color=colour,linestyle='--')
+            except:
+                print "MAX_Y",max_y,[cl_intervals[0][0],cl_intervals[0][0]],[cl_intervals[0][1],cl_intervals[0][1]]
+        top_cl_intervals_list[name]=(cl_intervals[0][0],cl_intervals[0][1])
+
+    if cl_lines_flag:
+        pos_names.append(str(int(cl*100))+'%')
+        patch_list.append(mpl.lines.Line2D(np.array([0.,1.]),np.array([0.,1.]),linestyle='--',color='black'))
+
+    plt.grid()
+
+    oned_legend=plt.figlegend(patch_list,pos_names,'right')
+    for text in oned_legend.get_texts():
+        text.set_fontsize('small')
+    plt.xlabel(param)
+    plt.ylabel('Probability density')
+    plt.draw()
+
+    if injvals:
+        print "Injection parameter is %f"%(float(injvals[0]))
+        injpar=injvals[0]
+        #if min(pos_samps)<injpar and max(pos_samps)>injpar:
+        plt.plot([injpar,injpar],[0,max_y],'r-.',scalex=False,scaley=False,linewidth=4,label='Injection')
 
     return myfig,top_cl_intervals_list#,rkde
 
@@ -397,7 +478,23 @@ def compare_bayes(outdir,names_and_pos_folders,injection_path,eventnum,username,
             common_output_table_raw[:,idx]=np.cos(common_output_table_raw[:,idx])
         except:
             pass
-        
+
+        try:
+            print "Converting thetas -> cos(thetas)"
+            idx=common_output_table_header.index('thetas')
+            common_output_table_header[idx]='cos(thetas)'
+            common_output_table_raw[:,idx]=np.cos(common_output_table_raw[:,idx])
+        except:
+            pass
+
+        try:
+            print "Converting beta -> cos(beta)"
+            idx=common_output_table_header.index('beta')
+            common_output_table_header[idx]='cos(beta)'
+            common_output_table_raw[:,idx]=np.cos(common_output_table_raw[:,idx])
+        except:
+            pass
+
         pos_temp=bppu.Posterior((common_output_table_header,common_output_table_raw),SimInspiralTableEntry=injection)
 
         try:
@@ -444,7 +541,7 @@ def compare_bayes(outdir,names_and_pos_folders,injection_path,eventnum,username,
         os.makedirs(outdir)
 
     greedy2savepaths=[]
-    my_color_converter=mpl_colors.ColorConverter()
+
     if common_params is not [] and common_params is not None: #If there are common parameters....
         colorlst=bppu.__default_color_lst
 
@@ -452,10 +549,16 @@ def compare_bayes(outdir,names_and_pos_folders,injection_path,eventnum,username,
             temp=copy.copy(common_params)
             #Plot two param contour plots
 
-            #Assign some colours to each different analysis
+            #Assign some colours to each different analysis result
             color_by_name={}
+            cmap_size=1000
+            color_idx=0
+            color_idx_max=len(names_and_pos_folders)
+            cmap_array=mpl_cm.jet(np.array(range(cmap_size)))
             for name,infolder in names_and_pos_folders:
-                color_by_name[name]=my_color_converter.to_rgb((random.uniform(0.1,1),random.uniform(0.1,1),random.uniform(0.1,1)))
+
+                color_by_name[name]=cmap_array[int(floor(color_idx*cmap_size/color_idx_max)),:]
+                color_idx+=1
 
             for i,j in all_pairs(temp):#Iterate over all unique pairs in the set of common parameters
                 pplst=[i,j]
@@ -496,11 +599,15 @@ def compare_bayes(outdir,names_and_pos_folders,injection_path,eventnum,username,
 
                 cl_table_header+='<th colspan="2">%i%% (Lower|Upper)</th>'%(int(100*confidence_level))
                 hist_fig,cl_intervals=compare_plots_one_param_line_hist(pos_list,param,confidence_level,color_by_name,cl_lines_flag=clf)
+                hist_fig2,cl_intervals=compare_plots_one_param_line_hist_cum(pos_list,param,confidence_level,color_by_name,cl_lines_flag=clf)
 
                 save_path=''
                 if hist_fig is not None:
                     save_path=os.path.join(outdir,'%s_%i.png'%(param,int(100*confidence_level)))
                     hist_fig.savefig(save_path)
+                    save_paths.append(save_path)
+                    save_path=os.path.join(outdir,'%s_%i_cum.png'%(param,int(100*confidence_level)))
+                    hist_fig2.savefig(save_path)
                     save_paths.append(save_path)
                 min_low,max_high=cl_intervals.values()[0]
                 for name,interval in cl_intervals.items():
@@ -592,9 +699,9 @@ if __name__ == '__main__':
             clf_toggle=False
             for save_path in save_paths:
                 head,plotfile=os.path.split(save_path)
-                if not clf_toggle:
-                    clf_toggle=(not opts.clf)
-                    param_section.write('<img src="%s"/>'%str(plotfile))
+#                if not clf_toggle:
+ #                   clf_toggle=(not opts.clf)
+                param_section.write('<img src="%s"/>'%str(plotfile))
 
             param_section.write(cl_table_str)
 

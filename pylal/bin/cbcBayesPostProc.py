@@ -81,7 +81,7 @@ def cbcBayesPostProc(
                         #spinspiral/mcmc options
                         ss_flag=False,ss_deltaLogL=None,ss_spin_flag=False,
                         #lalinferenceMCMC options
-                        li_flag=False,nDownsample=1,
+                        li_flag=False,nDownsample=1,oldMassConvention=False,
                         #followupMCMC options
                         fm_flag=False,
                         # on ACF?
@@ -126,7 +126,7 @@ def cbcBayesPostProc(
 
     elif li_flag:
         peparser=bppu.PEOutputParser('inf_mcmc')
-        commonResultsObj=peparser.parse(data,deltaLogL=ss_deltaLogL,nDownsample=nDownsample)
+        commonResultsObj=peparser.parse(data,deltaLogL=ss_deltaLogL,nDownsample=nDownsample,oldMassConvention=oldMassConvention)
 
     elif ss_flag and ns_flag:
         print "Undefined input format. Choose only one of:"
@@ -334,11 +334,26 @@ def cbcBayesPostProc(
             inj_thetas=None
             inj_beta=None
             if injection:
-                inj_Lmag = np_power(pos[mchirp_name].injval,5.0/3.0) / np_power(pi_constant * mtsun * f_inj,1.0/3.0)
-                inj_Lx,inj_Ly,inj_Lz = Lmag*bppu.sph2cart(1.0,pos['iota'].injval,0.0)
+                inj_Lmag = power(pos[mchirp_name].injval,5.0/3.0) / power(pi_constant * mtsun * f_inj,1.0/3.0)
+                
+                inj_Lx, inj_Ly, inj_Lz = bppu.sph2cart(1.0,pos['iota'].injval,0.0)
+                inj_Lx *= inj_Lmag
+                inj_Ly *= inj_Lmag
+                inj_Lz *= inj_Lmag
 
-                inj_S1x,inj_S1y,inj_S1z = pos['m1'].injval*pos['m1'].injval*bppu.sph2cart(1.0,pos['theta1'].injval,pos['phi1'].injval)
-                inj_S2x,inj_S2y,inj_S2z = pos['m2'].injval*pos['m2'].injval*bppu.sph2cart(1.0,pos['theta2'].injval,pos['phi2'].injval)
+                m1inj = pos['m1'].injval
+                m2inj = pos['m2'].injval
+
+                inj_S1x, inj_S1y, inj_S1z = bppu.sph2cart(1.0,pos['theta1'].injval,pos['phi1'].injval)
+                inj_S2x, inj_S2y, inj_S2z = bppu.sph2cart(1.0,pos['theta2'].injval,pos['phi2'].injval)
+
+                inj_S1x *= m1inj*m1inj
+                inj_S1y *= m1inj*m1inj
+                inj_S1z *= m1inj*m1inj
+                
+                inj_S2x *= m2inj*m2inj
+                inj_S2y *= m2inj*m2inj
+                inj_S2z *= m2inj*m2inj
 
                 inj_Jx = inj_Lx + inj_S1x + inj_S2x
                 inj_Jy = inj_Ly + inj_S1y + inj_S2y
@@ -954,6 +969,7 @@ if __name__=='__main__':
     #LALInf
     parser.add_option("--lalinfmcmc",action="store_true",default=False,help="(LALInferenceMCMC) Parse input from LALInferenceMCMC.")
     parser.add_option("--downsample",action="store",default=None,help="(LALInferenceMCMC) approximate number of samples to record in the posterior",type="int")
+    parser.add_option("--oldMassConvention",action="store_true",default=False,help="(LALInferenceMCMC) if activated, m2 > m1; otherwise m1 > m2 in PTMCMC.output.*.00")
     #FM
     parser.add_option("--fm",action="store_true",default=False,help="(followupMCMC) Parse input as if it was output from followupMCMC.")
     # ACF plots off?
@@ -1041,7 +1057,7 @@ if __name__=='__main__':
                         #spinspiral/mcmc options
                         ss_flag=opts.ss,ss_deltaLogL=opts.deltaLogL,ss_spin_flag=opts.spin,
                         #LALInferenceMCMC options
-                        li_flag=opts.lalinfmcmc,nDownsample=opts.downsample,
+                        li_flag=opts.lalinfmcmc,nDownsample=opts.downsample,oldMassConvention=opts.oldMassConvention,
                         #followupMCMC options
                         fm_flag=opts.fm,
                         # Turn of ACF?
