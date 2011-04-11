@@ -613,6 +613,7 @@ class Posterior(object):
                         'iota':lambda inj: inj.inclination,
                         'inclination': lambda inj: inj.inclination,
                         'spinchi': lambda inj: (inj.spin1z + inj.spin2z) + sqrt(1-4*inj.eta)*(inj.spin1z - spin2z),
+                        'f_lower': lambda inj: inj.f_lower,
                         'a1':_inj_a1,
                         'a2':_inj_a2,
                         'theta1':_inj_theta1,
@@ -767,7 +768,7 @@ class Posterior(object):
         Returns the direct-integration evidence for the posterior
         samples.
         """
-        allowed_coord_names=["a1", "phi1", "theta1", "a2", "phi2", "theta2",
+        allowed_coord_names=["spin1", "spin2", "a1", "phi1", "theta1", "a2", "phi2", "theta2",
                              "iota", "psi", "ra", "dec",
                              "phi_orb", "phi0", "dist", "time", "mc", "mchirp", "eta"]
         samples,header=self.samples()
@@ -1457,8 +1458,7 @@ def greedy_bin_two_param(posterior,greedy2Params,confidence_levels):
         try:
             greedyHist[par1_binNumber+par2_binNumber*par1pos_Nbins]+=1
         except:
-            print par1_binNumber,par2_binNumber,par1pos_Nbins,par2pos_Nbins,par1_binNumber+par2_binNumber*par1pos_Nbins,par1_samp,par1pos_min,par1_bin,par1_samp,par2pos_min,par2_bin
-            exit(1)
+            raise RuntimeError("Problem binning samples: %i,%i,%i,%i,%i,%f,%f,%f,%f,%f,%f .")%(par1_binNumber,par2_binNumber,par1pos_Nbins,par2pos_Nbins,par1_binNumber+par2_binNumber*par1pos_Nbins,par1_samp,par1pos_min,par1_bin,par1_samp,par2pos_min,par2_bin)
     #Call greedy bins routine
     toppoints,injection_cl,reses,injection_area=\
                                 _greedy_bin(
@@ -1854,8 +1854,7 @@ def plot_two_param_greedy_bins_contour(posteriors_by_name,greedy2Params,confiden
 
     #This fixes the precedence of line styles in the plot
     if len(line_styles)<len(confidence_levels):
-        print "Error: Need as many or more line styles to choose from as confidence levels to plot!"
-        exit(0)
+        raise RuntimeError("Error: Need as many or more line styles to choose from as confidence levels to plot!")
 
     CSlst=[]
     name_list=[]
@@ -1915,8 +1914,7 @@ def plot_two_param_greedy_bins_contour(posteriors_by_name,greedy2Params,confiden
     plt.ylabel(par1_name)
 
     if len(name_list)!=len(CSlst):
-        print "Error number of contour objects does not equal number of names! Use only *one* contour from each set to associate a name."
-        exit(0)
+        raise RuntimeError("Error number of contour objects does not equal number of names! Use only *one* contour from each set to associate a name.")
     full_name_list=[]
     dummy_lines=[]
 
@@ -2314,30 +2312,25 @@ class PEOutputParser(object):
         For each file, only those samples past the point where the
         log(L) > logLThreshold are concatenated.
         """
-        print oldMassConvention
-        allowedCols=["cycle", "logl", "logpost", "logprior",
-                     "a1", "theta1", "phi1",
-                     "a2", "theta2", "phi2",
-                     "mc", "eta", "time",
-                     "phi_orb", "iota", "psi",
-                     "ra", "dec",
-                     "dist"]
         nRead=0
         outputHeader=False
         for infilename,i in zip(files,range(1,len(files)+1)):
             infile=open(infilename,'r')
             try:
                 print "Processing file %s to posterior_samples.dat"%infilename
+                f_lower=self._find_infmcmc_f_lower(infile)
                 header=self._clear_infmcmc_header(infile)
-                # Remove unwanted columns, and accound for 1 <--> 2 reversal of convention in lalinference.
                 if oldMassConvention:
-                    header=[self._swaplabel12(label) for label in header if label in allowedCols]
-                else:
-                    header=[label for label in header if label in allowedCols]
+                    # Swap #1 for #2 because our old mass convention
+                    # has m2 > m1, while the common convention has m1
+                    # > m2
+                    header=[self._swaplabel12(label) for label in header]
                 if not outputHeader:
                     for label in header:
                         outfile.write(label)
                         outfile.write(" ")
+                    outfile.write("f_lower")
+                    outfile.write(" ")
                     outfile.write("chain")
                     outfile.write("\n")
                     outputHeader=header
@@ -2359,6 +2352,8 @@ class PEOutputParser(object):
                                 # names above
                                 outfile.write(lineParams[header.index(label)])
                                 outfile.write(" ")
+                            outfile.write(f_lower)
+                            outfile.write(" ")
                             outfile.write(str(i))
                             outfile.write("\n")
                         nRead=nRead+1
@@ -2420,6 +2415,23 @@ class PEOutputParser(object):
         else:
             return floor(ntot/nDownsample)
 
+    def _find_infmcmc_f_lower(self, infile):
+        """
+        Searches through header to determine starting frequency of waveform.
+        """
+        for line in infile:
+            headers=line.lstrip().lower().split()
+            if len(headers) is 0:
+                continue
+            if 'detector' in headers[0]:
+                for colNum in range(len(headers)):
+                    if 'f_low' in headers[colNum]:
+                        detectorInfo=infile.next().lstrip().lower().split()
+                        f_lower=detectorInfo[colNum]
+                        break
+                break
+        return f_lower
+
     def _clear_infmcmc_header(self, infile):
         """
         Reads past the header information from the
@@ -2454,11 +2466,11 @@ class PEOutputParser(object):
             from lalapps.combine_evidence import combine_evidence
         except ImportError:
             print "Need lalapps.combine_evidence to convert nested sampling output!"
-            exit(1)
+            raise
 
         if Nlive is None:
-            print "Need to specify number of live points in positional arguments of parse!"
-            exit(1)
+            raise RuntimeError("Need to specify number of live points in positional arguments of parse!")
+            
 
         pos,d_all,totalBayes,ZnoiseTotal=combine_evidence(files,False,Nlive)
 
