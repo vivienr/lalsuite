@@ -233,7 +233,7 @@ setup(
 		Extension(
 			"pylal.xlal.datatypes.laldetector",
 			["src/xlal/datatypes/laldetector.c"],
-			include_dirs = lal_pkg_config.incdirs + ["src/xlal/datatypes"],
+			include_dirs = lal_pkg_config.incdirs + [numpy_get_include(), "src/xlal/datatypes"],
 			libraries = lal_pkg_config.libs,
 			library_dirs = lal_pkg_config.libdirs,
 			runtime_library_dirs = lal_pkg_config.libdirs,
@@ -607,6 +607,7 @@ setup(
 		os.path.join("bin", "search_volume_by_m_chi"),		
 		os.path.join("bin", "imr_compare"),		
 		os.path.join("bin", "imr_roc"),				
+	        os.path.join("bin", "ligolw_omega_to_coinc"),
 		os.path.join("bin", "virgo_qscan_in2p3.py"),
 		os.path.join("bin", "wscan_in2p3.sh"),
 		os.path.join("bin", "wscanlite_in2p3.sh"),
