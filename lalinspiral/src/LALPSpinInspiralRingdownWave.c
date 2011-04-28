@@ -390,6 +390,33 @@ INT4 XLALPSpinGenerateQNMFreq(
   REAL4 BCW30re[3][3]  = { {0.6873, -0.09282, 0.3479}, {0.6687, -0.09155, 0.4021}, {0.6343, -0.08915, 0.5117} };
   REAL4 BCW30im[3][3]  = { {6.7841, -3.6112, 0.09480}, {2.0075, -0.9930, 0.1197}, {0.9000, -0.3409, 0.2679} };
 
+  REAL4 BCW44re[3][3]  = { {2.3, -1.5056, 0.2244}, {2.3, -1.5173, 0.2271}, {2.3, -1.5397, 0.2321} };
+  REAL4 BCW44im[3][3]  = { {1.1929, 3.1191, -0.4825}, {0.3, 1.1034, -0.4703}, {0.11, 0.6997, -0.4607} };
+
+  REAL4 BCW4m4re[3][3]  = { {0.6256, 0.18, 1.3218}, {0.6061, 0.1869, 1.3168}, {0.5686, 0.2003, 1.3068} };
+  REAL4 BCW4m4im[3][3]  = { {3.4, 0.8696, 1.4074}, {1.08, 0.3095, 1.3279}, {0.5980, 0.2015, 1.3765} };
+
+  REAL4 BCW43re[3][3] = { {1.6869, -0.8862, 0.2822}, {1.6722, -0.8843, 0.2923}, {1.6526, -0.8888, 0.3081} };
+  REAL4 BCW43im[3][3] = { {1.4812, 2.8096, -0.4271}, {0.4451, 0.9569, -0.425}, {0.22, 0.5904, -0.4236} };
+
+  REAL4 BCW4m3re[3][3] = { {0.6728, 0.1338, 1.3413}, {0.6562, 0.1377, 1.3456}, {0.6244, 0.1454, 1.3513} };
+  REAL4 BCW4m3im[3][3] = { {3.7, 0.5829, 1.6681}, {1.18, 0.2111, 1.4129}, {0.66, 0.1385, 1.3742} };
+
+  REAL4 BCW42re[3][3]  = { {1.2702, -0.4685, 0.3835}, {1.2462, -0.4580, 0.4139}, {1.2025, -0.4401, 0.4769} };
+  REAL4 BCW42im[3][3]  = { {-3.6, 7.7749, -0.1491}, {-1.5, 2.8601, -0.1392}, {-1.5, 2.2784, -0.1124}};
+
+  REAL4 BCW4m2re[3][3] = { {0.7294, 0.07842, 1.5646}, {0.7154, 0.07979, 1.5852}, {0.6885, 0.08259, 1.6136} };
+  REAL4 BCW4m2im[3][3] = { {4., 0.2777, 2.0647}, {1.32, 0.08694, 4.3255}, {0.75, 0.05803, 3.7971} };
+
+  REAL4 BCW41re[3][3]  = { {1.0507, -0.2478, 0.4348}, {1.0337, -0.2439, 0.4695}, {1.0019, -0.2374, 0.5397} };
+  REAL4 BCW41im[3][3]  = { {14., -9.8240, 0.09047}, {4.2, -2.8399, 0.1081}, {2.2, -1.4195, 0.1372} };
+
+  REAL4 BCW4m1re[3][3] = { {0.7908, 0.02024, 5.4628}, {0.7785, 0.02005, 5.8547}, {0.7549, 0.01985, 6.5272} };
+  REAL4 BCW4m1im[3][3] = { {4.6, -0.4038, 0.4629}, {1.6, -0.2323, 0.2306}, {1.6, -0.8136, 0.03163} };
+
+  REAL4 BCW40re[3][3]  = { {0.9175, -0.1144, 0.3511}, {0.9028, -0.1127, 0.3843}, {0.8751, -0.1096, 0.4516} };
+  REAL4 BCW40im[3][3]  = { {7.0, -2.7934, 0.1708}, {2.2, -0.8308, 0.2023}, {1.2, -0.4159, 0.2687} };
+
 
   /* Get a local copy of the intrinstic parameters */
   totalMass = params->totalMass;
@@ -520,8 +547,107 @@ INT4 XLALPSpinGenerateQNMFreq(
 			  }
 			}
 			else {
-			  fprintf(stderr,"*** LALPSpinInspiralRingdownWave ERROR: Ringdown modes for l=%d m=%d not availbale\n",l,m);
-			  XLAL_ERROR( func , XLAL_EDOM );
+			  if ((l==4)&&(m==4)) {
+			    for (i = 0; i < nmodes; i++) {
+			      modefreqs->data[i].re = BCW44re[i][0] + BCW44re[i][1] * pow(1.- finalSpin, BCW44re[i][2]);
+			      modefreqs->data[i].im = modefreqs->data[i].re / 2.
+				/ (BCW44im[i][0] + BCW44im[i][1] * pow(1.- finalSpin, BCW44im[i][2]));
+			      modefreqs->data[i].re /= finalMass * totalMass * LAL_MTSUN_SI;
+			      modefreqs->data[i].im /= finalMass * totalMass * LAL_MTSUN_SI;
+			    }
+			  }
+			  else {
+			    if ((l==4)&&(m==-4)) {
+			      for (i = 0; i < nmodes; i++) {
+				modefreqs->data[i].re = BCW4m4re[i][0] + BCW4m4re[i][1] * pow(1.- finalSpin, BCW4m4re[i][2]);
+				modefreqs->data[i].im = modefreqs->data[i].re / 2.
+				  / (BCW4m4im[i][0] + BCW4m4im[i][1] * pow(1.- finalSpin, BCW4m4im[i][2]));
+				modefreqs->data[i].re /= finalMass * totalMass * LAL_MTSUN_SI;
+				modefreqs->data[i].im /= finalMass * totalMass * LAL_MTSUN_SI;
+			      }
+			    }
+			    else {
+			      if ((l==4)&&(m==3)) {
+				for (i = 0; i < nmodes; i++) {
+				  modefreqs->data[i].re = BCW43re[i][0] + BCW43re[i][1] * pow(1.- finalSpin, BCW43re[i][2]);
+				  modefreqs->data[i].im = modefreqs->data[i].re / 2.
+				    / (BCW43im[i][0] + BCW43im[i][1] * pow(1.- finalSpin, BCW43im[i][2]));
+				  modefreqs->data[i].re /= finalMass * totalMass * LAL_MTSUN_SI;
+				  modefreqs->data[i].im /= finalMass * totalMass * LAL_MTSUN_SI;
+				}
+			      }
+			      else {
+				if ((l==4)&&(m==-3)) {
+				  for (i = 0; i < nmodes; i++) {
+				    modefreqs->data[i].re = BCW4m3re[i][0] + BCW4m3re[i][1] * pow(1.- finalSpin, BCW4m3re[i][2]);
+				    modefreqs->data[i].im = modefreqs->data[i].re / 2.
+				      / (BCW4m3im[i][0] + BCW4m3im[i][1] * pow(1.- finalSpin, BCW4m3im[i][2]));
+				    modefreqs->data[i].re /= finalMass * totalMass * LAL_MTSUN_SI;
+				    modefreqs->data[i].im /= finalMass * totalMass * LAL_MTSUN_SI;
+				  }
+				}
+				else {
+				  if ((l==4)&&(m==2)) {
+				    for (i = 0; i < nmodes; i++) {
+				      modefreqs->data[i].re = BCW42re[i][0] + BCW42re[i][1] * pow(1.- finalSpin, BCW42re[i][2]);
+				      modefreqs->data[i].im = modefreqs->data[i].re / 2.
+					/ (BCW42im[i][0] + BCW42im[i][1] * pow(1.- finalSpin, BCW42im[i][2]));
+				      modefreqs->data[i].re /= finalMass * totalMass * LAL_MTSUN_SI;
+				      modefreqs->data[i].im /= finalMass * totalMass * LAL_MTSUN_SI;
+				    }
+				  }
+				  else {
+				    if ((l==4)&&(m==-2)) {
+				      for (i = 0; i < nmodes; i++) {
+					modefreqs->data[i].re = BCW4m2re[i][0] + BCW4m2re[i][1] * pow(1.- finalSpin, BCW4m2re[i][2]);
+					modefreqs->data[i].im = modefreqs->data[i].re / 2.
+					  / (BCW4m2im[i][0] + BCW4m2im[i][1] * pow(1.- finalSpin, BCW4m2im[i][2]));
+					modefreqs->data[i].re /= finalMass * totalMass * LAL_MTSUN_SI;
+					modefreqs->data[i].im /= finalMass * totalMass * LAL_MTSUN_SI;
+				      }
+				    }
+				    else {
+				      if ((l==4)&&(m==1)) {
+					for (i = 0; i < nmodes; i++) {
+					  modefreqs->data[i].re = BCW41re[i][0] + BCW41re[i][1] * pow(1.- finalSpin, BCW41re[i][2]);
+					  modefreqs->data[i].im = modefreqs->data[i].re / 2.
+					    / (BCW41im[i][0] + BCW41im[i][1] * pow(1.- finalSpin, BCW41im[i][2]));
+					  modefreqs->data[i].re /= finalMass * totalMass * LAL_MTSUN_SI;
+					  modefreqs->data[i].im /= finalMass * totalMass * LAL_MTSUN_SI;
+					}
+				      }
+				      else {
+					if ((l==4)&&(m==-1)) {
+					  for (i = 0; i < nmodes; i++) {
+					    modefreqs->data[i].re = BCW4m1re[i][0] + BCW4m1re[i][1] * pow(1.- finalSpin, BCW4m1re[i][2]);
+					    modefreqs->data[i].im = modefreqs->data[i].re / 2.
+					      / (BCW4m1im[i][0] + BCW4m1im[i][1] * pow(1.- finalSpin, BCW4m1im[i][2]));
+					    modefreqs->data[i].re /= finalMass * totalMass * LAL_MTSUN_SI;
+					    modefreqs->data[i].im /= finalMass * totalMass * LAL_MTSUN_SI;
+					  }
+					}
+					else {
+					  if ((l==4)&&(m==0)) {
+					    for (i = 0; i < nmodes; i++) {
+					      modefreqs->data[i].re = BCW40re[i][0] + BCW40re[i][1] * pow(1.- finalSpin, BCW40re[i][2]);
+					      modefreqs->data[i].im = modefreqs->data[i].re / 2.
+						/ (BCW40im[i][0] + BCW40im[i][1] * pow(1.- finalSpin, BCW40im[i][2]));
+					      modefreqs->data[i].re /= finalMass * totalMass * LAL_MTSUN_SI;
+					      modefreqs->data[i].im /= finalMass * totalMass * LAL_MTSUN_SI;
+					    }
+					  }
+					  else {
+					    fprintf(stderr,"*** LALPSpinInspiralRingdownWave ERROR: Ringdown modes for l=%d m=%d not availbale\n",l,m);
+					    XLAL_ERROR( func , XLAL_EDOM );
+					  }
+					}
+				      }
+				    }
+				  }
+				}
+			      }
+			    }
+			  }
 			}
 		      }
 		    }
