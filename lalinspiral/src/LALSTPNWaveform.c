@@ -237,11 +237,11 @@ void LALSTPNderivatives(REAL8Vector *values, REAL8Vector *dvalues, void *mparams
     tmpz = S1y*S2x - S1x*S2y;
 
     dS1x += params->Sdot20 * omega2 *
-       (tmpx - 3.0 * dotLNS2 * crossx);
+	(tmpx - 3.0 * dotLNS2 * crossx);
     dS1y += params->Sdot20 * omega2 *
-       (tmpy - 3.0 * dotLNS2 * crossy);
+	(tmpy - 3.0 * dotLNS2 * crossy);
     dS1z += params->Sdot20 * omega2 *
-       (tmpz - 3.0 * dotLNS2 * crossz);
+	(tmpz - 3.0 * dotLNS2 * crossz);
 
     /* dS2, 1.5PN*/
 
@@ -663,7 +663,7 @@ LALSTPNWaveformEngine (
                                         /* Michele-041208: added one for "test" */
   UINT4 	count;                  /* integration steps performed*/
   INT4 		length;                 /* memory allocation structure*/
-  INT4 		j,k,l;                  /* counters*/
+  INT4 		j;                      /* counter*/
 
   rk4In 	in4;                    /* used to setup the Runge-Kutta integration*/
   rk4GSLIntegrator *integrator;
@@ -683,11 +683,9 @@ LALSTPNWaveformEngine (
 
   /* declare initial values of dynamical variables*/
   REAL8 initphi;
-  REAL8 initLNh[3],LNmag;
-  REAL8 initS1[3],iS1[3];
-  REAL8 initS2[3],iS2[3];
-  REAL8 rotY[3][3],rotZ[3][3];
-  REAL8 iJ[3],initJh[3],iJmod,phiJ,thetaJ;
+  REAL8 initLNhx, initLNhy, initLNhz;
+  REAL8 initS1x, initS1y, initS1z;
+  REAL8 initS2x, initS2y, initS2z;
 
   /* declare dynamical variables*/
   REAL8 vphi, omega, LNhx, LNhy, LNhz, S1x, S1y, S1z, S2x, S2y, S2z;
@@ -820,6 +818,24 @@ LALSTPNWaveformEngine (
 
   initphi = 0.0; /* -? see code at the end; initial phase is disabled for the moment*/
 
+  /* note that Theta0 cannot be 0.0!*/
+  /*initLNhx = sin(params->orbitTheta0)*cos(params->orbitPhi0);
+  initLNhy = sin(params->orbitTheta0)*sin(params->orbitPhi0);
+  initLNhz = cos(params->orbitTheta0);*/
+
+  initLNhx = sin(params->inclination);
+  initLNhy = 0.;
+  initLNhz = cos(params->inclination);
+
+  initS1x = params->spin1[0] * (params->mass1 * params->mass1) / (params->totalMass * params->totalMass);
+  initS1y = params->spin1[1] * (params->mass1 * params->mass1) / (params->totalMass * params->totalMass);
+  initS1z = params->spin1[2] * (params->mass1 * params->mass1) / (params->totalMass * params->totalMass);
+
+  initS2x = params->spin2[0] * (params->mass2 * params->mass2) / (params->totalMass * params->totalMass);
+  initS2y = params->spin2[1] * (params->mass2 * params->mass2) / (params->totalMass * params->totalMass);
+  initS2z = params->spin2[2] * (params->mass2 * params->mass2) / (params->totalMass * params->totalMass);
+
+
   dummy.length = nn * 6;
 
   values.length = dvalues.length = newvalues.length =
@@ -929,98 +945,24 @@ LALSTPNWaveformEngine (
   if (params->order == LAL_PNORDER_THREE_POINT_FIVE)
     mparams->wdotorb[8] = ak.ST[8];
 
+
+
+  /* setup initial conditions for dynamical variables*/
+
   vphi = initphi;
   omega = params->fLower * unitHz;
 
-  LNmag=params->eta*params->totalMass*params->totalMass/pow(omega,1./3.);
+  LNhx = initLNhx;
+  LNhy = initLNhy;
+  LNhz = initLNhz;
 
-  /* setup initial conditions for dynamical variables*/
-  switch (params->axisChoice) {
+  S1x = initS1x;
+  S1y = initS1y;
+  S1z = initS1z;
 
-  case OrbitalL:
-    rotY[0][0]=cos(params->inclination); rotY[0][1]=0.; rotY[0][2]=-sin(params->inclination);
-    rotY[1][0]=0.;                       rotY[1][1]=1.; rotY[1][2]=0.;
-    rotY[2][0]=sin(params->inclination); rotY[2][1]=0.; rotY[2][2]=cos(params->inclination);
-    for (k=0;k<3;k++) {
-      initS1[k]=0.;
-      initS2[k]=0.;
-    }
-    for (j=0;j<3;j++) {
-      for (k=0;k<3;k++) {
-	initS1[j]+=rotY[j][k]*params->spin1[k];
-	initS2[j]+=rotY[j][k]*params->spin2[k];
-      }
-      initS1[j] *= (params->mass1*params->mass1)/(params->totalMass*params->totalMass);
-      initS2[j] *= (params->mass2*params->mass2)/(params->totalMass*params->totalMass);
-    }
-    initLNh[0] = -sin(params->inclination);
-    initLNh[1] = 0.;
-    initLNh[2] = cos(params->inclination);
-    break;
-
-  case TotalJ:
-    for (j=0;j<3;j++) {
-      iS1[j] = params->spin1[j] * params->mass1 * params->mass1;
-      iS2[j] = params->spin2[j] * params->mass2 * params->mass2;
-      iJ[j] = iS1[j] + iS2[j];
-    }
-    iJ[2] += LNmag;
-    iJmod = sqrt ( iJ[0]*iJ[0] + iJ[1]*iJ[1] + iJ[2]*iJ[2] );
-    for (j=0;j<3;j++) {
-      initJh[j] = iJ[j]/iJmod;
-      initLNh[j]=0.;
-      initS1[j]=0.;
-      initS2[j]=0.;
-    }
-    if (initJh[0]==0.) phiJ=0.;
-    else phiJ=atan2(initJh[1],initJh[0]);
-    thetaJ=acos(initJh[2]);
-
-    rotZ[0][0]=cos(phiJ);   rotZ[0][1]=sin(phiJ);  rotZ[0][2]=0.;
-    rotZ[1][0]=-sin(phiJ);  rotZ[1][1]=cos(phiJ);  rotZ[1][2]=0.;
-    rotZ[2][0]=0;           rotZ[2][1]=0.;         rotZ[2][2]=1.;
-
-    rotY[0][0]=cos(thetaJ+params->inclination); rotY[0][1]=0.; rotY[0][2]=-sin(thetaJ+params->inclination);
-    rotY[1][0]=0.;                              rotY[1][1]=1.; rotY[1][2]=0.;
-    rotY[2][0]=sin(thetaJ+params->inclination); rotY[2][1]=0.; rotY[2][2]=cos(thetaJ+params->inclination);
-
-    for (j=0;j<3;j++) {
-      for (k=0;k<3;k++) {
-	initLNh[j] += rotY[j][k] * rotZ[k][2];
-	for (l=0;l<3;l++) {
-	  initS1[j] += rotY[j][k] * rotZ[k][l] * iS1[l];
-	  initS2[j] += rotY[j][k] * rotZ[k][l] * iS2[l];
-	}
-      } 
-      initS1[j] /= params->totalMass * params->totalMass;
-      initS2[j] /= params->totalMass * params->totalMass;
-    }
-    break;
-    
-  default:
-    //case (View):
-    for (j=0;j<3;j++) {
-      initS1[j] = params->spin1[j] * (params->mass1 * params->mass1) / (params->totalMass * params->totalMass);
-      initS2[j] = params->spin2[j] * (params->mass2 * params->mass2) / (params->totalMass * params->totalMass);
-    }
-    initLNh[0] = sin(params->inclination);
-    initLNh[1] = 0.;
-    initLNh[2] = cos(params->inclination);
-    break;
-  }
-
-
-  LNhx = initLNh[0];
-  LNhy = initLNh[1];
-  LNhz = initLNh[2];
-
-  S1x = initS1[0];
-  S1y = initS1[1];
-  S1z = initS1[2];
-
-  S2x = initS2[0];
-  S2y = initS2[1];
-  S2z = initS2[2];
+  S2x = initS2x;
+  S2y = initS2y;
+  S2z = initS2z;
 
   /* copy everything in the "values" structure*/
 
@@ -1202,7 +1144,7 @@ LALSTPNWaveformEngine (
 
   }
  /* Test that omega/unitHz < NYQUIST */
- while(test < 0.0 && omegadot > 0 && omega/unitHz < params->tSampling/2. && !(isnan(omega))) ;
+ while(test < 0.0 && omegadot > 0 && LNhz*LNhz < 1.0 - LNhztol && omega/unitHz < params->tSampling/2. && !(isnan(omega))) ;
 
  /* if code stopped since evolving quantities became nan write an error message */
  if (isnan(omega)){
@@ -1223,7 +1165,7 @@ LALSTPNWaveformEngine (
       params->inclination);
  }
  /* if code stopped due to co-ord singularity write an error message */
- else if ((LNhx*LNhx+LNhy*LNhy+LNhz*LNhz < 1.0 - LNhztol)){
+ else if (!(LNhz*LNhz < 1.0 - LNhztol)){
      fprintf( stderr,
      "WARNING: Injection terminated, co-ord singularity. "
      "m1: %e, "
