@@ -149,6 +149,7 @@ LALFindChirpTDTemplate (
     case TaylorT1:
     case TaylorT2:
     case TaylorT3:
+    case TaylorT4:
     case GeneratePPN:
     case PadeT1:
     case EOB:
@@ -477,6 +478,7 @@ LALFindChirpTDNormalize(
     case TaylorT1:
     case TaylorT2:
     case TaylorT3:
+    case TaylorT4:
     case GeneratePPN:
     case PadeT1:
     case EOB:

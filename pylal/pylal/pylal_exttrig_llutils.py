@@ -606,7 +606,7 @@ def get_segment_info(timerange, minsciseg, plot_segments_file = None, path = '.'
         # check if there are CAT1 segments to take into account
         # i.e. take them out before checking available data
         if segs1:
-          segdict[ifo] -= segs1[ifo]
+          segdict[ifo] -= segs1[ifo].coalesce()
           if abs(segs1[ifo])>0:
             print "Extra info from 'get_segment_info' in peu: CAT1 veto for %s: %s"%\
                    (ifo, segs1[ifo])
@@ -735,6 +735,7 @@ def get_available_ifos(trigger,  minscilength, path = '.', tag = '', useold = Fa
     for ifo in basic_ifolist:
       xmlsegfile = "%s/%s-VETOTIME_CAT1_%s.xml" % (path, ifo,tag)
       segsdict[ifo] = read_xmlsegfile(xmlsegfile)
+      segsdict[ifo].coalesce()
 
     # do the segment check again, including the CAT1 segs
     outname = 'plot_segments_%s.png' % tag
@@ -763,17 +764,21 @@ def read_adjusted_onsource(filename):
   """
 
   grbs = {}
+  refdict = {}
   # loop over the lines of the file
   for linex in file(filename):
+
+    # take out the \n and split up the line
+    line = linex.replace('\n','')
+    w = line.split()
+
     # reject any inline comments or empty lines
     if len(linex)<3 or linex[0]=='#':
-      continue
 
-    # take out the \n signal
-    line = linex.replace('\n','')
-    
-    # split up the line
-    w = line.split()
+      # fill the reference dict if this happens to be a reference entry
+      if 'REF' in linex:
+        refdict[int(w[2])] = w[3]
+      continue
 
     # read the information
     name = w[0]
@@ -792,7 +797,8 @@ def read_adjusted_onsource(filename):
     else:
         grbs[name] = {'onsource':None, 'used':used, 'comment':comment}
 
-  return grbs
+  # return the list of checks and the reference dict
+  return grbs, refdict
 
 
 
