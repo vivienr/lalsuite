@@ -23,23 +23,19 @@
  *
  * Author: Brown D. A., BCV-Modifications: Messaritaki E., BCV-Spin: Jones G.
  *
- * Revision: $Id$
- *
  *-----------------------------------------------------------------------
  */
 
-#if 0
-<lalVerbatim file="FindChirpDataCV">
-Author: Brown, D. A., BCV-Modifications: Messaritaki E.
-$Id$
-</lalVerbatim>
+/**
 
-<lalLaTeX>
-\input{FindChirpDataCDoc}
+\author Brown, D. A., BCV-Modifications: Messaritaki E.
+\file
+\ingroup FindChirp_h
 
-\vfill{\footnotesize\input{FindChirpDataCV}}
-</lalLaTeX>
-#endif
+\brief This module provides routines to initialize the various data conditioning
+functions.
+
+*/
 
 #include <lal/LALStdlib.h>
 #include <lal/LALConstants.h>
@@ -50,14 +46,14 @@ $Id$
 
 NRCSID (FINDCHIRPDATAC, "$Id$");
 
-/* <lalVerbatim file="FindChirpDataCP"> */
+
 void
 LALFindChirpDataInit (
     LALStatus                  *status,
     FindChirpDataParams       **output,
     FindChirpInitParams        *params
     )
-/* </lalVerbatim> */
+
 {
   FindChirpDataParams          *dataParamPtr;
   REAL4                        *amp;
@@ -266,7 +262,7 @@ LALFindChirpDataInit (
 
   /* foward fft plan */
   LALCreateForwardRealFFTPlan( status->statusPtr, &dataParamPtr->fwdPlan,
-      params->numPoints, 0 );
+      params->numPoints, 1 );
   BEGINFAIL( status )
   {
     TRY( LALDestroyVector( status->statusPtr, &dataParamPtr->ampVec ),
@@ -293,7 +289,7 @@ LALFindChirpDataInit (
 
   /* inverse fft plan */
   LALCreateReverseRealFFTPlan( status->statusPtr, &dataParamPtr->invPlan,
-      params->numPoints, 0 );
+      params->numPoints, 1 );
   BEGINFAIL( status )
   {
     TRY( LALDestroyRealFFTPlan( status->statusPtr, &dataParamPtr->fwdPlan ),
@@ -468,13 +464,13 @@ LALFindChirpDataInit (
 
 
 
-/* <lalVerbatim file="FindChirpDataCP"> */
+
 void
 LALFindChirpDataFinalize (
     LALStatus                  *status,
     FindChirpDataParams       **output
     )
-/* </lalVerbatim> */
+
 {
   FindChirpDataParams          *dataParamPtr;
 
