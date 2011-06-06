@@ -1587,12 +1587,11 @@ static void LALSpinInspiralEngine(LALStatus * status,
       alpha = alphaold;
 
     if (count>1) {
-      if ( (fabs(Phi-alpha-Phiold+alphaold)>LAL_PI/3.) && (fabs(Phi-alpha-Phiold+alphaold)<5/3.*LAL_PI) ) {
-	fprintf(stdout,"*** LALPSpinInspiralRD WARNING ***: Problem with coordinate singularity:\n Step %d  LNhy: %12.6e LNhx: %12.6e  Psi: %12.6e  alpha: %12.6e alphaold %12.6e\n",write,LNhy,LNhx,Phi,alpha,alphaold);
-	fprintf(stdout,"h22: %12.5e  %12.5e  h2-2: %12.5e  %12.5e\n",h2P2->data[2*(write-1)],h2P2->data[2*(write-1)+1],h2M2->data[2*(write-1)],h2M2->data[2*(write-1)+1]);
-	fprintf(stdout,"h22: %12.5e  %12.5e  h2-2: %12.5e  %12.5e\n",h2P2->data[2*(write-2)],h2P2->data[2*(write-2)+1],h2M2->data[2*(write-2)],h2M2->data[2*(write-2)+1]);
-	fprintf(stdout,"h22: %12.5e  %12.5e  h2-2: %12.5e  %12.5e\n",h2P2->data[2*(write-3)],h2P2->data[2*(write-3)+1],h2M2->data[2*(write-3)],h2M2->data[2*(write-3)+1]);
+      if ( (fabs(Phi+alpha-Phiold-alphaold)>LAL_PI/4.) ) {
+	fprintf(stdout,"*** LALPSpinInspiralRD WARNING ***: Problem with coordinate singularity:\n Step %d  LNhy: %12.6e LNhx: %12.6e  Psi+alpha: %12.6e\n Step %d      Psiold+alphaold %12.6e\n",write,LNhy,LNhx,(Phi+alpha)/LAL_PI,write-1,(Phiold+alphaold)/LAL_PI);
 	fprintf(stdout,"            m: (%12.6e,%12.6e)\n", mparams->m1m*mparams->m, mparams->m2m*mparams->m);
+	fprintf(stdout,"            S1: (%9.6f,%9.6f,%9.6f)\n",yinit[5]/mparams->m1msq,yinit[6]/mparams->m1msq,yinit[7]/mparams->m1msq);
+	fprintf(stdout,"            S2: (%9.6f,%9.6f,%9.6f)\n",yinit[8]/mparams->m2msq,yinit[9]/mparams->m2msq,yinit[10]/mparams->m2msq);
       }
     }
 
@@ -2002,19 +2001,18 @@ static int XLALSpinInspiralAdaptiveEngine(
     errcode  = XLALSpinInspiralFillH2Modes(h2P2,h2M2,h2P1,h2M1,h20,j,amp22,v,mparams->eta,mparams->dm,Psi,alpha,trigAngle);
 
     if (j>2) {
-      if ( (fabs(Phi[j-1]-alphaold-Phi[j-2]+alphaoold)>LAL_PI/3.) && (fabs(Phi[j-1]-alphaold-Phi[j-2]+alphaoold)<5./3.*LAL_PI) ) {
-	fprintf(stdout,"*** LALPSpinInspiralRD WARNING ***: Problem with coordinate singularity:\n Step %d  LNhy: %12.6e LNhx: %12.6e  Psi-alpha: %12.6e\n Step %d  LNhy: %12.6e  LNhx: %12.6e  Psi-alpha: %12.6e\n Step %d  LNhy: %12.6e  LNhx: %12.6e  Psi-alpha: %12.6e\n",j,LNhy[j],LNhx[j],Phi[j]-alpha,j-1,LNhy[j-1],LNhx[j-1],Phi[j-1]-alphaold,j-2,LNhy[j-2],LNhx[j-2],Phi[j-2]-alphaoold);
-	fprintf(stdout,"h22: %12.5e  %12.5e  h2-2: %12.5e  %12.5e\n",h2P2->data[2*j],h2P2->data[2*j+1],h2M2->data[2*j],h2M2->data[2*j+1]);
-	fprintf(stdout,"h22: %12.5e  %12.5e  h2-2: %12.5e  %12.5e\n",h2P2->data[2*(j-1)],h2P2->data[2*(j-1)+1],h2M2->data[2*(j-1)],h2M2->data[2*(j-1)+1]);
-	fprintf(stdout,"h22: %12.5e  %12.5e  h2-2: %12.5e  %12.5e\n",h2P2->data[2*(j-2)],h2P2->data[2*(j-2)+1],h2M2->data[2*(j-2)],h2M2->data[2*(j-2)+1]);
+      if ( !((fabs(Phi[j-1]+alphaold-Phi[j-2]-alphaoold)<LAL_PI/4.) || ((fabs(Phi[j-1]+alphaold-Phi[j-2]-alphaoold)<1.25*LAL_PI) && (fabs(Phi[j-1]+alphaold-Phi[j-2]-alphaoold)>LAL_PI)) ) ) {
+	fprintf(stdout,"*** LALPSpinInspiralRD WARNING ***: Problem with coordinate singularity:\n Step %d  LNhy: %12.6e LNhx: %12.6e  Psi+alpha: %12.6e alpha %12.6e\n Step %d  LNhy: %12.6e  LNhx: %12.6e  Psi+alpha: %12.6e  alpha %12.6e\n Step %d  LNhy: %12.6e  LNhx: %12.6e  Psi+alpha: %12.6e  alpha %12.6e\n",j,LNhy[j],LNhx[j],(Phi[j]+alpha)/LAL_PI,alpha/LAL_PI,j-1,LNhy[j-1],LNhx[j-1],(Phi[j-1]+alphaold)/LAL_PI,alphaold/LAL_PI,j-2,LNhy[j-2],LNhx[j-2],(Phi[j-2]+alphaoold)/LAL_PI,alphaoold/LAL_PI);
 	fprintf(stdout,"            m: (%12.6e,%12.6e)\n", mparams->m1m*mparams->m, mparams->m2m*mparams->m);
+	fprintf(stdout,"            S1: (%9.6f,%9.6f,%9.6f)\n",yinit[5]/mparams->m1msq,yinit[6]/mparams->m1msq,yinit[7]/mparams->m1msq);
+	fprintf(stdout,"            S2: (%9.6f,%9.6f,%9.6f)\n",yinit[8]/mparams->m2msq,yinit[9]/mparams->m2msq,yinit[10]/mparams->m2msq);
       }
     }
 
     errcode += XLALSpinInspiralFillH3Modes(h3P3,h3M3,h3P2,h3M2,h3P1,h3M1,h30,j,amp33,v,mparams->eta,mparams->dm,Psi,alpha,trigAngle);
 
     errcode += XLALSpinInspiralFillH4Modes(h4P4,h4M4,h4P3,h4M3,h4P2,h4M2,h4P1,h4M1,h40,j,amp44,v,mparams->eta,mparams->dm,Psi,alpha,trigAngle);
-    
+
   }
 
   LALFree(yin);
@@ -2067,7 +2065,7 @@ void LALPSpinInspiralRDEngine(LALStatus   * status,
 
   REAL8Vector* h2P2;
   REAL8Vector* h2M2;
-  REAL8Vector* h2P1;
+  /*  REAL8Vector* h2P1;
   REAL8Vector* h2M1;
   REAL8Vector* h20;
   REAL8Vector* h3P3;
@@ -2085,7 +2083,7 @@ void LALPSpinInspiralRDEngine(LALStatus   * status,
   REAL8Vector* h4M2;
   REAL8Vector* h4P1;
   REAL8Vector* h4M1;
-  REAL8Vector* h40;
+  REAL8Vector* h40;*/
 
   REAL8Vector* sigp;
   REAL8Vector* sigc;
@@ -2293,7 +2291,7 @@ void LALPSpinInspiralRDEngine(LALStatus   * status,
   /* Allocate memory for temporary arrays */
   h2P2 = XLALCreateREAL8Vector(length * 2);
   h2M2 = XLALCreateREAL8Vector(length * 2);
-  h2P1 = XLALCreateREAL8Vector(length * 2);
+  /*  h2P1 = XLALCreateREAL8Vector(length * 2);
   h2M1 = XLALCreateREAL8Vector(length * 2);
   h20  = XLALCreateREAL8Vector(length * 2);
   h3P3 = XLALCreateREAL8Vector(length * 2);
@@ -2316,14 +2314,14 @@ void LALPSpinInspiralRDEngine(LALStatus   * status,
   sigc = XLALCreateREAL8Vector(length);
   hap  = XLALCreateREAL8Vector(length * 2);
   fap  = XLALCreateREAL8Vector(length);
-  phap = XLALCreateREAL8Vector(length);
+  phap = XLALCreateREAL8Vector(length);*/
   
-  if (!h2P2 || !h2M2 || !h2P1 || !h2M1 || !h20 || !sigp || !sigc || !fap || !phap || !hap || !h3P3 || !h3M3 || !h3P2 || !h3M2 || !h3P1 || !h3M1 || !h30 || !h4P4 || !h4M4 || !h4P3 || !h4M3 || !h4P2 || !h4M2 || !h4P1 || !h4M1 || !h40 ) {
+  if (!h2P2 || !h2M2 || /*!h2P1 || !h2M1 || !h20 ||*/ !sigp || !sigc || !fap || !phap || !hap /*|| !h3P3 || !h3M3 || !h3P2 || !h3M2 || !h3P1 || !h3M1 || !h30 || !h4P4 || !h4M4 || !h4P3 || !h4M3 || !h4P2 || !h4M2 || !h4P1 || !h4M1 || !h40 */) {
     if (h2P2)
       XLALDestroyREAL8Vector(h2P2);
     if (h2M2)
       XLALDestroyREAL8Vector(h2M2);
-    if (h2P1)
+    /*    if (h2P1)
       XLALDestroyREAL8Vector(h2P1);
     if (h2M2)
       XLALDestroyREAL8Vector(h2M1);
@@ -2360,7 +2358,7 @@ void LALPSpinInspiralRDEngine(LALStatus   * status,
     if (h4M1)
       XLALDestroyREAL8Vector(h4M1);
     if (h40)
-      XLALDestroyREAL8Vector(h40);
+    XLALDestroyREAL8Vector(h40);*/
     if (sigp)
       XLALDestroyREAL8Vector(sigp);
     if (sigc)
@@ -2377,7 +2375,7 @@ void LALPSpinInspiralRDEngine(LALStatus   * status,
   
   memset(h2P2->data, 0, h2P2->length * sizeof(REAL8));
   memset(h2M2->data, 0, h2M2->length * sizeof(REAL8));
-  memset(h2P1->data, 0, h2P1->length * sizeof(REAL8));
+  /*  memset(h2P1->data, 0, h2P1->length * sizeof(REAL8));
   memset(h2M1->data, 0, h2P1->length * sizeof(REAL8));
   memset(h20->data,  0, h20->length  * sizeof(REAL8));
   memset(h3P3->data, 0, h3P3->length * sizeof(REAL8));
@@ -2395,7 +2393,7 @@ void LALPSpinInspiralRDEngine(LALStatus   * status,
   memset(h4M2->data, 0, h3M2->length * sizeof(REAL8));
   memset(h4P1->data, 0, h3P1->length * sizeof(REAL8));
   memset(h4M1->data, 0, h3M1->length * sizeof(REAL8));
-  memset(h40->data,  0, h30->length  * sizeof(REAL8));
+  memset(h40->data,  0, h30->length  * sizeof(REAL8));*/
   memset(sigp->data, 0, sigp->length * sizeof(REAL8));
   memset(sigc->data, 0, sigc->length * sizeof(REAL8));
   memset(hap->data,  0, hap->length  * sizeof(REAL8));
@@ -2474,10 +2472,10 @@ void LALPSpinInspiralRDEngine(LALStatus   * status,
 
   if (params->fixedStep == 1) {
     //printf("Fixed step integration\n");
-    LALSpinInspiralEngine(status->statusPtr,neqs,yinit,amp22ini,&mparams,h2P2,h2M2,h2P1,h2M1,h20,h3P3,h3M3,h3P2,h3M2,h3P1,h3M1,h30,h4P4,h4M4,h4P3,h4M3,h4P2,h4M2,h4P1,h4M1,h40,fap,phap,&phenPars);
+    LALSpinInspiralEngine(status->statusPtr,neqs,yinit,amp22ini,&mparams,h2P2,h2M2,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,fap,phap,&phenPars);
   }  else {
     //printf("Adaptive integration\n");
-    errcode = XLALSpinInspiralAdaptiveEngine(neqs,yinit,amp22ini,&mparams,h2P2,h2M2,h2P1,h2M1,h20,h3P3,h3M3,h3P2,h3M2,h3P1,h3M1,h30,h4P4,h4M4,h4P3,h4M3,h4P2,h4M2,h4P1,h4M1,h40,fap,phap,&phenPars);
+    errcode = XLALSpinInspiralAdaptiveEngine(neqs,yinit,amp22ini,&mparams,h2P2,h2M2,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,fap,phap,&phenPars);
   }
   intreturn=phenPars.intreturn;
   //printf("intreturn %d\n",intreturn);
@@ -2623,7 +2621,7 @@ void LALPSpinInspiralRDEngine(LALStatus   * status,
       for (i = 2 * apcount; i < 2 * length; i++) h2M2->data[i] = 0.;
       if (apcount > count) count = apcount;
 
-      apcount  = *countback;
+      /*      apcount  = *countback;
       errcode += XLALPSpinInspiralAttachRingdownWave(h2P1, params, &apcount, nmodes, 2, 1, finalMass, finalSpin);
       for (i = 2 * apcount; i < 2 * length; i++) h2P1->data[i] = 0.;
       if (apcount > count) count = apcount;
@@ -2716,14 +2714,14 @@ void LALPSpinInspiralRDEngine(LALStatus   * status,
       apcount  = *countback;
       errcode += XLALPSpinInspiralAttachRingdownWave(h40, params, &apcount, nmodes, 4, 0, finalMass, finalSpin);
       for (i = 2 * apcount; i < 2 * length; i++) h40->data[i] = 0.;  
-      if (apcount > count) count = apcount;
+      if (apcount > count) count = apcount;*/
 
       *countback=count;
 
       if (errcode != XLAL_SUCCESS) {
 	XLALDestroyREAL8Vector(h2P2);
 	XLALDestroyREAL8Vector(h2M2);
-	XLALDestroyREAL8Vector(h2P1);
+	/*	XLALDestroyREAL8Vector(h2P1);
 	XLALDestroyREAL8Vector(h2M1);
 	XLALDestroyREAL8Vector(h20);
 	XLALDestroyREAL8Vector(h3P3);
@@ -2741,7 +2739,7 @@ void LALPSpinInspiralRDEngine(LALStatus   * status,
 	XLALDestroyREAL8Vector(h4M2);
 	XLALDestroyREAL8Vector(h4P1);
 	XLALDestroyREAL8Vector(h4M1);
-	XLALDestroyREAL8Vector(h40);
+	XLALDestroyREAL8Vector(h40);*/
 	XLALDestroyREAL8Vector(hap);
 	XLALDestroyREAL8Vector(fap);
 	XLALDestroyREAL8Vector(phap);
@@ -2803,6 +2801,7 @@ void LALPSpinInspiralRDEngine(LALStatus   * status,
     sigc->data[i] = - x0 * MultSphHarmP.im - x1 * MultSphHarmP.re - x2 * MultSphHarmM.im - x3 * MultSphHarmM.re;
   }
 
+  /*
   errcode  = XLALSphHarm(&MultSphHarmP, 2, 1, inc, 0.);
   errcode += XLALSphHarm(&MultSphHarmM, 2, -1, inc, 0.);
   if (errcode != XLAL_SUCCESS){
@@ -2815,8 +2814,8 @@ void LALPSpinInspiralRDEngine(LALStatus   * status,
       x1 = h2P1->data[2 * i + 1];
       x2 = h2M1->data[2 * i];
       x3 = h2M1->data[2 * i + 1];
-      //sigp->data[i] +=   x0 * MultSphHarmP.re - x1 * MultSphHarmP.im + x2 * MultSphHarmM.re - x3 * MultSphHarmM.im;
-      //sigc->data[i] += - x0 * MultSphHarmP.im - x1 * MultSphHarmP.re - x2 * MultSphHarmM.im - x3 * MultSphHarmM.re;
+      sigp->data[i] +=   x0 * MultSphHarmP.re - x1 * MultSphHarmP.im + x2 * MultSphHarmM.re - x3 * MultSphHarmM.im;
+      sigc->data[i] += - x0 * MultSphHarmP.im - x1 * MultSphHarmP.re - x2 * MultSphHarmM.im - x3 * MultSphHarmM.re;
     }
   }
   
@@ -2828,8 +2827,8 @@ void LALPSpinInspiralRDEngine(LALStatus   * status,
     for (i = 0; i < length; i++) {
       x0 = h20->data[2 * i];
       x1 = h20->data[2 * i + 1];
-      //sigp->data[i] += x1 * MultSphHarmP.re - x1 * MultSphHarmP.im;
-      //sigc->data[i] -= x1 * MultSphHarmP.im + x1 * MultSphHarmP.re;
+      sigp->data[i] += x1 * MultSphHarmP.re - x1 * MultSphHarmP.im;
+      sigc->data[i] -= x1 * MultSphHarmP.im + x1 * MultSphHarmP.re;
     }
   }
   
@@ -2845,8 +2844,8 @@ void LALPSpinInspiralRDEngine(LALStatus   * status,
       x1 = h3P3->data[2 * i + 1];
       x2 = h3M3->data[2 * i];
       x3 = h3M3->data[2 * i + 1];
-      //sigp->data[i] += x0 * MultSphHarmP.re - x1 * MultSphHarmP.im + x2 * MultSphHarmM.re - x3 * MultSphHarmM.im;
-      //sigc->data[i] -= x0 * MultSphHarmP.im + x1 * MultSphHarmP.re + x2 * MultSphHarmM.im + x3 * MultSphHarmM.re;
+      sigp->data[i] += x0 * MultSphHarmP.re - x1 * MultSphHarmP.im + x2 * MultSphHarmM.re - x3 * MultSphHarmM.im;
+      sigc->data[i] -= x0 * MultSphHarmP.im + x1 * MultSphHarmP.re + x2 * MultSphHarmM.im + x3 * MultSphHarmM.re;
     }
   }
   
@@ -2862,8 +2861,8 @@ void LALPSpinInspiralRDEngine(LALStatus   * status,
       x1 = h3P2->data[2 * i + 1];
       x2 = h3M2->data[2 * i];
       x3 = h3M2->data[2 * i + 1];
-      //sigp->data[i] += x0 * MultSphHarmP.re - x1 * MultSphHarmP.im + x2 * MultSphHarmM.re - x3 * MultSphHarmM.im;
-      //sigc->data[i] -= x0 * MultSphHarmP.im + x1 * MultSphHarmP.re + x2 * MultSphHarmM.im + x3 * MultSphHarmM.re;
+      sigp->data[i] += x0 * MultSphHarmP.re - x1 * MultSphHarmP.im + x2 * MultSphHarmM.re - x3 * MultSphHarmM.im;
+      sigc->data[i] -= x0 * MultSphHarmP.im + x1 * MultSphHarmP.re + x2 * MultSphHarmM.im + x3 * MultSphHarmM.re;
     }
   }
   
@@ -2879,8 +2878,8 @@ void LALPSpinInspiralRDEngine(LALStatus   * status,
       x1 = h3P1->data[2 * i + 1];
       x2 = h3M1->data[2 * i];
       x3 = h3M1->data[2 * i + 1];
-      //sigp->data[i] += x0 * MultSphHarmP.re - x1 * MultSphHarmM.im + x2 * MultSphHarmM.re - x3 * MultSphHarmM.im;
-      //sigc->data[i] -= x0 * MultSphHarmP.im + x1 * MultSphHarmP.re + x2 * MultSphHarmM.im + x3 * MultSphHarmM.re;
+      sigp->data[i] += x0 * MultSphHarmP.re - x1 * MultSphHarmM.im + x2 * MultSphHarmM.re - x3 * MultSphHarmM.im;
+      sigc->data[i] -= x0 * MultSphHarmP.im + x1 * MultSphHarmP.re + x2 * MultSphHarmM.im + x3 * MultSphHarmM.re;
     }
   }
   
@@ -2892,8 +2891,8 @@ void LALPSpinInspiralRDEngine(LALStatus   * status,
     for (i = 0; i < length; i++) {
       x0 = h30->data[2 * i];
       x1 = h30->data[2 * i + 1];    
-      //sigp->data[i] += x0 * MultSphHarmP.re - x1 * MultSphHarmM.im;
-      //sigc->data[i] -= x0 * MultSphHarmP.im + x1 * MultSphHarmP.re;
+      sigp->data[i] += x0 * MultSphHarmP.re - x1 * MultSphHarmM.im;
+      sigc->data[i] -= x0 * MultSphHarmP.im + x1 * MultSphHarmP.re;
     }
   }
 
@@ -2909,8 +2908,8 @@ void LALPSpinInspiralRDEngine(LALStatus   * status,
       x1 = h4P4->data[2 * i + 1];
       x2 = h4P4->data[2 * i];
       x3 = h4M4->data[2 * i + 1];
-      //sigp->data[i] += x0 * MultSphHarmP.re - x1 * MultSphHarmP.im + x2 * MultSphHarmM.re - x3 * MultSphHarmM.im;
-      //sigc->data[i] -= x0 * MultSphHarmP.im + x1 * MultSphHarmP.re + x2 * MultSphHarmM.im + x3 * MultSphHarmM.re;
+      sigp->data[i] += x0 * MultSphHarmP.re - x1 * MultSphHarmP.im + x2 * MultSphHarmM.re - x3 * MultSphHarmM.im;
+      sigc->data[i] -= x0 * MultSphHarmP.im + x1 * MultSphHarmP.re + x2 * MultSphHarmM.im + x3 * MultSphHarmM.re;
     }
   }
 
@@ -2926,8 +2925,8 @@ void LALPSpinInspiralRDEngine(LALStatus   * status,
       x1 = h4P3->data[2 * i + 1];
       x2 = h4M3->data[2 * i];
       x3 = h4M3->data[2 * i + 1];
-      //sigp->data[i] += x0 * MultSphHarmP.re - x1 * MultSphHarmP.im + x2 * MultSphHarmM.re - x3 * MultSphHarmM.im;
-      //sigc->data[i] -= x0 * MultSphHarmP.im + x1 * MultSphHarmP.re + x2 * MultSphHarmM.im + x3 * MultSphHarmM.re;
+      sigp->data[i] += x0 * MultSphHarmP.re - x1 * MultSphHarmP.im + x2 * MultSphHarmM.re - x3 * MultSphHarmM.im;
+      sigc->data[i] -= x0 * MultSphHarmP.im + x1 * MultSphHarmP.re + x2 * MultSphHarmM.im + x3 * MultSphHarmM.re;
     }
   }
   
@@ -2943,8 +2942,8 @@ void LALPSpinInspiralRDEngine(LALStatus   * status,
       x1 = h4P2->data[2 * i + 1];
       x2 = h4M2->data[2 * i];
       x3 = h4M2->data[2 * i + 1];
-      //sigp->data[i] += x0 * MultSphHarmP.re - x1 * MultSphHarmP.im + x2 * MultSphHarmM.re - x3 * MultSphHarmM.im;
-      //sigc->data[i] -= x0 * MultSphHarmP.im + x1 * MultSphHarmP.re + x2 * MultSphHarmM.im + x3 * MultSphHarmM.re;
+      sigp->data[i] += x0 * MultSphHarmP.re - x1 * MultSphHarmP.im + x2 * MultSphHarmM.re - x3 * MultSphHarmM.im;
+      sigc->data[i] -= x0 * MultSphHarmP.im + x1 * MultSphHarmP.re + x2 * MultSphHarmM.im + x3 * MultSphHarmM.re;
     }
   }
   
@@ -2960,8 +2959,8 @@ void LALPSpinInspiralRDEngine(LALStatus   * status,
       x1 = h4P1->data[2 * i + 1];
       x2 = h4M1->data[2 * i];
       x3 = h4M1->data[2 * i + 1];
-      //sigp->data[i] += x0 * MultSphHarmP.re - x1 * MultSphHarmM.im + x2 * MultSphHarmM.re - x3 * MultSphHarmM.im;
-      //sigc->data[i] -= x0 * MultSphHarmP.im + x1 * MultSphHarmP.re + x2 * MultSphHarmM.im + x3 * MultSphHarmM.re;
+      sigp->data[i] += x0 * MultSphHarmP.re - x1 * MultSphHarmM.im + x2 * MultSphHarmM.re - x3 * MultSphHarmM.im;
+      sigc->data[i] -= x0 * MultSphHarmP.im + x1 * MultSphHarmP.re + x2 * MultSphHarmM.im + x3 * MultSphHarmM.re;
     }
   }
   
@@ -2973,11 +2972,12 @@ void LALPSpinInspiralRDEngine(LALStatus   * status,
     for (i = 0; i < length; i++) {
       x0 = h40->data[2 * i];
       x1 = h40->data[2 * i + 1];    
-      //sigp->data[i] += x0 * MultSphHarmP.re - x1 * MultSphHarmM.im;
-      //sigc->data[i] -= x0 * MultSphHarmP.im + x1 * MultSphHarmP.re;
+      sigp->data[i] += x0 * MultSphHarmP.re - x1 * MultSphHarmM.im;
+      sigc->data[i] -= x0 * MultSphHarmP.im + x1 * MultSphHarmP.re;
     }
   }
-  
+  */
+
   params->fFinal = params->tSampling / 2.;
 
   /*------------------------------------------------------
@@ -3008,7 +3008,7 @@ void LALPSpinInspiralRDEngine(LALStatus   * status,
   /* Clean up */
   XLALDestroyREAL8Vector(h2P2);
   XLALDestroyREAL8Vector(h2M2);
-  XLALDestroyREAL8Vector(h2P1);
+  /*  XLALDestroyREAL8Vector(h2P1);
   XLALDestroyREAL8Vector(h2M1);
   XLALDestroyREAL8Vector(h20);
   XLALDestroyREAL8Vector(h3P3);
@@ -3026,7 +3026,7 @@ void LALPSpinInspiralRDEngine(LALStatus   * status,
   XLALDestroyREAL8Vector(h4M2);
   XLALDestroyREAL8Vector(h4P1);
   XLALDestroyREAL8Vector(h4M1);
-  XLALDestroyREAL8Vector(h40);
+  XLALDestroyREAL8Vector(h40);*/
   XLALDestroyREAL8Vector(fap);
   XLALDestroyREAL8Vector(phap);
   XLALDestroyREAL8Vector(hap);
