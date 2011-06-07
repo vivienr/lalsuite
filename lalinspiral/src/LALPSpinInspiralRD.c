@@ -2217,17 +2217,17 @@ void LALPSpinInspiralRDEngine(LALStatus   * status,
   //printf("omM %12.6e  fr %12.6e\n",omegaMatch,fracRD(LNhS1,LNhS2,S1S1,S1S2,S2S2));
 
   if ( initomega > omegaMatch ) {
-    /*if ((params->spin1[0]==params->spin1[1])&&(params->spin1[1]==params->spin2[0])&&(params->spin2[0]==params->spin2[1])&&(params->spin2[1]==0.)) {
+    if ((params->spin1[0]==params->spin1[1])&&(params->spin1[1]==params->spin2[0])&&(params->spin2[0]==params->spin2[1])&&(params->spin2[1]==0.)) {
       //Beware, this correspond to a shift of the initial phase!
       initomega = omMlow;
       fprintf(stdout,"*** LALPSpinInspiralRD WARNING ***: Initial frequency reset from %12.6e to %12.6e Hz, m:(%12.4e,%12.4e)\n",params->fLower,initomega/unitHz,params->mass1,params->mass2);
-      }*/
-    /*else {*/
-    fprintf(stderr,"**** LALPSpinInspiralRD ERROR ****: Initial frequency too high: %11.5e for omM ~ %11.5e and m:(%8.3f, %8.3f)\n",params->fLower,omegaMatch/unitHz,params->mass1,params->mass2);
-    DETATCHSTATUSPTR(status);
-    RETURN(status);
-    //XLAL_ERROR(func,XLAL_EFAILED);
-    /*}*/
+      }
+    else {
+      fprintf(stderr,"**** LALPSpinInspiralRD ERROR ****: Initial frequency too high: %11.5e for omM ~ %11.5e and m:(%8.3f, %8.3f)\n",params->fLower,omegaMatch/unitHz,params->mass1,params->mass2);
+      DETATCHSTATUSPTR(status);
+      RETURN(status);
+      //XLAL_ERROR(func,XLAL_EFAILED);
+    }
   }
 
   /* Here we use the following convention:
@@ -2339,8 +2339,7 @@ void LALPSpinInspiralRDEngine(LALStatus   * status,
   mparams.length = length;
   
   /* Allocate memory for temporary arrays */
-  h2P2 = XLALCreateREAL8Vector(length * 2);
-  h2M2 = XLALCreateREAL8Vector(length * 2);
+
   /*  h2P1 = XLALCreateREAL8Vector(length * 2);
   h2M1 = XLALCreateREAL8Vector(length * 2);
   h20  = XLALCreateREAL8Vector(length * 2);
@@ -2559,6 +2558,13 @@ void LALPSpinInspiralRDEngine(LALStatus   * status,
 
     if ((tAs < t0) || (om1 < 0.)) {
       fprintf(stderr,"**** LALPSpinInspiralRD ERROR ****: Could not attach phen part for m:(%12.6e, %12.6e)\n",params->mass1,params->mass2);
+      XLALDestroyREAL8Vector(h2P2);
+      XLALDestroyREAL8Vector(h2M2);
+      XLALDestroyREAL8Vector(fap);
+      XLALDestroyREAL8Vector(phap);
+      XLALDestroyREAL8Vector(sigp);
+      XLALDestroyREAL8Vector(sigc);
+      XLALDestroyREAL8Vector(hap);
       DETATCHSTATUSPTR(status);
       RETURN(status);
       //XLAL_ERROR(func, XLAL_EFAILED);
@@ -2582,6 +2588,13 @@ void LALPSpinInspiralRDEngine(LALStatus   * status,
 
       errcode =XLALPSpinGenerateQNMFreq(modefreqs, params, 2, 2, nmodes, finalMass, finalSpin);
       if (errcode != XLAL_SUCCESS) {
+	XLALDestroyREAL8Vector(h2P2);
+	XLALDestroyREAL8Vector(h2M2);
+	XLALDestroyREAL8Vector(fap);
+	XLALDestroyREAL8Vector(phap);
+	XLALDestroyREAL8Vector(sigp);
+	XLALDestroyREAL8Vector(sigc);
+	XLALDestroyREAL8Vector(hap);
 	XLALDestroyCOMPLEX8Vector(modefreqs);
 	DETATCHSTATUSPTR(status);
 	RETURN(status);
@@ -2603,6 +2616,14 @@ void LALPSpinInspiralRDEngine(LALStatus   * status,
 	  fprintf(stderr, "   m  (%11.4e  %11.4e)  f0 %11.4e\n",params->mass1, params->mass2, params->fLower);
 	  fprintf(stderr, "   S1 (%8.4f  %8.4f  %8.4f)\n", initS1[0],initS1[1], initS1[2]);
 	  fprintf(stderr, "   S2 (%8.4f  %8.4f  %8.4f)\n", initS2[0],initS2[1], initS2[2]);
+	  XLALDestroyREAL8Vector(h2P2);
+	  XLALDestroyREAL8Vector(h2M2);
+	  XLALDestroyREAL8Vector(fap);
+	  XLALDestroyREAL8Vector(phap);
+	  XLALDestroyREAL8Vector(hap);
+	  XLALDestroyREAL8Vector(sigp);
+	  XLALDestroyREAL8Vector(sigc);
+	  XLALDestroyCOMPLEX8Vector(modefreqs);
 	  DETATCHSTATUSPTR(status);
 	  RETURN(status);
 	  //XLAL_ERROR(func,XLAL_ENOMEM);
