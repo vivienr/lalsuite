@@ -1615,7 +1615,7 @@ static void LALSpinInspiralEngine(LALStatus * status,
       alpha = alphaold;
 
     if (count>1) {
-      if ( (fabs(Phi+alpha-Phiold-alphaold)>LAL_PI/4.) ) {
+      if ( !((fabs(Phi+alpha-Phiold-alphaold)<LAL_PI/4.) || ((fabs(Phi+alpha-Phiold-alphaold)<1.25*LAL_PI) && (fabs(Phi+alpha-Phiold-alphaold)>LAL_PI)) ) ) {
 	fprintf(stdout,"*** LALPSpinInspiralRD WARNING ***: Problem with coordinate singularity:\n Step %d  LNhy: %12.6e LNhx: %12.6e  Psi+alpha: %12.6e\n Step %d      Psiold+alphaold %12.6e\n",write,LNhy,LNhx,(Phi+alpha)/LAL_PI,write-1,(Phiold+alphaold)/LAL_PI);
 	fprintf(stdout,"            m: (%12.6e,%12.6e)\n", mparams->m1m*mparams->m, mparams->m2m*mparams->m);
 	fprintf(stdout,"            S1: (%9.6f,%9.6f,%9.6f)\n",yinit[5]/mparams->m1msq,yinit[6]/mparams->m1msq,yinit[7]/mparams->m1msq);
