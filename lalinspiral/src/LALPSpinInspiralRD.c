@@ -2219,7 +2219,7 @@ void LALPSpinInspiralRDEngine(LALStatus   * status,
   if ( initomega > omegaMatch ) {
     if ((params->spin1[0]==params->spin1[1])&&(params->spin1[1]==params->spin2[0])&&(params->spin2[0]==params->spin2[1])&&(params->spin2[1]==0.)) {
       //Beware, this correspond to a shift of the initial phase!
-      initomega = omMlow;
+      initomega = 0.95*omegaMatch;
       fprintf(stdout,"*** LALPSpinInspiralRD WARNING ***: Initial frequency reset from %12.6e to %12.6e Hz, m:(%12.4e,%12.4e)\n",params->fLower,initomega/unitHz,params->mass1,params->mass2);
       }
     else {
@@ -2340,6 +2340,8 @@ void LALPSpinInspiralRDEngine(LALStatus   * status,
   
   /* Allocate memory for temporary arrays */
 
+  h2P2 = XLALCreateREAL8Vector(length * 2);
+  h2M2 = XLALCreateREAL8Vector(length * 2);
   /*  h2P1 = XLALCreateREAL8Vector(length * 2);
   h2M1 = XLALCreateREAL8Vector(length * 2);
   h20  = XLALCreateREAL8Vector(length * 2);
