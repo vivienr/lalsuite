@@ -3085,7 +3085,6 @@ void LALPSpinInspiralRDEngine(LALStatus   * status,
   XLALDestroyREAL8Vector(hap);
   XLALDestroyREAL8Vector(sigp);
   XLALDestroyREAL8Vector(sigc);
-  XLALDestroyCOMPLEX8Vector(modefreqs);
 
   DETATCHSTATUSPTR(status);
   RETURN(status);
