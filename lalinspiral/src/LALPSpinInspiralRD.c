@@ -1428,6 +1428,7 @@ static void LALSpinInspiralEngine(LALStatus * status,
 
   //static const char *func = "XLALSpinInspiralEngine";
   INITSTATUS(status, "LALSpinInspiralEngine",LALSPININSPIRALENGINEC);
+  ATTATCHSTATUSPTR(status);
   UNUSED(h4P4);
   UNUSED(h4M4);
   UNUSED(h4P3);
@@ -2453,7 +2454,7 @@ void LALPSpinInspiralRDEngine(LALStatus   * status,
   memset(hap->data,  0, hap->length  * sizeof(REAL8));
   memset(fap->data,  0, fap->length  * sizeof(REAL8));
   memset(phap->data, 0, phap->length * sizeof(REAL8));
-  
+
   /* Here there used to be a check that OmegaRD is smaller than Nyquist, it
      has been taken out */
 
@@ -2541,11 +2542,11 @@ void LALPSpinInspiralRDEngine(LALStatus   * status,
       fprintf(stderr,"**** LALPSpinInspiralRD ERROR ****: Could not attach phen part for m:(%12.6e, %12.6e)\n",params->mass1,params->mass2);
       XLALDestroyREAL8Vector(h2P2);
       XLALDestroyREAL8Vector(h2M2);
+      XLALDestroyREAL8Vector(hap);
       XLALDestroyREAL8Vector(fap);
       XLALDestroyREAL8Vector(phap);
       XLALDestroyREAL8Vector(sigp);
       XLALDestroyREAL8Vector(sigc);
-      XLALDestroyREAL8Vector(hap);
       DETATCHSTATUSPTR(status);
       RETURN(status);
       //XLAL_ERROR(func, XLAL_EFAILED);
@@ -2771,6 +2772,7 @@ void LALPSpinInspiralRDEngine(LALStatus   * status,
       *countback=count;
 
       if (errcode != XLAL_SUCCESS) {
+	fprintf(stderr,"**** LALPSpinInspiralRD ERROR ****: impossible to create RingDownWave\n");
 	XLALDestroyREAL8Vector(h2P2);
 	XLALDestroyREAL8Vector(h2M2);
 	/*	XLALDestroyREAL8Vector(h2P1);
@@ -2795,7 +2797,6 @@ void LALPSpinInspiralRDEngine(LALStatus   * status,
 	XLALDestroyREAL8Vector(hap);
 	XLALDestroyREAL8Vector(fap);
 	XLALDestroyREAL8Vector(phap);
-	fprintf(stderr,"**** LALPSpinInspiralRD ERROR ****: impossible to create RingDownWave\n");
 	DETATCHSTATUSPTR(status);
 	RETURN(status);
 	//XLAL_ERROR(func,XLAL_EFAILED);
