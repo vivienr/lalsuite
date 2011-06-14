@@ -17,72 +17,84 @@
 *  MA  02111-1307  USA
 */
 
-/****  <lalVerbatim file="LALPSpinInspiralRDCV">
- * $Id$
- **** </lalVerbatim> */
+/**
+\file
+\ingroup LALInspiral_h
 
-/****  <lalLaTeX>
+ * \brief Module to generate generic spinning binaries waveforms complete with ring-down
  *
- * \subsection{Module \texttt{LALPSpinInspiralRD.c},
- * \texttt{LALPSpinInspiralTemplates} and \texttt{LALPSpinInspiralForInjection}}
- * \label{ss:LALPSpinInspiralRD.c}
+ * \heading{Prototypes}
  *
- * Module to generate generic spinning binaries waveforms complete with ring-down
+ * <tt>LALPSpinInspiralRD()</tt>
+ * <dl>
+ * <dt>status:</dt><dd> Input/Output
+ * <dt>signalvec:</dt><dd> Output containing the inspiral waveform.</dd>
+ * <dt>params:</dt><dd> Input containing binary chirp parameters.</dd>
+ * </dl>
  *
- * \subsubsection*{Prototypes}
- * \vspace{0.1in}
- * \input{LALPSpinInspiralRDCP}
- * \idx{\verb&LALPSpinInspiralRD()&}
- * \begin{description}
- * \item {\tt signalvec:} Output containing the inspiral waveform.
- * \item {\tt params:} Input containing binary chirp parameters.
- * \end{description}
  *
- * \input{LALPSpinInspiralRDTemplatesCP}
- * \idx{\verb&LALPSpinInspiralRDTemplates()&}
- * \begin{description}
- * \item {\tt signalvec1:} Output containing the $+$ inspiral waveform.
- * \item {\tt signalvec2:} Output containing the $\times$ inspiral waveform.
- * \item {\tt params:} Input containing binary chirp parameters.
- * \end{description}
+ * <tt>LALPSpinInspiralRDTemplates()</tt>
+ * <dl>
+ * <dt>status:</dt><dd>Input/Output
+ * <dt>signalvec1:</dt><dd>Output containing the \f$+\f$ inspiral waveform.</dd>
+ * <dt>signalvec2:</dt><dd>Output containing the \f$\times\f$ inspiral waveform.</dd>
+ * <dt>params:</dt><dd>Input containing binary chirp parameters.</dd>
+ * </dl>
  *
- * \input{LALPSpinInspiralRDInjectionCP}
- * \idx{\verb&LALPSpinInspiralRDInjection()&}
- * \begin{description}
- * \item {\tt signalvec:} Output containing the inspiral waveform.
- * \item {\tt params:} Input containing binary chirp parameters.
- * \end{description}
  *
- * \subsubsection*{Description}
+ * <tt>LALPSpinInspiralRDInjection()</tt>
+ * <dl>
+ * <dt>status:</dt><dd> Input/Output
+ * <dt>signalvec:</dt><dd>Output containing the inspiral waveform.</dd>
+ * <dt>params:</dt><dd>Input containing binary chirp parameters.</dd>
+ * </dl>
+ *
+ * <tt>LALPSpinInspiralRDFreqDom()</tt>
+ * <dl>
+ * <dt>status:</dt><dd> Input/Output
+ * <dt>signalvec:</dt><dd>Output containing the inspiral waveform in frequency domain.</dd>
+ * <dt>params:</dt><dd>Input containing binary chirp parameters.</dd>
+ * </dl>
+ *
+ * \heading{Description}
  * This codes provide complete waveforms for generically spinning binary systems.
  * In order to construct the waveforms three phases are joined together:
  * an initial inspiral phase, a phenomenological phase encompassing the description
  * of the merger and the ring-down of the final black hole.
  * During the inspiral phase the system is evolved according to the standard
  * PN formulas, valid up to 3.5PN for the orbital motion,
- * to 2.5PN level for spin-orbital momentum and to 2PN for spin-spin contributions
+ * to 3PN level for spin-orbital momentum and to 2PN for spin-spin contributions
  * to the orbital phase.
  * Then a phenomenological phase is added during which the frequency of the
  * waveform has a pole-like behaviour. The stitching is performed in order to
  * ensure continuity of the phase, the frequency and its first and second
  * derivatives. Finally a ring-down phase is attached.
  *
- * \subsubsection*{Algorithm}
+ * \heading{Algorithm}
  *
- * \subsubsection*{Uses}
- * \begin{verbatim}
- * LALPSpinInspiralRDderivatives
- * LALInspiralSetup
- * LALInspiralChooseModel
- * LALRungeKutta4
- * LALAdaptiveRungeKutta4
- * \end{verbatim}
+ * \heading{Uses}
+ * \code
+ * LALPSpinInspiralRDderivatives()
+ * LALInspiralSetup()
+ * LALInspiralChooseModel()
+ * LALRungeKutta4()
+ * OmMatch()
+ * fracRD()
+ * XLALPSpinInspiralRDSetParams()
+ * XLALSpinInspiralTest()
+ * XLALSpinInspiralDerivatives()
+ * LALSpinInspiralDerivatives()
+ * XLALSpinInspiralFillH2Modes()
+ * XLALSpinInspiralFillH3Modes()
+ * XLALSpinInspiralFillH4Modes()
+ * LALSpinInspiralEngine()
+ * XLALSpinInspiralAdaptiveEngine()
+ * LALPSpinInspiralRDEngine()
+ * \endcode
  *
- * \subsubsection*{Notes}
+ * \heading{Notes}
  *
- * \vfill{\footnotesize\input{LALPSpinInspiralRDCV}}
- *
- **** </lalLaTeX>  */
+*/
 
 /** \defgroup psird Complete phenomenological spin-inspiral waveforms
  *
@@ -117,19 +129,19 @@ static REAL8 OmMatch(REAL8 LNhS1, REAL8 LNhS2, REAL8 S1S1, REAL8 S1S2, REAL8 S2S
   const REAL8 omMsz1d2  =   8.646e-3;
   const REAL8 omMszsq   =  -5.909e-3;
   const REAL8 omM3s1d2  =   1.801e-3;
-  const REAL8 omM3ssq   = -1.4059e-2; 
+  const REAL8 omM3ssq   = -1.4059e-2;
   const REAL8 omM3sz1d2 =  1.5483e-2;
   const REAL8 omM3szsq  =   8.922e-3;
 
   return omM + /*6.05e-3 * sqrtOneMinus4Eta +*/ 
-    omMsz12   * (LNhS1 + LNhS2) + 
-    omMs1d2   * (S1S2) + 
+    omMsz12   * (LNhS1 + LNhS2) +
+    omMs1d2   * (S1S2) +
     omMssq    * (S1S1 + S2S2) +
-    omMsz1d2  * (LNhS1 * LNhS2) + 
+    omMsz1d2  * (LNhS1 * LNhS2) +
     omMszsq   * (LNhS1 * LNhS1 + LNhS2 * LNhS2) +
-    omM3s1d2  * (LNhS1 + LNhS2) * (S1S2) + 
+    omM3s1d2  * (LNhS1 + LNhS2) * (S1S2) +
     omM3ssq   * (LNhS1 + LNhS2) * (S1S1+S2S2) +
-    omM3sz1d2 * (LNhS1 + LNhS2) * (LNhS1*LNhS2) + 
+    omM3sz1d2 * (LNhS1 + LNhS2) * (LNhS1*LNhS2) +
     omM3szsq  * (LNhS1 + LNhS2) * (LNhS1*LNhS1+LNhS2*LNhS2);
 }
 
@@ -1457,16 +1469,11 @@ static void LALSpinInspiralEngine(LALStatus * status,
     RETURN(status);
     //XLAL_ERROR(func, XLAL_ENOMEM);
   }
-
+  
   dt=mparams->dt;
   Mass=mparams->m * LAL_MTSUN_SI;
   dm=mparams->dm;
   unitHz= Mass * (REAL8) LAL_PI;
-  
-  while ( (OmMatch(0.,0.,0.,0.,0.) * 16. / unitHz) > (REAL4) (subsampling) / dt ) {
-    subsampling *= 2;
-    dt /= (REAL8) (subsampling);
-  }
 
   values.data    = &dummy.data[0];
   dvalues.data   = &dummy.data[neqs];
@@ -1475,8 +1482,26 @@ static void LALSpinInspiralEngine(LALStatus * status,
   dym.data       = &dummy.data[4 * neqs];
   dyt.data       = &dummy.data[5 * neqs];
 
-  /* Variables initializations */
-  memcpy(values.data,yinit,neqs*sizeof(REAL8));
+  for (j=0;j<neqs;j++) values.data[j]=yinit[j];
+
+  omega  = values.data[1];
+  Phiold = Phi;
+  Phi    = values.data[0];
+  v      = pow(omega,oneby3);
+  v2     = v*v;
+  alpha  = atan2(values.data[3],values.data[2]);
+  trigAngle.ci = LNhz = values.data[4];
+ 
+  LNhS1 = (values.data[2]*values.data[5]+values.data[3]*values.data[6]+values.data[4]*values.data[7])/mparams->m1msq;
+  LNhS2 = (values.data[2]*values.data[8]+values.data[3]*values.data[9]+values.data[4]*values.data[10])/mparams->m2msq;
+  S1S1  = (values.data[5]*values.data[5]+values.data[6]*values.data[6]+values.data[7]*values.data[7])/mparams->m1msq/mparams->m1msq;
+  S2S2  = (values.data[8]*values.data[8]+values.data[9]*values.data[9]+values.data[10]*values.data[10])/mparams->m2msq/mparams->m2msq;
+  S1S2= (values.data[5]*values.data[8]+values.data[6]*values.data[9]+values.data[7]*values.data[10])/mparams->m1msq/mparams->m2msq;;
+ 
+  while ( (OmMatch(LNhS1,LNhS1,S1S1,S1S2,S2S2) * 16. / unitHz) > (REAL4) (subsampling) / dt ) {
+    subsampling *= 2;
+    dt /= (REAL8) (subsampling);
+  }
 
   in4.function = LALSpinInspiralDerivatives;
   in4.y        = &values;
