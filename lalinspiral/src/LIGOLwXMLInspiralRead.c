@@ -1334,7 +1334,6 @@ InspiralTmpltBankFromLIGOLw (
         {
           thisTmplt->spin2[2] = colData;
         }
-
         else
         {
           CLOBBER_BANK;
@@ -2929,7 +2928,7 @@ LALMultiInspiralTableFromLIGOLw (
       }
       else if ( tableDir[j].idx == 37 )
       {
-        thisEvent->chisq = r4colData;
+	thisEvent->chisq = r4colData;
       }
       else if ( tableDir[j].idx == 38 )
       {

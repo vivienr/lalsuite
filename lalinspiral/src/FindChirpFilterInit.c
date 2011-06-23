@@ -93,7 +93,6 @@ LALCreateFindChirpInput (
     case PadeT1:
     case EOB:
     case EOBNR:
-    case PhenSpinTaylorRD:
     case FindChirpSP:
     case FindChirpPTF:
     case BCV:
@@ -366,7 +365,6 @@ LALFindChirpFilterInit (
     case PadeT1:
     case EOB:
     case EOBNR:
-    case PhenSpinTaylorRD:  
     case FindChirpSP:
     case FindChirpPTF:
     case BCV:

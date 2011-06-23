@@ -2678,6 +2678,8 @@ int main( int argc, char *argv[] )
         /* If doing bank veto compute CC Matrix */
         if (ccFlag && (subBankCurrent->subBankSize >= 1) && analyseTag)
         {
+	  
+          if (vrbflg) fprintf(stderr, "doing ccmat\n");
           XLALBankVetoCCMat( &bankVetoData, 
 			     fcDataParams->ampVec,
 			     subBankCurrent->subBankSize, 
@@ -3358,6 +3360,7 @@ int main( int argc, char *argv[] )
       snprintf( runpath, FILENAME_MAX, "%s/%s.xml",
                 runpathTmp, fileName );
     }
+    printf("%s\n", runpath);
     remove(runpath);
     unlink(runpath);
     if ( outputPath[0] && username[0] ) {
@@ -4413,10 +4416,6 @@ int arg_parse_check( int argc, char *argv[], MetadataTable procparams )
         {
           approximant = EOBNR;
         }
-        else if ( ! strcmp( "PhenSpinTaylorRD", optarg ) )
-        {
-          approximant = PhenSpinTaylorRD;
-        }
         else if ( ! strcmp( "FindChirpSP", optarg ) )
         {
           approximant = FindChirpSP;
@@ -4713,8 +4712,8 @@ int arg_parse_check( int argc, char *argv[], MetadataTable procparams )
         else
         {
           fprintf( stderr, "invalid argument to --%s:\n"
-              "unknown approximant specified: %s\n(must be one of TaylorT1, "
-              "TaylorT2, TaylorT3, PadeT1, EOB, EOBNR, PhenSpinTaylorRD, GeneratePPN, FrameFile)\n",
+              "unknown order specified: %s\n(must be one of TaylorT1, "
+              "TaylorT2, TaylorT3, PadeT1, EOB, GeneratePPN, FrameFile)\n",
               long_options[option_index].name, optarg );
           exit( 1 );
         }

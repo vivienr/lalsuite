@@ -91,7 +91,6 @@ LALFindChirpTDData (
     case PadeT1:
     case EOB:
     case EOBNR:
-    case PhenSpinTaylorRD:
     case BCVSpin:
     case FindChirpPTF:
     case IMRPhenomB:

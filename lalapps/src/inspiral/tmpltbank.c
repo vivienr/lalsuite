@@ -724,7 +724,6 @@ int main ( int argc, char *argv[] )
   /* compute the windowed power spectrum for the data channel */
   avgSpecParams.window = NULL;
   avgSpecParams.plan = NULL;
-
   LAL_CALL( LALCreateForwardRealFFTPlan( &status,
         &(avgSpecParams.plan), numPoints, 0 ), &status );
   switch ( specType )
@@ -1525,9 +1524,9 @@ int arg_parse_check( int argc, char *argv[], MetadataTable procparams )
     size_t optarg_len;
 
     c = getopt_long_only( argc, argv,
-			  "a:b:c:d:e:f:g:hi:j:k:l:m:n:o:p:r:s:t:u:v:x:yz:X:0:$:%:&:/:(:):"
-			  "A:B:C:D:E:F:G:H:I:J:K:L:M:O:P:Q:R:S:T:U:VZ:1:2:3:4:5:6:7:8:9:",
-			  long_options, &option_index );
+        "a:b:c:d:e:f:g:hi:j:k:l:m:n:o:p:r:s:t:u:v:x:yz:X:0:"
+        "A:B:C:D:E:F:G:H:I:J:K:L:M:O:P:Q:R:S:T:U:VZ:1:2:3:4:5:6:7:8:9:",
+        long_options, &option_index );
 
     /* detect the end of the options */
     if ( c == - 1 )
@@ -2167,17 +2166,13 @@ int arg_parse_check( int argc, char *argv[], MetadataTable procparams )
         {
           approximant = FindChirpPTF;
         }
-	else if ( ! strcmp( "PhenSpinTaylorRD", optarg ) )
-	{
-	  approximant = PhenSpinTaylorRD;
-	}
         else
         {
           fprintf( stderr, "invalid argument to --%s:\n"
-              "unknown approximant specified: "
+              "unknown order specified: "
               "%s (must be one of: TaylorT1, TaylorT2, TaylorT3, TaylorF1,\n"
-              "TaylorF2, PadeT1, PadeF1, EOB, EOBNR, BCV, SpinTaylorT3, BCVSpin,)\n"
-              "FindChirpPTF or PhenSpinTaylorRD)\n", long_options[option_index].name, optarg );
+              "TaylorF2, PadeT1, PadeF1, EOB, EOBNR, BCV, SpinTaylorT3, BCVSpin)\n"
+              "or FindChirpPTF)\n", long_options[option_index].name, optarg );
           exit( 1 );
         }
         haveApprox = 1;
@@ -2613,8 +2608,7 @@ int arg_parse_check( int argc, char *argv[], MetadataTable procparams )
 	  }
 	  ADD_PROCESS_PARAM( "int", "%d", nPointsSpin2z );
 	  break;
-
-    default:
+      default:
         fprintf( stderr, "unknown error while parsing options\n" );
         USAGE( stderr );
         exit( 1 );
@@ -3191,8 +3185,9 @@ int arg_parse_check( int argc, char *argv[], MetadataTable procparams )
 	     "Error: argument to --minimum-spin2z must be less than --maximum-spin2z .\n" );
     exit(1);
   }
-  
+
   return 0;
 }
 
 #undef ADD_PROCESS_PARAM
+

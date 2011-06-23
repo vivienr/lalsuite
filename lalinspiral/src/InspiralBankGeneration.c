@@ -52,7 +52,6 @@ LALInspiralBankGeneration(
   INT4  numTmplts = 0;
   INT4  i;
   REAL8 *chi, *kappa, dChi, dKappa;
-  REAL8 *s1z, *s2z, ds1z, ds2z;
 
   INITSTATUS(status, "LALInspiralBankGeneration", INSPIRALBANKGENERATIONC);
   ATTATCHSTATUSPTR(status);
@@ -515,11 +514,12 @@ LALInspiralBankGeneration(
     *ntiles = numTmplts;
     break;
 
-    default:
-      ABORT( status, LALINSPIRALBANKH_ECHOICE, LALINSPIRALBANKH_MSGECHOICE );
-      
-    }
-    
-    DETATCHSTATUSPTR(status);
-    RETURN(status);
+  default:
+    ABORT( status, LALINSPIRALBANKH_ECHOICE, LALINSPIRALBANKH_MSGECHOICE );
+
+  }
+
+  DETATCHSTATUSPTR(status);
+  RETURN(status);
+
 }
