@@ -1386,7 +1386,7 @@ fprintf(a, "                                 (newtonian|oneHalfPN|onePN|onePoint
 fprintf(a, "                                 twoPN|twoPointFive|threePN|threePointFivePN)\n");\
 fprintf(a, "  --approximant APPROX         set approximant of the waveform to APPROX\n");\
 fprintf(a, "                                 (TaylorT1|TaylorT2|TaylorT3|TaylorF1|TaylorF2|\n");\
-fprintf(a, "                                 PadeT1|PadeT2|EOB|EOBNR|BCV|SpinTaylorT3|BCVSpin)\n");\
+fprintf(a, "                                 PadeT1|PadeT2|EOB|EOBNR|PhenSpinTaylorRD|BCV|SpinTaylorT3|BCVSpin)\n");\
 fprintf(a, " --num-freq-cutoffs Ncut       create a template bank with Ncut different upper \n");\
 fprintf(a, "                                 frequency cutoffs (must be a positive integer) \n");\
 fprintf(a, " --max-high-freq-cutoff MAX    formula to compute the largest high freq. cutoff\n");\
@@ -2150,6 +2150,10 @@ int arg_parse_check( int argc, char *argv[], MetadataTable procparams )
         {
           approximant = EOBNR;
         }
+        else if ( ! strcmp( "PhenSpinTaylorRD", optarg ) )
+        {
+          approximant = PhenSpinTaylorRD;
+        }
         else if ( ! strcmp( "BCV", optarg ) )
         {
           approximant = BCV;
@@ -2169,9 +2173,9 @@ int arg_parse_check( int argc, char *argv[], MetadataTable procparams )
         else
         {
           fprintf( stderr, "invalid argument to --%s:\n"
-              "unknown order specified: "
+              "unknown approximant specified: "
               "%s (must be one of: TaylorT1, TaylorT2, TaylorT3, TaylorF1,\n"
-              "TaylorF2, PadeT1, PadeF1, EOB, EOBNR, BCV, SpinTaylorT3, BCVSpin)\n"
+              "TaylorF2, PadeT1, PadeF1, EOB, EOBNR, BCV, SpinTaylorT3, PhenSpinTaylorRD,BCVSpin)\n"
               "or FindChirpPTF)\n", long_options[option_index].name, optarg );
           exit( 1 );
         }

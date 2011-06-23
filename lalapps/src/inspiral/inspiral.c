@@ -4416,6 +4416,10 @@ int arg_parse_check( int argc, char *argv[], MetadataTable procparams )
         {
           approximant = EOBNR;
         }
+        else if ( ! strcmp( "PhenSpinTaylorRD", optarg ) )
+        {
+          approximant = PhenSpinTaylorRD;
+        }
         else if ( ! strcmp( "FindChirpSP", optarg ) )
         {
           approximant = FindChirpSP;
@@ -4712,8 +4716,8 @@ int arg_parse_check( int argc, char *argv[], MetadataTable procparams )
         else
         {
           fprintf( stderr, "invalid argument to --%s:\n"
-              "unknown order specified: %s\n(must be one of TaylorT1, "
-              "TaylorT2, TaylorT3, PadeT1, EOB, GeneratePPN, FrameFile)\n",
+              "unknown approximant specified: %s\n(must be one of TaylorT1, "
+              "TaylorT2, TaylorT3, PadeT1, EOB, PhenSpinTaylorRD, GeneratePPN, FrameFile)\n",
               long_options[option_index].name, optarg );
           exit( 1 );
         }

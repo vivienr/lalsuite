@@ -1411,6 +1411,7 @@ int main(int argc, char *argv[])
         case PadeT1:
         case EOB:
         case EOBNR:
+        case PhenSpinTaylorRD:
         case FindChirpPTF:
             if (vrbflg)
                 fprintf(stdout,
@@ -1559,6 +1560,7 @@ int main(int argc, char *argv[])
             case PadeT1:
             case EOB:
             case EOBNR:
+            case PhenSpinTaylorRD:
                 LAL_CALL(LALFindChirpTDTemplate
                          (&status, fcFilterInput->fcTmplt,
                           bankCurrent, fcTmpltParams), &status);
@@ -1659,6 +1661,7 @@ int main(int argc, char *argv[])
                   case PadeT1:
                   case EOB:
                   case EOBNR:
+                  case PhenSpinTaylorRD:
                     /* construct normalization for time domain templates... */
                     LAL_CALL( LALFindChirpTDNormalize( &status,
                           fcFilterInput->fcTmplt, fcFilterInput->segment,
@@ -1716,6 +1719,7 @@ int main(int argc, char *argv[])
                     case PadeT1:
                     case EOB:
                     case EOBNR:
+                    case PhenSpinTaylorRD:
                     case FindChirpSP:
                 */
 
@@ -1798,6 +1802,7 @@ int main(int argc, char *argv[])
                 case PadeT1:
                 case EOB:
                 case EOBNR:
+                case PhenSpinTaylorRD:
                 case FindChirpSP:
                     /* the chisq bins need to be re-computed for the next template */
                     for (j = 0; j < fcSegVec->length; ++j) {
@@ -2860,6 +2865,8 @@ int arg_parse_check(int argc, char *argv[], MetadataTable procparams)
                     approximant = EOB;
                 } else if (!strcmp("EOBNR", optarg)) {
                     approximant = EOBNR;
+                } else if (!strcmp("PhenSpinTaylorRD", optarg)) {
+                    approximant = PhenSpinTaylorRD;
                 } else if (!strcmp("FindChirpSP", optarg)) {
                     approximant = FindChirpSP;
                 } else if (!strcmp("BCV", optarg)) {
@@ -2875,7 +2882,7 @@ int arg_parse_check(int argc, char *argv[], MetadataTable procparams)
                     fprintf(stderr, "invalid argument to --%s:\n"
                             "unknown approximant specified: "
                             "%s (must be either FindChirpSP, BCV, BCVC, BCVSpin, FindChirpPTF\n"
-                            "TaylorT1, TaylorT2, TaylorT3, GeneratePPN, PadeT1 or EOB)\n",
+                            "TaylorT1, TaylorT2, TaylorT3, GeneratePPN, PadeT1, EOB or PhenSpinTaylorRD)\n",
                             long_options[option_index].name, optarg);
                     exit(1);
                 }
