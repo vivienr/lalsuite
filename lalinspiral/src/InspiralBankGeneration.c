@@ -51,7 +51,9 @@ LALInspiralBankGeneration(
   INT4  dimGrid   = 1;
   INT4  numTmplts = 0;
   INT4  i;
+  REAL8 *s1z,*s2z;
   REAL8 *chi, *kappa, dChi, dKappa;
+  REAL8 ds1z,ds2z;
 
   INITSTATUS(status, "LALInspiralBankGeneration", INSPIRALBANKGENERATIONC);
   ATTATCHSTATUSPTR(status);
