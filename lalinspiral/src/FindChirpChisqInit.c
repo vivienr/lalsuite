@@ -125,6 +125,7 @@ LALFindChirpChisqVetoInit (
     case BCVSpin:
     case AmpCorPPN:
     case IMRPhenomB:
+    case PhenSpinTaylorRD:
       break;
     default:
       ABORT( status, FINDCHIRPCHISQH_EUAPX, FINDCHIRPCHISQH_MSGEUAPX );
@@ -315,6 +316,7 @@ LALFindChirpChisqVetoFinalize (
     case BCVSpin:
     case AmpCorPPN:
     case IMRPhenomB:
+    case PhenSpinTaylorRD:
       break;
     default:
       ABORT( status, FINDCHIRPCHISQH_EUAPX, FINDCHIRPCHISQH_MSGEUAPX );

@@ -99,6 +99,7 @@ LALCreateFindChirpInput (
     case BCVSpin:
     case AmpCorPPN:
     case IMRPhenomB:
+    case PhenSpinTaylorRD:
       break;
     default:
       ABORT( status, FINDCHIRPH_EUAPX, FINDCHIRPH_MSGEUAPX );
@@ -369,8 +370,9 @@ LALFindChirpFilterInit (
     case FindChirpPTF:
     case BCV:
     case BCVSpin:
-    case IMRPhenomB:
     case AmpCorPPN:
+    case IMRPhenomB:
+    case PhenSpinTaylorRD:
       break;
     default:
       ABORT( status, FINDCHIRPH_EUAPX, FINDCHIRPH_MSGEUAPX );

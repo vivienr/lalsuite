@@ -315,6 +315,7 @@ LALInspiralCreateCoarseBank(
     case PadeF1:
     case EOB:
     case EOBNR:
+    case PhenSpinTaylorRD:
     case TaylorEt:
     case TaylorN:
     case FindChirpPTF:

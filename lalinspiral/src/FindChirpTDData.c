@@ -95,6 +95,7 @@ LALFindChirpTDData (
     case FindChirpPTF:
     case IMRPhenomB:
     case AmpCorPPN:
+    case PhenSpinTaylorRD:
       /* store the input approximant */
       approx = params->approximant;
       break;

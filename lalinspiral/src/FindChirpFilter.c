@@ -193,6 +193,7 @@ LALFindChirpFilterSegment (
     case EOBNR:
     case FindChirpSP:
     case IMRPhenomB:
+    case PhenSpinTaylorRD:
       break;
 
     default:
