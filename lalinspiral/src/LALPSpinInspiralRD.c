@@ -436,15 +436,15 @@ static int XLALSpinInspiralTest(double t, const double values[], double dvalues[
   else if (isnan(omega)) {
     /* omega is nan */
     return LALPSIRDPN_TEST_OMEGANAN;
-  } else if (omega>=omegaMatch) {
-    if (params->inspiralOnly==1)
-      return LALPSIRDPN_TEST_OMEGACUT;
-    else
-      return LALPSIRDPN_TEST_OMEGAMATCH;
+  } 
+  else if ((params->inspiralOnly==1)&&(omega>params->OmCutoff)) {
+    return LALPSIRDPN_TEST_OMEGACUT;
   }
-  else {
+  else if ((params->inspiralOnly!=1)&&(omega>=omegaMatch)) {
+    return LALPSIRDPN_TEST_OMEGAMATCH;
+  }
+  else
     return GSL_SUCCESS;
-  }
 }
 
 /**
@@ -2522,14 +2522,13 @@ void LALPSpinInspiralRDEngine(LALStatus   * status,
      Termination is fine if omegamatch is passed or if energy starts 
      increasing  */
 
-  if ( (intreturn!=LALPSIRDPN_TEST_OMEGACUT) && (intreturn != LALPSIRDPN_TEST_OMEGAMATCH) && (intreturn != LALPSIRDPN_TEST_ENERGY) )
-    {
-      fprintf(stderr,"** LALPSpinInspiralRD WARNING **: integration terminated with code %d.\n",intreturn);
-      fprintf(stderr,"  1025: Energy increases\n  1026: Omegadot -ve\n  1028: Omega NAN\n  1029: Omega > Omegamatch\n  1031: Omega -ve\n  1032: Omega > OmegaCut %12.6e\n",mparams.OmCutoff);
-      fprintf(stderr,"  Waveform parameters were m1 = %14.6e, m2 = %14.6e, inc = %10.6f,\n", params->mass1, params->mass2, params->inclination);
-      fprintf(stderr,"                           S1 = (%10.6f,%10.6f,%10.6f)\n", params->spin1[0], params->spin1[1], params->spin1[2]);
-      fprintf(stderr,"                           S2 = (%10.6f,%10.6f,%10.6f)\n", params->spin2[0], params->spin2[1], params->spin2[2]);
-    }
+  if ( (intreturn!=LALPSIRDPN_TEST_OMEGACUT) && (intreturn != LALPSIRDPN_TEST_OMEGAMATCH) && (intreturn != LALPSIRDPN_TEST_ENERGY) ) {
+    fprintf(stderr,"** LALPSpinInspiralRD WARNING **: integration terminated with code %d.\n",intreturn);
+    fprintf(stderr,"  1025: Energy increases\n  1026: Omegadot -ve\n  1028: Omega NAN\n  1029: Omega > Omegamatch\n  1031: Omega -ve\n  1032: Omega > OmegaCut %12.6e\n",mparams.OmCutoff);
+    fprintf(stderr,"  Waveform parameters were m1 = %14.6e, m2 = %14.6e, inc = %10.6f,\n", params->mass1, params->mass2, params->inclination);
+    fprintf(stderr,"                           S1 = (%10.6f,%10.6f,%10.6f)\n", params->spin1[0], params->spin1[1], params->spin1[2]);
+    fprintf(stderr,"                           S2 = (%10.6f,%10.6f,%10.6f)\n", params->spin2[0], params->spin2[1], params->spin2[2]);
+  }
 
   if ((params->inspiralOnly != 1)&&(intreturn==LALPSIRDPN_TEST_OMEGAMATCH)) {
 
@@ -2809,13 +2808,14 @@ void LALPSpinInspiralRDEngine(LALStatus   * status,
 	//XLAL_ERROR(func,XLAL_EFAILED);
       }
     }
+
   } /*End of if not inspiralonly and test_omegamatch*/
 
   /*-------------------------------------------------------------------
    * Compute the spherical harmonics required for constructing (h+,hx).
    -------------------------------------------------------------------*/
 
-  /* The angles theta for the spherical harmonics has been set according to 
+  /* The angles theta for the spherical harmonics has been set according to
      the input inclination parameter and the axisChoice */
 
   errcode  = XLALSphHarm(&MultSphHarmP, 2, 2, inc, 0.);
