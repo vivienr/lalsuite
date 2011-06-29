@@ -1042,10 +1042,20 @@ static int XLALSpinInspiralFillH2Modes(
                                0.*v * dm / 3. * an.si *
                               ( cos(Psi - 2. * alpha) * an.s2i2 + cos(Psi + 2. * alpha) * an.c2i2 ) );
 
-  h2M2->data[2 * j + 1] = amp * ( (1. - damp * v2 / 42. * (107. - 55. * eta) )* 
-				  ( sin(2. * (Psi + alpha)) * an.c4i2 - sin(2. * (Psi - alpha)) * an.s4i2) +
-				   0.*v * dm / 3. * an.si *
-				  ( sin(Psi - 2. * alpha) * an.s2i2 - sin(Psi + 2. * alpha) * an.c2i2) );
+  h2M2->data[2 * j] = amp * ( ( 1. - damp * v2 / 42. * (107. - 55. * eta) )*
+				( cos(2. * (Psi + alpha)) * an.c4i2 + cos(2. * (Psi - alpha)) * an.s4i2) -
+                               v * dm / 3. * an.si *
+                              ( cos(Psi - 2. * alpha) * an.s2i2 + cos(Psi + 2. * alpha) * an.c2i2) );
+
+  h2P2->data[2 * j + 1] = amp * ( (1. - damp * v2 / 42. * (107. - 55. * eta) )*
+                                 ( -sin(2. * (Psi + alpha)) * an.c4i2 + sin(2. * (Psi - alpha)) * an.s4i2) +
+                                   v * dm / 3. * an.si *
+                                  ( sin(Psi - 2. * alpha) * an.s2i2 - sin(Psi + 2. * alpha) * an.c2i2) );
+
+  h2M2->data[2 * j + 1] = amp * ( (1. - damp * v2 / 42. * (107. - 55. * eta) )*
+                                  ( sin(2. * (Psi + alpha)) * an.c4i2 - sin(2. * (Psi - alpha)) * an.s4i2) +
+                                   v * dm / 3. * an.si *
+                                  ( sin(Psi - 2. * alpha) * an.s2i2 - sin(Psi + 2. * alpha) * an.c2i2) );
 
   if (h2P1!=NULL) {
 
@@ -1160,8 +1170,8 @@ static int XLALSpinInspiralFillH3Modes(
 				( 27. * cos(3. * Psi - 2. * alpha) * an.si*an.s4i2 +
 				  27. * cos(3. * Psi + 2. * alpha) * an.si*an.c4i2 +
 				  cos( Psi + 2. * alpha) * an.c3i2 * (5.*an.si2-3.*an.si*an.ci2-3.*an.ci*an.si2) /2. +
-				  cos( Psi - 2. * alpha) * an.s3i2 * (5.*an.ci2+3.*an.ci*an.ci2-3.*an.si*an.si2) /2.) +
-				v2*(1./3.-eta) * 
+				  cos( Psi - 2. * alpha) * an.s3i2 * (5.*an.ci2+3.*an.ci*an.ci2-3.*an.si*an.si2) /2.) -
+				v2*(1./3.-eta) *
 				( 8.*an.c4i2*(3.*an.ci-2.)*cos(2.*(Psi+alpha)) -
 				  8.*an.s4i2*(3.*an.ci+2.)*cos(2.*(Psi-alpha)) ) );
 
@@ -1174,8 +1184,8 @@ static int XLALSpinInspiralFillH3Modes(
 				     ( 8.*an.c4i2*(3.*an.ci-2.)*sin(2.*(Psi+alpha)) +
 				       8.*an.s4i2*(3.*an.ci+2.)*sin(2.*(Psi-alpha)) ) );
 
-  h3P2->data[2 * j + 1 ] = amp32 * ( -v * dm / 3. * 
-				       ( 27. * sin(3. * Psi - 2. * alpha) * an.si*an.s4i2 - 
+  h3M2->data[2 * j + 1 ] = amp32 * ( -v * dm / 3. *
+				       ( 27. * sin(3. * Psi - 2. * alpha) * an.si*an.s4i2 -
 					 27. * cos(3. * Psi + 2. * alpha) * an.si*an.c4i2 -
 					 sin( Psi + 2. * alpha) * an.c3i2 * (5.*an.si2-3.*an.si*an.ci2-3.*an.ci*an.si2) /2.+
 					 sin( Psi - 2. * alpha) * an.s3i2 * (5.*an.ci2+3.*an.ci*an.ci2-3.*an.si*an.si2) /2.)+
@@ -1219,12 +1229,12 @@ static int XLALSpinInspiralFillH3Modes(
 				      ( 20.*an.c3i2*sin(2.*Psi+alpha)*(3.*(an.si2*an.ci+an.ci2*an.si)-5.*an.si2)
 					-20.*an.s3i2*sin(2.*Psi-alpha)*(3.*(an.ci2*an.ci-an.si2*an.si)+5.*an.ci2) ) );
 
-    h30->data[2 * j] = 0.;
+  h30->data[2 * j] = 0.;
 
-    h30->data[2 * j + 1] =  amp30 * ( v * dm *
-				     ( cos(Psi) * an.si*(cos(2.*Psi)*(45.*an.s2i)-(25.*an.cdi-21.) ) )
-				     +v2 * (1.-3.*eta) *
-				     (80. * an.s2i*an.c2i*sin(2.*Psi) ) );
+  h30->data[2 * j + 1] =  amp30 * ( v * dm *
+                                     ( cos(Psi) * an.si*(cos(2.*Psi)*(45.*an.s2i)-(25.*an.cdi-21.) ) )
+                                     +v2 * (1.-3.*eta) *
+                                     (80. * an.s2i*an.c2i*sin(2.*Psi) ) );
 
     return 0;
 
@@ -1254,14 +1264,14 @@ static int XLALSpinInspiralFillH4Modes(
   UNUSED(v);
   UNUSED(dm);
 
-  REAL8 amp43 = amp44 * 1.;
-  REAL8 amp42 = amp44 * 1.;
-  REAL8 amp41 = amp44 * 1.;
-  REAL8 amp40 = amp44 * 1.;
+  REAL8 amp43 = - amp44 * sqrt(2.);
+  REAL8 amp42 = amp44 * sqrt(7.)/2.;
+  REAL8 amp41 = amp44 * sqrt(3.5)/4.;
+  REAL8 amp40 = amp44 * sqrt(17.5)/16.;
 
-  h4P4->data[2 * j] = amp44 * (1. - eta) * 
-    ( 4.* an.s8i2 * cos(4.*(Psi-alpha)) + cos(2.*Psi-4.*alpha) *an.s6i2*an.c2i2 
-      + an.s2i2*an.c6i2* cos(2.*Psi+4.*alpha) + 4.*an.c8i2* cos(4.*(Psi+alpha)) );
+  h4P4->data[2 * j] = amp44 * (1. - 3.*eta) *
+    ( 4.* an.s8i2 * cos(4.*(Psi-alpha)) + cos(2.*Psi-4.*alpha) *an.s6i2*an.c2i2
+     + an.s2i2*an.c6i2* cos(2.*Psi+4.*alpha) + 4.*an.c8i2* cos(4.*(Psi+alpha)) );
 
   h4M4->data[2 * j] = amp44 * (1. - 3.*eta) * 
     ( 4.* an.s8i2 * cos(4.*(Psi-alpha)) + cos(2.*Psi-4.*alpha) *an.s6i2*an.c2i2 
@@ -1275,61 +1285,61 @@ static int XLALSpinInspiralFillH4Modes(
     ( 4.* an.s8i2 * sin(4.*(Psi-alpha)) + sin(2*Psi-4.*alpha) *an.s6i2*an.c2i2 
       - an.s2i2*an.c6i2* sin(2.*Psi+4.*alpha) - 4.*an.c8i2* sin(4.*(Psi+alpha)) );
 
-  h4P3->data[2 * j] = amp43 * (1. - 3.*eta) * 
-    ( 4.*an.s6i2* cos(4.*Psi-3.*alpha) - 4.*an.c6i2* cos(4.*Psi+3.*alpha) - 
+  h4P3->data[2 * j] = amp43 * (1. - 3.*eta) * an.si *
+    ( 4.*an.s6i2* cos(4.*Psi-3.*alpha) - 4.*an.c6i2* cos(4.*Psi+3.*alpha) -
       an.s4i2*(an.ci+0.5)/2. * cos(2.*Psi-3.*alpha) - an.c4i2*(an.ci-0.5) * cos(2.*Psi+3.*alpha) );
 
-  h4M3->data[2 * j] = - amp43 * (1. - 3.*eta) * 
-    ( 4.*an.s6i2* cos(4.*Psi-3.*alpha) - 4.*an.c6i2* cos(4.*Psi+3.*alpha) - 
+  h4M3->data[2 * j] = - amp43 * (1. - 3.*eta) * an.si *
+    ( 4.*an.s6i2* cos(4.*Psi-3.*alpha) - 4.*an.c6i2* cos(4.*Psi+3.*alpha) -
       an.s4i2*(an.ci+0.5)/2. * cos(2.*Psi-3.*alpha) - an.c4i2*(an.ci-0.5) * cos(2.*Psi+3.*alpha) );
 
-  h4P3->data[2 * j + 1] = amp43 * (1. - 3.*eta) * 
-    ( 4.*an.s6i2* sin(4.*Psi-3.*alpha) + 4.*an.c6i2* sin(4.*Psi+3.*alpha) - 
+  h4P3->data[2 * j + 1] = amp43 * (1. - 3.*eta) * an.si *
+    ( 4.*an.s6i2* sin(4.*Psi-3.*alpha) + 4.*an.c6i2* sin(4.*Psi+3.*alpha) -
       an.s4i2*(an.ci+0.5)/2. * sin(2.*Psi-3.*alpha) + an.c4i2*(an.ci-0.5) * sin(2.*Psi+3.*alpha) );
 
-  h4M3->data[2 * j + 1] = amp43 * (1. - 3.*eta) * 
-    ( 4.*an.s6i2* sin(4.*Psi-3.*alpha) + 4.*an.c6i2* sin(4.*Psi+3.*alpha) - 
+  h4M3->data[2 * j + 1] = amp43 * (1. - 3.*eta) * an.si *
+    ( 4.*an.s6i2* sin(4.*Psi-3.*alpha) + 4.*an.c6i2* sin(4.*Psi+3.*alpha) -
       an.s4i2*(an.ci+0.5)/2. * sin(2.*Psi-3.*alpha) + an.c4i2*(an.ci-0.5) * sin(2.*Psi+3.*alpha) );
 
   h4P2->data[2 * j] = amp42 * (1. - 3.*eta) *
-    ( 224.*an.s6i2*an.c2i2 * cos(4.*Psi-2.*alpha) - 224.*an.c6i2*an.s2i2 * cos(4.*Psi+2.*alpha) 
-      - an.c4i2 * cos(2.*(Psi+alpha))*(7.*an.cdi-14.*an.ci+9) - an.s4i2 * cos(2.*(Psi-alpha))*(7.*an.cdi+14.*an.ci+9.) );
+    ( 16.*an.s6i2*an.c2i2 * cos(4.*Psi-2.*alpha) + 16.*an.c6i2*an.s2i2 * cos(4.*Psi+2.*alpha)
+      - an.c4i2 * cos(2.*(Psi+alpha))*(an.cdi-2.*an.ci+9./7.)/2. - an.s4i2 * cos(2.*(Psi-alpha))*(an.cdi+2.*an.ci+9./7.)/2. );
 
   h4M2->data[2 * j] = amp42 * (1. - 3.*eta) *
-    ( 224.*an.s6i2*an.c2i2 * cos(4.*Psi-2.*alpha) - 224.*an.c6i2*an.s2i2 * cos(4.*Psi+2.*alpha) 
-      - an.c4i2 * cos(2.*(Psi+alpha))*(7.*an.cdi-14.*an.ci+9) - an.s4i2 * cos(2.*(Psi-alpha))*(7.*an.cdi+14.*an.ci+9.) );
+    ( 16.*an.s6i2*an.c2i2 * cos(4.*Psi-2.*alpha) + 16.*an.c6i2*an.s2i2 * cos(4.*Psi+2.*alpha)
+      - an.c4i2 * cos(2.*(Psi+alpha))*(an.cdi-2.*an.ci+9./7.)/2. - an.s4i2 * cos(2.*(Psi-alpha))*(an.cdi+2.*an.ci+9./7.)/2. );
 
   h4P2->data[2 * j + 1] = amp42 * (1. - 3.*eta) *
-    ( 224.*an.s6i2*an.c2i2 * sin(4.*Psi-2.*alpha) + 224.*an.c6i2*an.s2i2 * sin(4.*Psi+2.*alpha) 
-      + an.c4i2 * sin(2.*(Psi+alpha))*(7.*an.cdi-14.*an.ci+9) - an.s4i2 * sin(2.*(Psi-alpha))*(7.*an.cdi+14.*an.ci+9.) );
+    ( 16.*an.s6i2*an.c2i2 * sin(4.*Psi-2.*alpha) - 16.*an.c6i2*an.s2i2 * sin(4.*Psi+2.*alpha)
+      + an.c4i2 * sin(2.*(Psi+alpha))*(an.cdi-2.*an.ci+9./7.)/2. - an.s4i2 * sin(2.*(Psi-alpha))*(an.cdi+2.*an.ci+9./7.)/2. );
 
   h4M2->data[2 * j + 1] = -amp42 * (1. - 3.*eta) *
-    ( 224.*an.s6i2*an.c2i2 * sin(4.*Psi-2.*alpha) + 224.*an.c6i2*an.s2i2 * sin(4.*Psi+2.*alpha) 
-      + an.c4i2 * sin(2.*(Psi+alpha))*(7.*an.cdi-14.*an.ci+9) - an.s4i2 * sin(2.*(Psi-alpha))*(7.*an.cdi+14*an.ci+9.) );
+    ( 16.*an.s6i2*an.c2i2 * sin(4.*Psi-2.*alpha) - 16.*an.c6i2*an.s2i2 * sin(4.*Psi+2.*alpha)
+      + an.c4i2 * sin(2.*(Psi+alpha))*(an.cdi-2.*an.ci+9./7.)/2. - an.s4i2 * sin(2.*(Psi-alpha))*(an.cdi+2.*an.ci+9./7.)/2. );
 
-  h4P1->data[2 * j] = amp41 * (1. - 3.*eta) * 
-    ( 448.*an.s5i2*an.c3i2 * cos(4.*Psi-alpha) - 448.*an.s3i2*an.c5i2 * cos(4.*Psi+alpha) +
-      an.s3i2*cos(2.*Psi-alpha)*(7.*(an.cdi*an.ci2-an.sdi*an.si2)+14.*(an.ci2*an.ci-an.si2*an.si)+19.*an.ci2) -
-      an.c3i2*cos(2.*Psi+alpha)*(7.*(an.cdi*an.si2+an.sdi*an.ci2)-14.*(an.si*an.ci2+an.ci*an.si2)+19.*an.ci2) );
+  h4P1->data[2 * j] = amp41 * (1. - 3.*eta) *
+    ( -64.*an.s5i2*an.c3i2 * cos(4.*Psi-alpha) +64.*an.s3i2*an.c5i2 * cos(4.*Psi+alpha) -
+      an.s3i2*cos(2.*Psi-alpha)*((an.cdi*an.ci2-an.sdi*an.si2)+2.*(an.ci2*an.ci-an.si2*an.si)+19./7.*an.ci2) +
+      an.c3i2*cos(2.*Psi+alpha)*((an.cdi*an.si2+an.sdi*an.ci2)-2.*(an.si*an.ci2+an.ci*an.si2)+19./7.*an.ci2) );
 
-  h4M1->data[2 * j] = -amp41 * (1. - 3.*eta) * 
-    ( 448.*an.s5i2*an.c3i2 * cos(4.*Psi-alpha) - 448.*an.s3i2*an.c5i2 * cos(4.*Psi+alpha) +
-      an.s3i2*cos(2.*Psi-alpha)*(7.*(an.cdi*an.ci2-an.sdi*an.si2)+14.*(an.ci2*an.ci-an.si2*an.si)+19.*an.ci2) -
-      an.c3i2*cos(2.*Psi+alpha)*(7.*(an.cdi*an.si2+an.sdi*an.ci2)-14.*(an.si*an.ci2+an.ci*an.si2)+19.*an.ci2) );
+  h4M1->data[2 * j] = -amp41 * (1. - 3.*eta) *
+    ( -64*an.s5i2*an.c3i2 * cos(4.*Psi-alpha) +64.*an.s3i2*an.c5i2 * cos(4.*Psi+alpha) -
+      an.s3i2*cos(2.*Psi-alpha)*((an.cdi*an.ci2-an.sdi*an.si2)+2.*(an.ci2*an.ci-an.si2*an.si)+19./7.*an.ci2) +
+      an.c3i2*cos(2.*Psi+alpha)*((an.cdi*an.si2+an.sdi*an.ci2)-2.*(an.si*an.ci2+an.ci*an.si2)+19./7.*an.ci2) );
 
-  h4P1->data[2 * j + 1] = amp41 * (1. - 3.*eta) * 
-    ( 448.*an.s5i2*an.c3i2 * sin(4.*Psi-alpha) + 448.*an.s3i2*an.c5i2 * sin(4.*Psi+alpha) +
-      an.s3i2*sin(2.*Psi-alpha)*(7.*(an.cdi*an.ci2-an.sdi*an.si2)+14.*(an.ci2*an.ci-an.si2*an.si)+19.*an.ci2) +
-      an.c3i2*sin(2.*Psi+alpha)*(7.*(an.cdi*an.si2+an.sdi*an.ci2)-14.*(an.si*an.ci2+an.ci*an.si2)+19.*an.ci2) );
+  h4P1->data[2 * j + 1] = amp41 * (1. - 3.*eta) *
+    ( -64.*an.s5i2*an.c3i2 * sin(4.*Psi-alpha) - 64.*an.s3i2*an.c5i2 * sin(4.*Psi+alpha) -
+      an.s3i2*sin(2.*Psi-alpha)*((an.cdi*an.ci2-an.sdi*an.si2)+2.*(an.ci2*an.ci-an.si2*an.si)+19./7.*an.ci2) -
+      an.c3i2*sin(2.*Psi+alpha)*((an.cdi*an.si2+an.sdi*an.ci2)-2.*(an.si*an.ci2+an.ci*an.si2)+19./7.*an.ci2) );
 
-  h4M1->data[2 * j + 1] = amp41 * (1. - 3.*eta) * 
-    ( 448.*an.s5i2*an.c3i2 * sin(4.*Psi-alpha) + 448.*an.s3i2*an.c5i2 * sin(4.*Psi+alpha) +
-      an.s3i2*sin(2.*Psi-alpha)*(7.*(an.cdi*an.ci2-an.sdi*an.si2)+14.*(an.ci2*an.ci-an.si2*an.si)+19.*an.ci2) +
-      an.c3i2*sin(2.*Psi+alpha)*(7.*(an.cdi*an.si2+an.sdi*an.ci2)-14.*(an.si*an.ci2+an.ci*an.si2)+19.*an.ci2) );
+  h4M1->data[2 * j + 1] = amp41 * (1. - 3.*eta) *
+    ( -64.*an.s5i2*an.c3i2 * sin(4.*Psi-alpha) - 64.*an.s3i2*an.c5i2 * sin(4.*Psi+alpha) -
+      an.s3i2*sin(2.*Psi-alpha)*((an.cdi*an.ci2-an.sdi*an.si2)+2.*(an.ci2*an.ci-an.si2*an.si)+19./7.*an.ci2) -
+      an.c3i2*sin(2.*Psi+alpha)*((an.cdi*an.si2+an.sdi*an.ci2)-2.*(an.si*an.ci2+an.ci*an.si2)+19./7.*an.ci2) );
 
-  h40->data[2 * j] = amp40 * (1.-3.*eta) * an.s2i * (-56.*cos(4.*Psi) - 
-						     cos(2.*Psi)*(7.*an.cdi+5.) );
-  h40->data[2 * j +1] = 0.;    
+  h40->data[2 * j] = amp40 * (1.-3.*eta) * an.s2i * (8.*an.s2i*cos(4.*Psi) +
+                                                      cos(2.*Psi)*(an.cdi+5./7.) );
+  h40->data[2 * j +1] = 0.;
 
   return 0;
 }
@@ -1544,7 +1554,7 @@ static void LALSpinInspiralEngine(LALStatus * status,
 
       amp22 = amp22ini * v2;
       amp33 = -amp22 / 4. * sqrt(5. / 42.);
-      amp44 = amp22 * v2;
+      amp44 = amp22 * v2 * 2.*sqrt(5./7.)/9.;
 
       Phiwrite   = Phi;
       omegawrite = omega;
@@ -1985,6 +1995,7 @@ static int XLALSpinInspiralAdaptiveEngine(
     XLALDestroyREAL8Vector(ddalpha);
   }
   else {
+    jend=intlen-1;
     phenPars->intreturn = intreturn;
     phenPars->energy    = 0.;
     phenPars->omega     = 0.;
@@ -2544,6 +2555,8 @@ void LALPSpinInspiralRDEngine(LALStatus   * status,
     dalpha1 = phenPars.ddalpha * tAs * (1. - t0 / tAs) * (1. - t0 / tAs);
     dalpha0 = phenPars.dalpha - dalpha1 / (1. - t0 / tAs);
 
+    //printf("time %12.6e  count %d\n",tim,phenPars.countback);
+
     if ((tAs < t0) || (om1 < 0.)) {
       fprintf(stderr,"**** LALPSpinInspiralRD ERROR ****: Could not attach phen part for m:(%12.6e, %12.6e)\n",params->mass1,params->mass2);
       XLALDestroyREAL8Vector(h2P2);
@@ -2669,6 +2682,8 @@ void LALPSpinInspiralRDEngine(LALStatus   * status,
       /*--------------------------------------------------------------
        * Attach the ringdown waveform to the end of inspiral
        -------------------------------------------------------------*/
+
+      //printf("time %12.6e  count %d\n",tim,count);
 
       apcount  = *countback;
       errcode  = XLALPSpinInspiralAttachRingdownWave(h2P2, params, &apcount, nmodes, 2, 2, finalMass, finalSpin);
@@ -2818,6 +2833,12 @@ void LALPSpinInspiralRDEngine(LALStatus   * status,
   /* The angles theta for the spherical harmonics has been set according to
      the input inclination parameter and the axisChoice */
 
+  for (i = 0; i < length-1; i++) {
+    fap->data[i] /= unitHz;
+    sigp->data[i] = 0.;
+    sigc->data[i] = 0.;
+  }
+
   errcode  = XLALSphHarm(&MultSphHarmP, 2, 2, inc, 0.);
   errcode += XLALSphHarm(&MultSphHarmM, 2, -2, inc, 0.);
   if (errcode != XLAL_SUCCESS) {
@@ -2850,13 +2871,6 @@ void LALPSpinInspiralRDEngine(LALStatus   * status,
     RETURN(status);
     //XLAL_ERROR(func,XLAL_EFAILED);
   }
-
-  for (i = 0; i < length; i++) {
-    fap->data[i] /= unitHz;
-    sigp->data[i] = 0.;
-    sigc->data[i] = 0.;
-  }
-
   for (i = 0; i < length; i++) {
     x0 = h2P2->data[2 * i];
     x1 = h2P2->data[2 * i + 1];
