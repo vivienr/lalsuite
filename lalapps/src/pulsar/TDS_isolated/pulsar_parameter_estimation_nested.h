@@ -71,13 +71,14 @@ extern "C" {
 /* default values */
 #define CHUNKMIN 5
 #define CHUNKMAX 0
-#define PSIBINS 200
+#define PSIBINS 500
 #define TIMEBINS 2880
 
 /* INCREASE THESE VALUES IF ADDING ADDITIONAL PARAMETERS */
 /* number of amplitude parameters e.g. h0, phi0, psi, ciota */
-#define NUMAMPPARS 4
-CHAR amppars[NUMAMPPARS][VARNAME_MAX] = { "h0", "phi0", "psi", "cosiota" };
+#define NUMAMPPARS 7
+CHAR amppars[NUMAMPPARS][VARNAME_MAX] = { "h0", "phi0", "psi", "cosiota", "h1",
+                                          "lambda", "theta" };
 
 /* number of frequency parameters e.g. f0 */
 #define NUMFREQPARS 7
@@ -106,6 +107,8 @@ void initialiseAlgorithm( LALInferenceRunState *runState );
 
 void readPulsarData( LALInferenceRunState *runState );
 
+void readDoublePulsarData( LALInferenceRunState *runState );
+
 void setSignalModelType( LALInferenceRunState *runState );
 
 void setupFromParFile( LALInferenceRunState *runState );
@@ -130,12 +133,18 @@ void setupLivePointsArray( LALInferenceRunState *runState );
 REAL8 pulsar_log_likelihood( LALInferenceVariables *vars, 
                              LALInferenceIFOData *data,
                              LALInferenceTemplateFunction *get_pulsar_model );
+
+REAL8 pulsar_double_log_likelihood( LALInferenceVariables *vars, 
+                             LALInferenceIFOData *data,
+                             LALInferenceTemplateFunction *get_pulsar_model );
                              
 REAL8 priorFunction( LALInferenceRunState *runState, 
                      LALInferenceVariables *params );
 
 /* model functions */
 void get_pulsar_model( LALInferenceIFOData *data );
+
+REAL8 rescale_parameter( LALInferenceIFOData *data, const CHAR *parname );
 
 void get_triaxial_pulsar_model( BinaryPulsarParams params, 
                                 LALInferenceIFOData *data );
@@ -192,6 +201,10 @@ void rescaleOutput( LALInferenceRunState *runState );
 INT4 count_csv( CHAR *csvline );
 
 INT4 recognised_parameter( CHAR *parname );
+
+REAL8 calculate_time_domain_snr( LALInferenceIFOData *data );
+
+void get_loudest_snr( LALInferenceRunState *runState );
 
 /* testing functions */
 void gridOutput( LALInferenceRunState *runState );

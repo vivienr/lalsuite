@@ -77,7 +77,9 @@ NRCSID( LALINSPIRALH, "$Id$" );
 # define fiveby8   0.625
 # define threeby4  0.75
 # define sevenby8  0.875
-#define  ninty4by3etc  18.687902694437592603 /* (94/3 -41/31*pi*pi) */
+# define ninty4by3etc 18.687902694437592603 /* (94/3 -41/31*pi*pi) */
+# define LALINSPIRAL_PNTHETA -11831.L/9240.L
+# define LALINRPIAL_PNLAMBDA -1987.L/3080.L
 /** \endcond */
 
 /**\name Error Codes */ /**@{*/
@@ -224,6 +226,8 @@ typedef enum {
    NumRel,		/**< UNDOCUMENTED */
    Eccentricity,	/**< UNDOCUMENTED */
    EOBNR,		/**< UNDOCUMENTED */
+   EOBNRv2,
+   EOBNRv2HM,
    IMRPhenomA,		/**< UNDOCUMENTED */
    IMRPhenomB,		/**< UNDOCUMENTED */
    IMRPhenomFA,		/**< UNDOCUMENTED */
@@ -617,8 +621,11 @@ tagexpnCoeffs {
    /* last stable orbit and pole defined by various Taylor and P-approximants*/
    REAL8 vlsoT0, vlsoT2, vlsoT4, vlsoT6;
    REAL8 vlsoP0, vlsoP2, vlsoP4, vlsoP6;
+   REAL8 vlsoPP;
    REAL8 vpoleP4, vpoleP6;
+   REAL8 vpolePP;
 }  expnCoeffs;
+
 
 typedef REAL8 EnergyFunction(
    REAL8 v,
@@ -690,6 +697,17 @@ tagTofVIntegrandIn
    expnCoeffs *coeffs;
 } TofVIntegrandIn;
 
+/** UNDOCUMENTED */
+typedef struct
+tagEOBNonQCCoeffs
+{
+  REAL8 a1;
+  REAL8 a2;
+  REAL8 a3;
+  REAL8 a4;
+  REAL8 b1;
+  REAL8 b2;
+} EOBNonQCCoeffs;
 
 typedef struct
 tagInspiralDerivativesIn
@@ -698,12 +716,8 @@ tagInspiralDerivativesIn
    EnergyFunction *dEnergy;
    FluxFunction *flux;
    expnCoeffs *coeffs;
+   EOBNonQCCoeffs *nqcCoeffs;
 } InspiralDerivativesIn;
-
-
-
-
-
 
 
 typedef struct
@@ -998,9 +1012,26 @@ void LALEOBWaveformForInjection(
      InspiralTemplate *params,
      PPNParamStruc  *ppnParams);
 
+void LALEOBPPWaveform(
+     LALStatus *status,
+     REAL4Vector *signalvec,
+     InspiralTemplate *params);
 
+void LALEOBPPWaveformTemplates(
+     LALStatus *status,
+     REAL4Vector *signalvec1,
+     REAL4Vector *signalvec2,
+     InspiralTemplate *params);
 
+void LALEOBPPWaveformForInjection(
+     LALStatus *status,
+     CoherentGW *waveform,
+     InspiralTemplate *params,
+     PPNParamStruc  *ppnParams);
 
+/*  <lalLaTeX>
+\newpage\input{LALBCVWaveformC}
+</lalLaTeX>  */
 
 void LALBCVWaveform(
      LALStatus *status,
@@ -1016,6 +1047,13 @@ void LALTaylorT4Waveform(
      LALStatus *status,
      REAL4Vector *signalvec,
      InspiralTemplate *params);
+
+void LALTaylorT4WaveformTemplates(
+     LALStatus        *status,
+     REAL4Vector      *signalvec1,
+     REAL4Vector      *signalvec2,
+     InspiralTemplate *params
+     );
 
 void LALTaylorT4WaveformForInjection(
      LALStatus        *status,
@@ -1066,12 +1104,17 @@ LALSTPNWaveformForInjection (
 			    PPNParamStruc  *ppnParams);
 
 void
-LALSTPNWaveformFramelessForInjection (
-                             LALStatus        *status,
-                             CoherentGW       *waveform,
-                             InspiralTemplate *params,
-                             PPNParamStruc    *ppnParams
-                            );
+LALSTPNWaveformTemplates (
+   LALStatus        *status,
+   REAL4Vector      *signalvec1,
+   REAL4Vector      *signalvec2,
+   InspiralTemplate *params
+   ) ;
+
+void LALSTPNWaveform(
+     LALStatus *status,
+     REAL4Vector *signalvec,
+     InspiralTemplate *params);
 
 void
 LALSTPNWaveformEngine (
@@ -1086,18 +1129,27 @@ LALSTPNWaveformEngine (
                 InspiralTemplate *params,
                 InspiralInit     *paramsInit
                 );
-void
-LALSTPNWaveformTemplates (
-   LALStatus        *status,
-   REAL4Vector      *signalvec1,
-   REAL4Vector      *signalvec2,
-   InspiralTemplate *params
-   ) ;
 
-void LALSTPNWaveform(
-     LALStatus *status,
-     REAL4Vector *signalvec,
-     InspiralTemplate *params);
+void
+LALSTPNFramelessWaveform (
+    		LALStatus        *status,
+    		REAL4Vector      *signalvec,
+    		InspiralTemplate *params);
+
+void
+LALSTPNFramelessWaveformTemplates (
+    		LALStatus        *status,
+    		REAL4Vector      *signalvec1,
+    		REAL4Vector      *signalvec2,
+    		InspiralTemplate *params);
+
+void
+LALSTPNFramelessWaveformForInjection (
+                             LALStatus        *status,
+                             CoherentGW       *waveform,
+                             InspiralTemplate *params,
+                             PPNParamStruc    *ppnParams
+                            );
 
 /* Phen-Spin waveform functions*/
 
@@ -1527,6 +1579,16 @@ LALInspiralITStructureHelp(void);
 
 /* --- TEST PROTOTYPES --- */
 
+INT4 XLALInspiralHybridRingdownWave (
+	REAL4Vector			*rdwave1,
+	REAL4Vector			*rdwave2,
+	InspiralTemplate		*params,
+	REAL4VectorSequence		*inspwave1,
+	REAL4VectorSequence		*inspwave2,
+	COMPLEX8Vector			*modefreqs,
+	REAL8Vector			*matchrange
+	);
+
 INT4 XLALInspiralRingdownWave (
 	REAL4Vector			*rdwave1,
 	REAL4Vector			*rdwave2,
@@ -1535,6 +1597,15 @@ INT4 XLALInspiralRingdownWave (
 	REAL4VectorSequence		*inspwave2,
 	COMPLEX8Vector			*modefreqs,
 	UINT4				nmodes
+	);
+INT4 XLALGenerateHybridWaveDerivatives (
+	REAL4Vector		*rwave,
+	REAL4Vector		*dwave,
+	REAL4Vector		*ddwave,
+        REAL8Vector             *timeVec,
+	REAL4Vector		*wave,
+	REAL8Vector		*matchrange,
+	InspiralTemplate	*params
 	);
 
 INT4 XLALGenerateWaveDerivatives (
@@ -1552,11 +1623,28 @@ INT4 XLALGenerateQNMFreq(
 	UINT4			nmodes
 	);
 
+INT4 XLALGenerateQNMFreqV2(
+        COMPLEX8Vector          *modefreqs,
+        InspiralTemplate        *params,
+        UINT4                   l,
+        UINT4                   m,
+        UINT4                   nmodes
+        );
+
 INT4 XLALFinalMassSpin(
 	REAL8			*finalMass,
 	REAL8			*finalSpin,
 	InspiralTemplate	*params
 	);
+
+INT4 XLALInspiralHybridAttachRingdownWave (
+        REAL4Vector 	 *signalvec1,
+        REAL4Vector  	 *signalvec2,
+        INT4             l,
+        INT4             m,
+        REAL8Vector      *timeVec,
+	REAL8Vector	 *matchrange,
+        InspiralTemplate *params);
 
 INT4 XLALInspiralAttachRingdownWave (
         REAL4Vector 	 *Omega,
@@ -1656,6 +1744,8 @@ int XLALInspiralCalculateIIRSetInnerProduct(
 	REAL8Vector        *psd,
 	double             *ip
 	);
+
+/*---------------------------------------------------------------- */
 
 #ifdef  __cplusplus
 }

@@ -293,12 +293,15 @@ static REAL8 dEp2(REAL8 v, expnCoeffs *ak)
 
 static REAL8 dEp4(REAL8 v, expnCoeffs *ak)
 {
-   REAL8 energy, denergy, Energy, dEnergy, x, y;
+   REAL8 energy, denergy, Energy, dEnergy, denom, x, y;
    x = v*v;
    energy = ep4(v, ak);
    y = sqrt(1.+energy);
    Energy = sqrt(1. + 2.* ak->eta * (y - 1.)) - 1.;
-   denergy = (1. + 2.*ak->ePa2*x + ((ak->ePa1 + ak->ePa2) * ak->ePa2 * x*x))/pow(1. + (ak->ePa1 + ak->ePa2) * x ,2.);
+
+   denom = 1. + (ak->ePa1 + ak->ePa2) * x;
+   denom = denom * denom;
+   denergy = (1. + 2.*ak->ePa2*x + ((ak->ePa1 + ak->ePa2) * ak->ePa2 * x*x))/denom;
    dEnergy = - v * ak->eta * denergy /((1.+Energy) * y);
    return(dEnergy);
 }
@@ -307,16 +310,19 @@ static REAL8 dEp4(REAL8 v, expnCoeffs *ak)
 
 static REAL8 dEp6(REAL8 v, expnCoeffs *ak)
 {
-   REAL8 energy, denergy, Energy, dEnergy, x, y;
+   REAL8 energy, denergy, Energy, dEnergy, denom, x, y;
    x = v*v;
    energy = ep6(v, ak);
    y = sqrt(1.+energy);
    Energy = sqrt(1. + 2.* ak->eta * (y - 1.)) - 1.;
+   
+   denom = 1. + (ak->ePa1 + ak->ePa2 + ak->ePa3) * x + ak->ePa1*ak->ePa3*x*x;
+   denom = denom * denom;
+
    denergy = (1. + 2.*(ak->ePa2+ak->ePa3)*x + (ak->ePa1*ak->ePa2
            + ak->ePa2*ak->ePa2 + 2.* ak->ePa2*ak->ePa3
            + ak->ePa3*ak->ePa3) * x*x)
-           /pow(1. + (ak->ePa1 + ak->ePa2 + ak->ePa3) * x
-           + ak->ePa1*ak->ePa3*x*x,2.);
+           /denom;
    dEnergy = - v * ak->eta * denergy /((1.+Energy) * y);
    return(dEnergy);
 }
@@ -434,6 +440,26 @@ static REAL8 Fp7(REAL8 v, expnCoeffs *ak)
    return (flux);
 }
 
+/*  <lalVerbatim file="LALInspiralChooseModelCP"> */
+/* Flux for the EOBNRv2 model */
+static REAL8 Fp8PP(REAL8 v, expnCoeffs *ak)
+{ /* </lalVerbatim>  */
+   REAL8 flux,v2,v4,v6,v8,v10, l6, l8;
+   v2 = v*v;
+   v4 = v2*v2;
+   v6 = v4*v2;
+   v8 = v4*v4;
+   v10 = v8*v2;
+   l6 = ak->FTl6;
+   l8 = ak->FTl8 - ak->FTa2*ak->FTl6;
+   flux = ak->fPaN * v10/ ((1.+ak->fPa1*v/(1.+ak->fPa2*v/ (1.+ak->fPa3*v
+        / (1.+ak->fPa4*v / (1.+ak->fPa5*v / (1.+ak->fPa6*v / (1.+ak->fPa7*v
+        / (1.+ak->fPa8*v))))))))
+        * (1.-v/ak->vpolePP));
+   flux *= (1.+  log(v/ak->vlsoPP) * (l6*v6 + l8*v8) ) ;
+   return (flux);
+}
+
 /*
 static REAL8 Fp8(REAL8 v, expnCoeffs *ak)
 {
@@ -515,6 +541,8 @@ LALInspiralChooseModel(
          case PadeF1:
          case EOB:
          case EOBNR:
+         case EOBNRv2:
+         case EOBNRv2HM:
          case TaylorEt:
          case TaylorT4:
          case TaylorN:
@@ -562,6 +590,8 @@ LALInspiralChooseModel(
          case PadeF1:
          case EOB:
          case EOBNR:
+         case EOBNRv2:
+         case EOBNRv2HM:
          case TaylorEt:
          case TaylorT4:
          case TaylorN:
@@ -609,6 +639,8 @@ LALInspiralChooseModel(
          case PadeF1:
          case EOB:
          case EOBNR:
+         case EOBNRv2:
+         case EOBNRv2HM:
          case TaylorEt:
          case TaylorT4:
          case TaylorN:
@@ -651,6 +683,8 @@ LALInspiralChooseModel(
          case PadeT1:
          case EOB:
          case EOBNR:
+         case EOBNRv2:
+         case EOBNRv2HM:
          case IMRPhenomA:
          case IMRPhenomB:
          case IMRPhenomFA:
@@ -702,6 +736,8 @@ LALInspiralChooseModel(
          case PadeT1:
          case EOB:
          case EOBNR:
+         case EOBNRv2:
+         case EOBNRv2HM:
          case IMRPhenomA:
          case IMRPhenomB:
          case IMRPhenomFA:
@@ -754,6 +790,8 @@ LALInspiralChooseModel(
          case PadeT1:
          case EOB:
          case EOBNR:
+         case EOBNRv2:
+         case EOBNRv2HM:
          case IMRPhenomA:
          case IMRPhenomB:
          case IMRPhenomFA:
@@ -802,6 +840,8 @@ LALInspiralChooseModel(
          case PadeT1:
          case EOB:
          case EOBNR:
+         case EOBNRv2:
+         case EOBNRv2HM:
          case IMRPhenomA:
          case IMRPhenomB:
          case IMRPhenomFA:
@@ -825,6 +865,12 @@ LALInspiralChooseModel(
       {
          case Eccentricity:
             ABORT(status, LALINSPIRALH_EORDERMISSING, LALINSPIRALH_MSGEORDERMISSING);
+            break;
+         case EOBNRv2:
+         case EOBNRv2HM:
+            ak->vn = ak->vlso = vlso = ak->vlsoPP;
+            f->dEnergy = dEp6;
+            f->flux = Fp8PP;
             break;
          case EOB:
          case EOBNR:
@@ -883,10 +929,10 @@ LALInspiralChooseModel(
    case TaylorEt:
    case TaylorT4:
    case TaylorN:
-     ak->flso = pow(ak->vlso,3.)/(LAL_PI * ak->totalmass);
+     ak->flso = vlso * vlso * vlso/(LAL_PI * ak->totalmass);
 
      if (ak->fn) {
-       vn = pow(LAL_PI * ak->totalmass * ak->fn, oneby3);
+       vn = cbrt(LAL_PI * ak->totalmass * ak->fn);
        ak->vn = (vn < vlso) ? vn :  vlso;
      }
 
@@ -900,12 +946,11 @@ LALInspiralChooseModel(
      in1.coeffs = ak;
 
      in2 = (void *) &in1;
-
      LALInspiralTofV(status->statusPtr, &tofv, ak->vn, in2);
      CHECKSTATUSPTR(status);
 
      ak->tn = -tofv - ak->samplinginterval;
-     params->fCutoff = ak->fn = pow(ak->vn, 3.)/(LAL_PI * ak->totalmass);
+     params->fCutoff = ak->fn = ak->vn * ak->vn * ak->vn/(LAL_PI * ak->totalmass);
      /*
        for (v=0; v<ak->vn; v+=0.001)
        {
@@ -925,13 +970,15 @@ LALInspiralChooseModel(
  case IMRPhenomB:
  case IMRPhenomFA:
  case IMRPhenomFB:
+ case EOBNRv2:
+ case EOBNRv2HM:
    ak->tn = 5.*ak->totalmass/(256.*ak->eta*pow(ak->v0,8.)) + 1000.*ak->totalmass;
    break;
  case Eccentricity:
    /* The eccentric waveforms contain harmonic, so similarly to amplitude corrected waveforms
     * the duration are longer than non eccentric waveform and starts at 2fl/3*/
    ak->tn = 5.*ak->totalmass/256./ak->eta/pow(LAL_PI*ak->totalmass*params->fLower/3.*2.,8./3.);
-   ak->flso = pow(ak->vlso,3.)/(LAL_PI * ak->totalmass);
+   ak->flso = vlso * vlso * vlso /(LAL_PI * ak->totalmass);
    break;
  default:
    ABORT( status, LALINSPIRALH_ESWITCH, LALINSPIRALH_MSGESWITCH );

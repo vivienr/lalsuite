@@ -178,13 +178,16 @@ XLALAdaptiveRungeKutta4( ark4GSLIntegrator *integrator,
 	XLAL_BEGINGSL;
 
   while(1) {
+
+     if (!integrator->stopontestonly && t >= tend) {
+                        break;
+     }
+
 		if (integrator->stop) {
       if ((status = integrator->stop(t,y,dydt_in,params)) != GSL_SUCCESS) {
 				integrator->returncode = status;
 				break;
 			}
-    } else if (!integrator->stopontestonly && t >= tend) {
-			break;
 		}
 
 		/* ready to try stepping! */
@@ -225,7 +228,7 @@ XLALAdaptiveRungeKutta4( ark4GSLIntegrator *integrator,
 																						 GSL_ODEIV_HADJ_NIL if it was unchanged */
     if (status == GSL_ODEIV_HADJ_DEC) {
       memcpy(y,      y0,      dim*sizeof(REAL8));	/* if so, undo the step, and try again */
-			memcpy(dydt_in,dydt_in0,dim*sizeof(REAL8));
+			memcpy(dydt_in,dydt_in0,dim*sizeof(REAL8));      
 			goto try_step;
     }
 
@@ -287,7 +290,7 @@ XLALAdaptiveRungeKutta4( ark4GSLIntegrator *integrator,
 
     vector = output->data + outputlen*i;
     for(int j=0;j<outputlen;j++) {
-      vector[j] = gsl_spline_eval(interp,times[j],accel);
+      gsl_spline_eval_e(interp,times[j],accel, &(vector[j]));
     }
   }
 	XLAL_ENDGSL;

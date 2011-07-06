@@ -199,14 +199,16 @@ LALGenerateInspiral(
   }
 
   /* If no waveform has been generated. (AmpCorPPN and PhenSpinTaylorRD and SpinTaylorFrameless fill waveform.h) */
-  if ( waveform->a == NULL && approximant != AmpCorPPN && approximant != PhenSpinTaylorRD && approximant != SpinTaylorFrameless )
+  if ( waveform->a == NULL && approximant != AmpCorPPN && approximant != PhenSpinTaylorRD && approximant != SpinTaylorFrameless 
+       && approximant != EOBNRv2 && approximant != EOBNRv2HM )
   {
     snprintf( warnMsg, sizeof(warnMsg)/sizeof(*warnMsg),
         "No waveform generated (check lower frequency)\n");
     LALInfo( status, warnMsg );
     ABORT( status, LALINSPIRALH_ENOWAVEFORM, LALINSPIRALH_MSGENOWAVEFORM );
   }
-  if ( waveform->h == NULL && ( approximant == AmpCorPPN || approximant == PhenSpinTaylorRD || approximant == SpinTaylorFrameless ) )
+  if ( waveform->h == NULL && ( approximant == AmpCorPPN || approximant == PhenSpinTaylorRD || approximant == SpinTaylorFrameless
+       || approximant != EOBNRv2 || approximant != EOBNRv2HM ) )
   {
     snprintf( warnMsg, sizeof(warnMsg)/sizeof(*warnMsg),
              "No waveform generated (check lower frequency)\n");
@@ -418,6 +420,14 @@ LALGetApproximantFromString(
   else if ( strstr(thisEvent, "TaylorT3" ) )
   {
     *approximant = TaylorT3;
+  }
+  else if ( strstr(thisEvent, "EOBNRv2HM" ) )
+  {
+    *approximant = EOBNRv2HM;
+  }
+  else if ( strstr(thisEvent, "EOBNRv2" ) )
+  {
+    *approximant = EOBNRv2;
   }
   else if ( strstr(thisEvent, "EOBNR" ) )
   {
