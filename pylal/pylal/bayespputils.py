@@ -810,21 +810,37 @@ class Posterior(object):
         return
 
     def _average_posterior(self, samples, post_name):
+        """
+        Returns the average value of the 'post_name' column of the
+        given samples.
+        """
         ap = 0.0
         for samp in samples:
             ap = ap + samp[post_name]
         return ap / len(samples)
 
-    def _average_posterior_like_prior(self, samples, logl_name, prior_name):
+    def _average_posterior_like_prior(self, samples, logl_name, prior_name, log_bias = 0):
+        """
+        Returns the average value of the posterior assuming that the
+        'logl_name' column contains log(L) and the 'prior_name' column
+        contains the prior (un-logged).
+        """
         ap = 0.0
         for samp in samples:
-            ap += np.exp(samp[logl_name])*samp[prior_name]
+            ap += np.exp(samp[logl_name]-log_bias)*samp[prior_name]
         return ap / len(samples)
+
+    def _bias_factor(self):
+        """
+        Returns a sensible bias factor for the evidence so that
+        integrals are representable as doubles.
+        """
+        return np.mean(self._logL)
 
     def di_evidence(self, boxing=64):
         """
-        Returns the direct-integration evidence for the posterior
-        samples.
+        Returns the log of the direct-integration evidence for the
+        posterior samples.
         """
         allowed_coord_names=["spin1", "spin2", "a1", "phi1", "theta1", "a2", "phi2", "theta2",
                              "iota", "psi", "ra", "dec",
@@ -835,14 +851,16 @@ class Posterior(object):
         coordinatized_samples=[ParameterSample(row, header, coord_names) for row in samples]
         tree=KDTree(coordinatized_samples)
 
-        if "post" in header:
-            return tree.integrate(lambda samps: self._average_posterior(samps, "post"), boxing)
-        elif "posterior" in header:
-            return tree.integrate(lambda samps: self._average_posterior(samps, "posterior"), boxing)
-        elif "prior" in header and "logl" in header:
-            return tree.integrate(lambda samps: self._average_posterior_like_prior(samps, "logl", "prior"), boxing)
+        if "prior" in header and "logl" in header:
+            bf = self._bias_factor()
+            return bf + np.log(tree.integrate(lambda samps: self._average_posterior_like_prior(samps, "logl", "prior", bf), boxing))
         elif "prior" in header and "likelihood" in header:
-            return tree.integrate(lambda samps: self._average_posterior_like_prior(samps, "likelihood", "prior"), boxing)
+            bf = self._bias_factor()
+            return bf + np.log(tree.integrate(lambda samps: self._average_posterior_like_prior(samps, "likelihood", "prior", bf), boxing))
+        elif "post" in header:
+            return np.log(tree.integrate(lambda samps: self._average_posterior(samps, "post"), boxing))
+        elif "posterior" in header:
+            return np.log(tree.integrate(lambda samps: self._average_posterior(samps, "posterior"), boxing))
         else:
             raise RuntimeError("could not find 'post', 'posterior', 'logl' and 'prior', or 'likelihood' and 'prior' columns in output to compute direct integration evidence")
 
@@ -850,10 +868,11 @@ class Posterior(object):
 
     def harmonic_mean_evidence(self):
         """
-        Returns the harmonic mean evidence for the set of posterior
-        samples.
+        Returns the log of the harmonic mean evidence for the set of
+        posterior samples.
         """
-        return 1/np.mean(1/np.exp(self._logL))
+        bf = self._bias_factor()
+        return bf + np.log(1/np.mean(1/np.exp(self._logL-bf)))
 
     def _posMode(self):
         """

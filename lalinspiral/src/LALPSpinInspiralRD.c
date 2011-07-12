@@ -2674,7 +2674,7 @@ void LALPSpinInspiralRDEngine(LALStatus   * status,
 	fap->data[count] = om;
 	phap->data[count] = Psi;
 
-      } while (om < frOmRD);
+      } while ( (om < frOmRD) && (tim < tAs) );
 
       XLALDestroyCOMPLEX8Vector(modefreqs);
       *countback=count;
