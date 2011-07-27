@@ -191,6 +191,58 @@ SimInspiralTable* XLALRandomInspiralOrientation(
   return ( inj );
 }
 
+/** Places component masses on a square grid for an inspiral injection. */
+SimInspiralTable* XLALm1m2SquareGridInspiralMasses(
+    SimInspiralTable *inj,   /**< injection for which masses will be set*/
+    REAL4  mass1Min,         /**< minimum mass for first component */
+    REAL4  mass2Min,         /**< minimum mass for second component */
+    REAL4  minTotalMass,     /**< minimum total mass of binary */
+    REAL4  maxTotalMass,     /**< maximum total mass of binary */
+    REAL4  mass1Delta,       /**< m1 grid spacing */
+    REAL4  mass2Delta,       /**< m2 grid spacing */
+    INT4   mass1Pnt,         /**< number of grid points along m1 */
+    INT4   mass2Pnt,         /**< number of grid points along m2 */
+    INT4   injNum,           /**< injection number */  
+    INT4   *count            /**< unsuccessful injection counter */
+    )
+{
+  INT4  nIndex, nCycles;
+  REAL4 mTotal = maxTotalMass +1;
+
+  while ( mTotal < minTotalMass || mTotal > maxTotalMass )
+  {
+      nIndex = injNum + *count;
+      nCycles = (int) ( ceil( ((float) nIndex) / mass1Pnt ));
+      inj->mass1 = mass1Min + mass1Delta * (nIndex % mass1Pnt );
+      inj->mass2 = mass2Min + mass2Delta * (nCycles % mass2Pnt );
+      mTotal = inj->mass1 + inj->mass2 ;
+      if ( mTotal < minTotalMass || mTotal > maxTotalMass ) (*count)++;
+  }
+
+  inj->eta = inj->mass1 * inj->mass2 / ( mTotal * mTotal );
+  inj->mchirp = mTotal * pow(inj->eta, 0.6);
+  
+  return ( inj );
+}
+
+/** Set masses to fixed values for an inspiral injection. */
+SimInspiralTable* XLALFixedInspiralMasses(
+    SimInspiralTable *inj,   /**< injection for which masses will be set*/
+    REAL4  mass1Fix,         /**< fixed mass of first component */
+    REAL4  mass2Fix          /**< fixed mass of second component */
+    )
+{
+  REAL4 mTotal;
+
+  inj->mass1 = mass1Fix;
+  inj->mass2 = mass2Fix;
+  mTotal = inj->mass1 + inj->mass2 ;
+  inj->eta = inj->mass1 * inj->mass2 / ( mTotal * mTotal );
+  inj->mchirp = mTotal * pow(inj->eta, 0.6);
+  
+  return ( inj );
+}
+
 /** Generates random masses for an inspiral injection. */
 SimInspiralTable* XLALRandomInspiralMasses(
     SimInspiralTable *inj,   /**< injection for which masses will be set*/
@@ -326,6 +378,42 @@ SimInspiralTable* XLALRandomInspiralTotalMassRatio(
   return ( inj );
 }
 
+/* generate masses for an inspiral injection. Total mass and mass fraction
+ * m1 / M are uniformly distributed */
+SimInspiralTable* XLALRandomInspiralTotalMassFraction(
+    SimInspiralTable *inj,   /**< injection for which masses will be set */
+    RandomParams *randParams,/**< random parameter details */
+    MassDistribution mDist,  /**< the mass distribution to use */
+    REAL4  minTotalMass,     /**< minimum total mass of binary */
+    REAL4  maxTotalMass,     /**< maximum total mass of binary */
+    REAL4  minMassRatio,     /**< minimum mass ratio */
+    REAL4  maxMassRatio      /**< maximum mass ratio */
+    )
+{
+  REAL4 mtotal = -1.0;
+  REAL4 fraction = -1.0;
+  REAL4 minfraction = -1.0;
+  REAL4 maxfraction = -1.0;
+
+  if ( mDist==uniformTotalMassFraction)
+  {
+    mtotal = minTotalMass + (XLALUniformDeviate(randParams) * (maxTotalMass - minTotalMass));
+    minfraction = 1 / (1 + 1 / minMassRatio);
+    maxfraction = 1 / (1 + 1 / maxMassRatio);
+    fraction = minfraction + (XLALUniformDeviate(randParams) * (maxfraction - minfraction));
+  }
+  else
+  {
+    /* unsupported distribution type */
+    XLAL_ERROR_NULL("XLALRandomInspiralTotalMassFraction", XLAL_EINVAL);
+  }
+  inj->mass1 = fraction * mtotal;
+  inj->mass2 = mtotal - inj->mass1;
+  inj->eta = inj->mass1 * inj->mass2 / ( mtotal * mtotal );
+  inj->mchirp = mtotal * pow(inj->eta, 0.6);
+
+  return ( inj );
+}
 
 /** Generates spins for an inspiral injection.  Spin magnitudes lie between the
  * specified max and min values.  Orientation for spin1 can be constrained by
@@ -365,7 +453,7 @@ SimInspiralTable* XLALRandomInspiralSpins(
   cosinc   = cos( inc );
   sininc   = sin( inc );
   kappa    = -2.0;
-  
+
   /* spin1Mag */
   spin1Mag =  spin1Min + XLALUniformDeviate( randParams ) *
     (spin1Max - spin1Min);
@@ -393,12 +481,12 @@ SimInspiralTable* XLALRandomInspiralSpins(
 	  zmax = spin1Mag * ( cosinc * kappa + sininc * sintheta );
 	  inj->spin1z = zmin + XLALUniformDeviate( randParams ) * (zmax - zmin);
   }
-  else if (aligned) 
+  else if (aligned)
   {
 	  inj->spin1z = spin1Mag * cosinc;
   }
-  else 
-  { 
+  else
+  {
 	  inj->spin1z = (XLALUniformDeviate( randParams ) - 0.5) * 2 * (spin1Mag);
   }
 
@@ -429,7 +517,7 @@ SimInspiralTable* XLALRandomInspiralSpins(
 
   /* aligned case */
 
-  if (aligned) 
+  if (aligned)
   {
 	  inj->spin2z = spin2Mag * cosinc;
 	  inj->spin2x = spin2Mag * sininc;
