@@ -36,7 +36,6 @@ MultiInspiralTable    * XLALMultiInspiralTableFromLIGOLw (
     )
 
 {
-  static const char   *func = "XLALMultiInspiralTableFromLIGOLw";
   int                                   i, j, nrows;
   int                                   mioStatus=0;
   MultiInspiralTable                   *thisEvent = NULL;
@@ -49,7 +48,7 @@ MultiInspiralTable    * XLALMultiInspiralTableFromLIGOLw (
   mioStatus = MetaioOpenTable( env, fileName, "multi_inspiral" );
   if ( mioStatus )
   {
-    XLAL_ERROR_NULL( func, XLAL_EIO );
+    XLAL_ERROR_NULL( XLAL_EIO );
   }
 
   /* create table directory to find columns in file*/
@@ -77,7 +76,7 @@ MultiInspiralTable    * XLALMultiInspiralTableFromLIGOLw (
       fprintf( stderr, "could not allocate multi inspiral event\n" );
       XLAL_CLOBBER_EVENTS;
       MetaioClose( env );
-      XLAL_ERROR_NULL( func, XLAL_ENOMEM );
+      XLAL_ERROR_NULL( XLAL_ENOMEM );
     }
 
 
@@ -358,7 +357,7 @@ MultiInspiralTable    * XLALMultiInspiralTableFromLIGOLw (
           {
             i8colData = XLALLIGOLwParseIlwdChar(env, tableDir[j].pos, "multi_inspiral", "event_id");
             if ( i8colData < 0 )
-              XLAL_ERROR_NULL( func, XLAL_EFUNC );
+              XLAL_ERROR_NULL( XLAL_EFUNC );
           }
           if ( i8colData )
           {
@@ -451,7 +450,7 @@ MultiInspiralTable    * XLALMultiInspiralTableFromLIGOLw (
       else
       {
         XLAL_CLOBBER_EVENTS;
-        XLAL_ERROR_NULL( func, XLAL_EIO);
+        XLAL_ERROR_NULL( XLAL_EIO);
       }
     }
     /* count the number of triggers parsed */
@@ -463,7 +462,7 @@ MultiInspiralTable    * XLALMultiInspiralTableFromLIGOLw (
     fprintf( stderr, "error parsing after row %d\n", i );
     XLAL_CLOBBER_EVENTS;
     MetaioClose( env );
-    XLAL_ERROR_NULL( func, XLAL_EIO);
+    XLAL_ERROR_NULL( XLAL_EIO);
   }
 
   /* Normal exit */
@@ -1925,7 +1924,7 @@ SummValueTableFromLIGOLw (
       }
       else if ( tableDir[j].idx == 8 )
       {
-        snprintf( thisValue->comment, LIGOMETA_SUMMVALUE_NAME_MAX *
+        snprintf( thisValue->comment, LIGOMETA_SUMMVALUE_COMM_MAX *
             sizeof(CHAR), "%s",
             env->ligo_lw.table.elt[tableDir[j].pos].data.lstring.data );
       }
@@ -2317,7 +2316,6 @@ XLALReadSummValueFile (
 
 {
 #if 0
-  const char *func = "XLALReadSummValueFile";
   INT4 numFileTriggers = 0;
 #endif
   INT4 haveSummValue = 0;
@@ -2368,7 +2366,6 @@ XLALReadInspiralTriggerFile (
     )
 
 {
-  const char *func = "XLALReadInspiralTriggerFile";
   INT4 numFileTriggers = 0;
   /*INT4 haveSummValue = 0;*/
   SnglInspiralTable  *inputData = NULL;
@@ -2415,7 +2412,7 @@ XLALReadInspiralTriggerFile (
     XLALPrintError("No valid search_summary table in %s, exiting\n",
         fileName );
     LALFree(thisInputFile);
-    XLAL_ERROR(func, XLAL_EIO);
+    XLAL_ERROR(XLAL_EIO);
   }
   else
   {
@@ -2443,7 +2440,7 @@ XLALReadInspiralTriggerFile (
     XLALPrintError("No valid summ_value table in %s, exiting\n",
         fileName );
     LALFree(thisInputFile);
-    XLAL_ERROR(func, XLAL_EIO);
+    XLAL_ERROR(XLAL_EIO);
   }
   else
   {
@@ -2474,7 +2471,7 @@ XLALReadInspiralTriggerFile (
     XLALPrintError("Unable to read sngl_inspiral table from %s\n",
         fileName );
     LALFree(thisInputFile);
-    XLAL_ERROR(func, XLAL_EIO);
+    XLAL_ERROR(XLAL_EIO);
   }
   else if ( numFileTriggers > 0 )
   {
@@ -2659,36 +2656,52 @@ LALMultiInspiralTableFromLIGOLw (
           {"chisq_g",                 -1, 69},
           {"chisq_t",                 -1, 70},
           {"chisq_v",                 -1, 71},
-          {"ra",                      -1, 72},
-          {"dec",                     -1, 73},
-          {"ligo_angle",              -1, 74},
-          {"ligo_angle_sig",          -1, 75},
-          {"inclination",             -1, 76},
-          {"polarization",            -1, 77},
-          {"null_statistic",          -1, 78},
-	  {"null_stat_h1h2",          -1, 79},
-	  {"null_stat_degen",         -1, 80},
-          {"event_id",                -1, 81},
-          {"h1quad_re",               -1, 82},
-          {"h1quad_im",               -1, 83},
-          {"h2quad_re",               -1, 84},
-          {"h2quad_im",               -1, 85},
-          {"l1quad_re",               -1, 86},
-          {"l1quad_im",               -1, 87},
-          {"g1quad_re",               -1, 88},
-          {"g1quad_im",               -1, 89},
-          {"t1quad_re",               -1, 90},
-          {"t1quad_im",               -1, 91},
-          {"v1quad_re",               -1, 92},
-          {"v1quad_im",               -1, 93},
-          {"coh_snr_h1h2",            -1, 94},
-          {"cohSnrSqLocal",           -1, 95},
-          {"autoCorrCohSq",           -1, 96},
-          {"crossCorrCohSq",          -1, 97},
-          {"autoCorrNullSq",          -1, 98},
-          {"crossCorrNullSq",         -1, 99},
-          {"ampMetricEigenVal1",      -1, 100},
-          {"ampMetricEigenVal2",      -1, 101},
+          {"sngl_chisq_dof",          -1, 72},
+          {"bank_chisq_h1",           -1, 73},
+          {"bank_chisq_h2",           -1, 74},
+          {"bank_chisq_l",            -1, 75},
+          {"bank_chisq_g",            -1, 76},
+          {"bank_chisq_t",            -1, 77},
+          {"bank_chisq_v",            -1, 78},
+          {"sngl_bank_chisq_dof",     -1, 79},
+          {"cont_chisq_h1",           -1, 80},
+          {"cont_chisq_h2",           -1, 81},
+          {"cont_chisq_l",            -1, 82},
+          {"cont_chisq_g",            -1, 83},
+          {"cont_chisq_t",            -1, 84},
+          {"cont_chisq_v",            -1, 85},
+          {"sngl_cont_chisq_dof",     -1, 86},
+          {"ra",                      -1, 87},
+          {"dec",                     -1, 88},
+          {"ligo_angle",              -1, 89},
+          {"ligo_angle_sig",          -1, 90},
+          {"inclination",             -1, 91},
+          {"polarization",            -1, 92},
+          {"null_statistic",          -1, 93},
+	  {"null_stat_h1h2",          -1, 94},
+	  {"null_stat_degen",         -1, 95},
+          {"event_id",                -1, 96},
+          {"h1quad_re",               -1, 97},
+          {"h1quad_im",               -1, 98},
+          {"h2quad_re",               -1, 99},
+          {"h2quad_im",               -1, 100},
+          {"l1quad_re",               -1, 101},
+          {"l1quad_im",               -1, 102},
+          {"g1quad_re",               -1, 103},
+          {"g1quad_im",               -1, 104},
+          {"t1quad_re",               -1, 105},
+          {"t1quad_im",               -1, 106},
+          {"v1quad_re",               -1, 107},
+          {"v1quad_im",               -1, 108},
+          {"coh_snr_h1h2",            -1, 109},
+          {"cohSnrSqLocal",           -1, 110},
+          {"autoCorrCohSq",           -1, 111},
+          {"crossCorrCohSq",          -1, 112},
+          {"autoCorrNullSq",          -1, 113},
+          {"crossCorrNullSq",         -1, 114},
+          {"ampMetricEigenVal1",      -1, 115},
+          {"ampMetricEigenVal2",      -1, 116},
+          {"time_slide_id",           -1, 117},
           {NULL,                       0, 0}
     };
 
@@ -2928,7 +2941,7 @@ LALMultiInspiralTableFromLIGOLw (
       }
       else if ( tableDir[j].idx == 37 )
       {
-	thisEvent->chisq = r4colData;
+        thisEvent->chisq = r4colData;
       }
       else if ( tableDir[j].idx == 38 )
       {
@@ -2952,7 +2965,7 @@ LALMultiInspiralTableFromLIGOLw (
       }
       else if ( tableDir[j].idx == 43 )
       {
-        thisEvent->trace_snr = r8colData;
+        thisEvent->trace_snr = r4colData;
       }
       else if ( tableDir[j].idx == 44 )
       {
@@ -3068,41 +3081,101 @@ LALMultiInspiralTableFromLIGOLw (
       }
       else if ( tableDir[j].idx == 72 )
       {
-        thisEvent->ra = r4colData;
+        thisEvent->sngl_chisq_dof = i4colData;
       }
       else if ( tableDir[j].idx == 73 )
       {
-        thisEvent->dec = r4colData;
+        thisEvent->bank_chisq_h1 = r4colData;
       }
       else if ( tableDir[j].idx == 74 )
       {
-        thisEvent->ligo_angle = r4colData;
+        thisEvent->bank_chisq_h2 = r4colData;
       }
       else if ( tableDir[j].idx == 75 )
       {
-        thisEvent->ligo_angle_sig = r4colData;
+        thisEvent->bank_chisq_l = r4colData;
       }
       else if ( tableDir[j].idx == 76 )
       {
-        thisEvent->inclination = r4colData;
+        thisEvent->bank_chisq_g = r4colData;
       }
       else if ( tableDir[j].idx == 77 )
       {
-        thisEvent->polarization = r4colData;
+        thisEvent->bank_chisq_t = r4colData;
       }
       else if ( tableDir[j].idx == 78 )
       {
-        thisEvent->null_statistic = r4colData;
+        thisEvent->bank_chisq_v = r4colData;
       }
       else if ( tableDir[j].idx == 79 )
       {
-        thisEvent->null_stat_h1h2 = r4colData;
+        thisEvent->sngl_bank_chisq_dof = i4colData;
       }
       else if ( tableDir[j].idx == 80 )
       {
+        thisEvent->cont_chisq_h1 = r4colData;
+      } 
+      else if ( tableDir[j].idx == 81 )
+      {
+        thisEvent->cont_chisq_h2 = r4colData;
+      } 
+      else if ( tableDir[j].idx == 82 )
+      {
+        thisEvent->cont_chisq_l = r4colData;
+      } 
+      else if ( tableDir[j].idx == 83 )
+      {
+        thisEvent->cont_chisq_g = r4colData;
+      }
+      else if ( tableDir[j].idx == 84 )
+      {
+        thisEvent->cont_chisq_t = r4colData;
+      }
+      else if ( tableDir[j].idx == 85 )
+      {
+        thisEvent->cont_chisq_v = r4colData;
+      }
+      else if ( tableDir[j].idx == 86 )
+      {
+        thisEvent->sngl_cont_chisq_dof = i4colData;
+      }
+      else if ( tableDir[j].idx == 87 )
+      {
+        thisEvent->ra = r4colData;
+      }
+      else if ( tableDir[j].idx == 88 )
+      {
+        thisEvent->dec = r4colData;
+      }
+      else if ( tableDir[j].idx == 89 )
+      {
+        thisEvent->ligo_angle = r4colData;
+      }
+      else if ( tableDir[j].idx == 90 )
+      {
+        thisEvent->ligo_angle_sig = r4colData;
+      }
+      else if ( tableDir[j].idx == 91 )
+      {
+        thisEvent->inclination = r4colData;
+      }
+      else if ( tableDir[j].idx == 92 )
+      {
+        thisEvent->polarization = r4colData;
+      }
+      else if ( tableDir[j].idx == 93 )
+      {
+        thisEvent->null_statistic = r4colData;
+      }
+      else if ( tableDir[j].idx == 94 )
+      {
+        thisEvent->null_stat_h1h2 = r4colData;
+      }
+      else if ( tableDir[j].idx == 95 )
+      {
         thisEvent->null_stat_degen = r4colData;
       }
-      else if ( tableDir[j].idx == 81 )
+      else if ( tableDir[j].idx == 96 )
       {
         if ( tableDir[j].pos > 0 )
         {
@@ -3115,7 +3188,7 @@ LALMultiInspiralTableFromLIGOLw (
             if ( i8colData < 0 )
               return -1;
           }
-          if ( i8colData )
+          if ( i8colData >= 0 )
           {
             thisEvent->event_id = LALCalloc( 1, sizeof(*thisEvent->event_id) );
             thisEvent->event_id->id = i8colData;
@@ -3123,85 +3196,107 @@ LALMultiInspiralTableFromLIGOLw (
           }
         }
       }
-      else if ( tableDir[j].idx == 82 )
+      else if ( tableDir[j].idx == 97 )
       {
         thisEvent->h1quad.re = r4colData;
       }
-      else if ( tableDir[j].idx == 83 )
+      else if ( tableDir[j].idx == 98 )
       {
         thisEvent->h1quad.im = r4colData;
       }
-      else if ( tableDir[j].idx == 84 )
+      else if ( tableDir[j].idx == 99 )
       {
         thisEvent->h2quad.re = r4colData;
       }
-      else if ( tableDir[j].idx == 85 )
+      else if ( tableDir[j].idx == 100 )
       {
         thisEvent->h2quad.im = r4colData;
       }
-      else if ( tableDir[j].idx == 86 )
+      else if ( tableDir[j].idx == 101 )
       {
         thisEvent->l1quad.re = r4colData;
       }
-      else if ( tableDir[j].idx == 87 )
+      else if ( tableDir[j].idx == 102 )
       {
         thisEvent->l1quad.im = r4colData;
       }
-      else if ( tableDir[j].idx == 88 )
+      else if ( tableDir[j].idx == 103 )
       {
         thisEvent->g1quad.re = r4colData;
       }
-      else if ( tableDir[j].idx == 89 )
+      else if ( tableDir[j].idx == 104 )
       {
         thisEvent->g1quad.im = r4colData;
       }
-      else if ( tableDir[j].idx == 90 )
+      else if ( tableDir[j].idx == 105 )
       {
         thisEvent->t1quad.re = r4colData;
       }
-      else if ( tableDir[j].idx == 91 )
+      else if ( tableDir[j].idx == 106 )
       {
         thisEvent->t1quad.im = r4colData;
       }
-      else if ( tableDir[j].idx == 92 )
+      else if ( tableDir[j].idx == 107 )
       {
         thisEvent->v1quad.re = r4colData;
       }
-      else if ( tableDir[j].idx == 93 )
+      else if ( tableDir[j].idx == 108 )
       {
         thisEvent->v1quad.im = r4colData;
       }
-      else if ( tableDir[j].idx == 94 )
+      else if ( tableDir[j].idx == 109 )
       {
         thisEvent->coh_snr_h1h2 = r4colData;
       }
-      else if ( tableDir[j].idx == 95 )
+      else if ( tableDir[j].idx == 110 )
       {
         thisEvent->cohSnrSqLocal = r4colData;
       }
-      else if ( tableDir[j].idx == 96 )
+      else if ( tableDir[j].idx == 111 )
       {
         thisEvent->autoCorrCohSq = r4colData;
       }
-      else if ( tableDir[j].idx == 97 )
+      else if ( tableDir[j].idx == 112 )
       {
         thisEvent->crossCorrCohSq = r4colData;
       }
-      else if ( tableDir[j].idx == 98 )
+      else if ( tableDir[j].idx == 113 )
       {
         thisEvent->autoCorrNullSq = r4colData;
       }
-      else if ( tableDir[j].idx == 99 )
+      else if ( tableDir[j].idx == 114 )
       {
         thisEvent->crossCorrNullSq = r4colData;
       }
-      else if ( tableDir[j].idx == 100 )
+      else if ( tableDir[j].idx == 115 )
       {
         thisEvent->ampMetricEigenVal1 = r8colData;
       }
-      else if ( tableDir[j].idx == 101 )
+      else if ( tableDir[j].idx == 116 )
       {
         thisEvent->ampMetricEigenVal2 = r8colData;
+      }
+      else if ( tableDir[j].idx == 117 )
+      {
+        if ( tableDir[j].pos > 0 )
+        {
+          INT8 i8colData;
+          if ( column_type == METAIO_TYPE_INT_8S )
+            i8colData = env->ligo_lw.table.elt[tableDir[j].pos].data.int_8s;
+          else
+          {
+            i8colData = XLALLIGOLwParseIlwdChar(env, tableDir[j].pos, "multi_inspiral", "time_slide_id");
+            if ( i8colData < 0 )
+              return -1;
+          }
+          if ( i8colData )
+          {
+            thisEvent->time_slide_id = LALCalloc( 1,\
+                                        sizeof(*thisEvent->time_slide_id) );
+            thisEvent->time_slide_id->id = i8colData;
+            thisEvent->time_slide_id->multiInspiralTable = thisEvent;
+          }
+        }
       }
       else
       {
@@ -3241,7 +3336,6 @@ XLALReadMultiInspiralTriggerFile (
     )
 
 {
-  const char *func = "XLALReadMultiInspiralTriggerFile";
   INT4 numFileTriggers = 0;
   /*INT4 haveSummValue = 0;*/
   MultiInspiralTable   *inputData = NULL;
@@ -3288,7 +3382,7 @@ XLALReadMultiInspiralTriggerFile (
     XLALPrintError("No valid search_summary table in %s, exiting\n",
         fileName );
     LALFree(thisInputFile);
-    XLAL_ERROR(func, XLAL_EIO);
+    XLAL_ERROR(XLAL_EIO);
   }
   else
   {
@@ -3316,7 +3410,7 @@ XLALReadMultiInspiralTriggerFile (
     XLALPrintError("No valid summ_value table in %s, exiting\n",
         fileName );
     LALFree(thisInputFile);
-    XLAL_ERROR(func, XLAL_EIO);
+    XLAL_ERROR(XLAL_EIO);
   }
   else
   {
@@ -3347,7 +3441,7 @@ XLALReadMultiInspiralTriggerFile (
     XLALPrintError("Unable to read multi_inspiral table from %s\n",
         fileName );
     LALFree(thisInputFile);
-    XLAL_ERROR(func, XLAL_EIO);
+    XLAL_ERROR(XLAL_EIO);
   }
   else if ( numFileTriggers > 0 )
   {

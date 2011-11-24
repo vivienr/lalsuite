@@ -36,9 +36,8 @@ parser=OptionParser(usage=usage,version=git_version.verbose_msg)
 parser.add_option("", "--number", default=10, type="int", help="number for round robin")
 parser.add_option("", "--instruments", help="pair that you want to get like H1,L1")
 parser.add_option("", "--factor", default=50.0, type="float", help="the value of the magic number factor in the effective snr formula, should be 50 for highmass and 250 for lowmass")
-parser.add_option("", "--trainingstr", default="training", help="the string in the output .pat files that indicates it will be used as the training set in SprBaggerDecisionTreeApp") 
-parser.add_option("", "--testingstr", default="testing", help="the string in the output .pat files that indicates it will be used as the testing set in SprOutputWriterApp") 
-parser.add_option("", "--zerolagstr", default="zerolag", help="the string in the output .pat files that indicates it contains zerlag data, which will be run through SprOutputWriterApp") 
+parser.add_option("", "--output-tag", default="", help="a string added to all filenames to help you keep track of things") 
+parser.add_option("", "--apply-weights", default=False, help="calculates weight for all found injections, saves in .pat file (all bkg events get weight=1), if this option is not supplied, all events get a weight of 1, so still use -a 4 in the Spr* executables")
 (opts,databases)=parser.parse_args()
 ifos=opts.instruments.strip().split(',')
 ifos.sort()
@@ -165,6 +164,7 @@ for database in databases:
 	dbtables.put_connection_filename(database, working_filename, verbose = True)
 
 # now we will normalize the weighting column by multiplying it by the number of found injections in the injection set, and dividing by the sum of the efficiency factors for all found injections in the injection set, then we can put all injections into the same list
+#FIXME: there are better ways to implement the weighting, please think about it before applying 
 allinjections=[]
 allinjections_info=[]
 
@@ -174,9 +174,13 @@ for key in injections.keys():
 	print "number of triggers in injection set", len(injections[key])
 	for row in range(len(injections[key])):
 		injtmp = list(injections[key][row])
-		injtmp[-2] = injtmp[-2]*float(len(injections[key]))/normalization[key]
+		if opts.apply_weights:
+			injtmp[-2] = injtmp[-2]*float(len(injections[key]))/normalization[key]
+		else:
+			injtmp[-2] = 1
 		allinjections.append(injtmp)
 		allinjections_info.append(list(injections_info[key][row]))
+
 
 random.seed(1)
 random.shuffle(allinjections)
@@ -196,19 +200,19 @@ Nrounds = opts.number
 Ninj = len(allinjections)
 Nslide = len(timeslides)
 
-trstr = opts.trainingstr
-testr = opts.testingstr
-zlstr = opts.zerolagstr
+trstr = 'training' 
+testr = 'evaluation'
+zlstr = 'zerolag'
 
-print "there are ", len(timeslides), " timeslide doubles in ", ''.join(ifos), " and H1,L1,V1 coincidences"
-print "there are ", len(allinjections), " injection doubles in ", ''.join(ifos), " and H1,L1,V1 coincidences"
-print "there are ", len(zerolag), " zerolag doubles in ", ''.join(ifos), " and H1,L1,V1 coincidences"
+print "there are ", len(timeslides), " timeslide doubles in ", ''.join(ifos), " and triple coincidences"
+print "there are ", len(allinjections), " injection doubles in ", ''.join(ifos), " and triple coincidences"
+print "there are ", len(zerolag), " zerolag doubles in ", ''.join(ifos), " and triple coincidences"
 
 if len(allinjections) != 0:	
 	Nparams = len(allinjections[0]) - 2
 
 	def open_file_write_headers(filetype, set_num, ifos, Nparams=Nparams):
-		f = open(''.join(ifos) + '_set' + str(set_num) + '_' + str(filetype) +	'.pat', 'w')
+		f = open(''.join(ifos) + '_' + opts.output_tag + '_set' + str(set_num) + '_' + str(filetype) +	'.pat', 'w')
 		f.write(str(Nparams) + '\n')
 		f.write(parameters + "\n")
 		return f
@@ -216,7 +220,7 @@ if len(allinjections) != 0:
 	for i in range(Nrounds):
 		f_training = open_file_write_headers(trstr, i, ifos)
 		f_testing = open_file_write_headers(testr, i, ifos)
-		f_testing_info=open(''.join(ifos) + '_set' + str(i) + '_' + str(testr) + '_info.pat', 'w')
+		f_testing_info=open(''.join(ifos) + '_' + opts.output_tag + '_set' + str(i) + '_' + str(testr) + '_info.pat', 'w')
 		set_inj = list(allinjections)
 		set_inj_info = list(allinjections_info)
 		set_slide = list(timeslides)
@@ -241,12 +245,12 @@ if len(allinjections) != 0:
 			f_training.write("%s\n" % " ".join(map(str,row)))
 		for row in set_slide:
 			f_training.write("%s\n" % " ".join(map(str,row)))
-	f_zerolag=open(''.join(ifos) + '_' + str(zlstr) + '.pat','w')
+	f_zerolag=open(''.join(ifos) + '_' + opts.output_tag + '_' + str(zlstr) + '.pat','w')
 	f_zerolag.write(str(Nparams) + '\n')
 	f_zerolag.write(parameters + "\n")
 	for row in zerolag:
 		f_zerolag.write("%s\n" % " ".join(map(str,row)))
-	f_zerolag_info=open(''.join(ifos) + '_' + str(zlstr) + '_info.pat', 'w')
+	f_zerolag_info=open(''.join(ifos) + '_' + opts.output_tag + '_' + str(zlstr) + '_info.pat', 'w')
 	for row in zerolag_info:
 		f_zerolag_info.write("%s\n" % " ".join(map(str,row)))
 else: print "There were no injections found for the specified ifo combination %s" % ifos

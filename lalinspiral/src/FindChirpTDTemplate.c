@@ -141,6 +141,7 @@ LALFindChirpTDTemplate (
     case EOB:
     case EOBNR:
     case PhenSpinTaylorRD:
+    case FindChirpPTF:
     case EOBNRv2:
     case IMRPhenomB:
       break;
@@ -473,6 +474,7 @@ LALFindChirpTDNormalize(
     case EOB:
     case EOBNR:
     case PhenSpinTaylorRD:
+    case FindChirpPTF:
     case EOBNRv2:
     case IMRPhenomB:
       break;

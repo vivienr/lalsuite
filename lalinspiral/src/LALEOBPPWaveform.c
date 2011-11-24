@@ -137,21 +137,20 @@ REAL8 XLALEffectiveHamiltonian( const REAL8 eta,
                                 EOBACoefficients *aCoeffs );
 
 static
-void LALprInitP4PN(LALStatus *status, REAL8 *pr , REAL8 , void  *params);
+REAL8 XLALprInitP4PN(REAL8 p, void  *params);
 
 static
-REAL8 LALpphiInitP4PN( const REAL8 r,
+REAL8 XLALpphiInitP4PN( const REAL8 r,
                        EOBACoefficients * restrict coeffs );
 
 static
 REAL8 XLALrOfOmegaP4PN (REAL8 r, void *params);
 
 static
-REAL8 LALvrP4PN(const REAL8 r, const REAL8 omega, pr3In *params);
+REAL8 XLALvrP4PN(const REAL8 r, const REAL8 omega, pr3In *params);
 
-static void
-LALEOBPPWaveformEngine (
-                LALStatus        *status,
+static int
+XLALEOBPPWaveformEngine (
                 REAL4Vector      *signalvec1,
                 REAL4Vector      *signalvec2,
                 REAL4Vector      *h,
@@ -173,7 +172,6 @@ INT4 XLALGetFactorizedWaveform( COMPLEX16             * restrict hlm,
                                 EOBParams             * restrict params
                                 )
 {
-	static const char func[] = "XLALGetFactorizedWaveform";
 
         /* Status of function calls */
         INT4 status;
@@ -189,16 +187,12 @@ INT4 XLALGetFactorizedWaveform( COMPLEX16             * restrict hlm,
         /* Non-Keplerian velocity */
         REAL8 vPhi;
 
-        /* Non-quasicircular correction in dynamics */
-        REAL8 a1, a2, a3;
-        REAL8 hNQC = 1.0;
-
         /* Pre-computed coefficients */
         FacWaveformCoeffs *hCoeffs = params->hCoeffs;
 
 	if ( abs(m) > (INT4) l )
 	{
-	  XLAL_ERROR( func, XLAL_EINVAL );
+	  XLAL_ERROR( XLAL_EINVAL );
 	}
 
 
@@ -208,7 +202,7 @@ INT4 XLALGetFactorizedWaveform( COMPLEX16             * restrict hlm,
         if ( eta > 0.25 )
         {
           XLALPrintError("Eta seems to be > 0.25 - this isn't allowed!\n" );
-          XLAL_ERROR( func, XLAL_EINVAL );
+          XLAL_ERROR( XLAL_EINVAL );
         }
         else if ( eta == 0.25 && m % 2 )
         {
@@ -237,11 +231,11 @@ INT4 XLALGetFactorizedWaveform( COMPLEX16             * restrict hlm,
         vPhi *= Omega;
 
         /* Calculate the newtonian multipole */
-        status = XLALCalculateNewtonianMultipole( &hNewton, vPhi * vPhi, r,
+        status = XLALCalculateNewtonianMultipole( &hNewton, vPhi * vPhi, vPhi/Omega,
                          values->data[1], (UINT4)l, m, params );
         if ( status == XLAL_FAILURE )
         {
-          XLAL_ERROR( func, XLAL_EFUNC );
+          XLAL_ERROR( XLAL_EFUNC );
         }
 
         /* Calculate the source term */
@@ -261,13 +255,13 @@ INT4 XLALGetFactorizedWaveform( COMPLEX16             * restrict hlm,
 	if (status != GSL_SUCCESS)
 	{
 	  XLALPrintError("Error in GSL function\n" );
-	  XLAL_ERROR( func, XLAL_EFUNC );
+	  XLAL_ERROR( XLAL_EFUNC );
 	}
 	XLAL_CALLGSL( status = gsl_sf_fact_e( l, &z2 ) );
 	if ( status != GSL_SUCCESS)
 	{
 	  XLALPrintError("Error in GSL function\n" );
-	  XLAL_ERROR( func, XLAL_EFUNC );
+	  XLAL_ERROR( XLAL_EFUNC );
 	}
 	Tlm = XLALCOMPLEX16Exp( XLALCOMPLEX16Rect( lnr1.val + LAL_PI * hathatk,
 				arg1.val + 2.0 * hathatk * log(4.0*k/sqrt(LAL_E)) ) );
@@ -280,15 +274,6 @@ INT4 XLALGetFactorizedWaveform( COMPLEX16             * restrict hlm,
 	    switch( abs(m) )
 	    {
 	      case 2:
-
-                /* For 2,2 mode, calculate the NQC correction */
-                a1 = -4.55919 + 18.761 * eta - 24.226 * eta*eta;
-                a2 = 37.683 - 201.468 * eta + 324.591 * eta*eta;
-                a3 = - 39.6024 + 228.899 * eta - 387.222 * eta * eta;
-
-                hNQC = 1. + (pr*pr / (r*r*Omega*Omega)) * ( a1
-                       + a2 / r + a3 / (r*sqrt(r)) );
-
 	        deltalm = vh3*(hCoeffs->delta22vh3 + vh3*(hCoeffs->delta22vh6
 			+ vh*vh*(hCoeffs->delta22vh8 + hCoeffs->delta22vh9*vh)))
 			+ hCoeffs->delta22v5 *v*v2*v2;
@@ -313,7 +298,7 @@ INT4 XLALGetFactorizedWaveform( COMPLEX16             * restrict hlm,
                 }
 	        break;
 	      default:
-                XLAL_ERROR( func, XLAL_EINVAL );
+                XLAL_ERROR( XLAL_EINVAL );
                 break;
 	    }
 	    break;
@@ -344,7 +329,7 @@ INT4 XLALGetFactorizedWaveform( COMPLEX16             * restrict hlm,
 			+ v*(hCoeffs->rho31v7 + (hCoeffs->rho31v8 + hCoeffs->rho31v8l*eulerlogxabs)*v))))));
 		break;
               default:
-                XLAL_ERROR( func, XLAL_EINVAL );
+                XLAL_ERROR( XLAL_EINVAL );
                 break;
 	    }
 	    break;
@@ -383,7 +368,7 @@ INT4 XLALGetFactorizedWaveform( COMPLEX16             * restrict hlm,
 			+ (hCoeffs->rho41v6 +  hCoeffs->rho41v6l*eulerlogxabs)*v))));
 		break;
 	      default:
-                XLAL_ERROR( func, XLAL_EINVAL );
+                XLAL_ERROR( XLAL_EINVAL );
                 break;
 	    }
 	    break;
@@ -417,7 +402,7 @@ INT4 XLALGetFactorizedWaveform( COMPLEX16             * restrict hlm,
 			+ v*(hCoeffs->rho51v3 + v*(hCoeffs->rho51v4 + hCoeffs->rho51v5*v)));
 		break;
 	      default:
-                XLAL_ERROR( func, XLAL_EINVAL );
+                XLAL_ERROR( XLAL_EINVAL );
                 break;
 	    }
 	    break;
@@ -452,7 +437,7 @@ INT4 XLALGetFactorizedWaveform( COMPLEX16             * restrict hlm,
 		rholm	= 1. + v2*(hCoeffs->rho61v2 + hCoeffs->rho61v3*v);
 		break;
 	      default:
-                XLAL_ERROR( func, XLAL_EINVAL );
+                XLAL_ERROR( XLAL_EINVAL );
                 break;
 	    }
 	    break;
@@ -488,7 +473,7 @@ INT4 XLALGetFactorizedWaveform( COMPLEX16             * restrict hlm,
 		rholm	= 1. + v2*(hCoeffs->rho71v2 +hCoeffs->rho71v3 * v);
 		break;
 	      default:
-                XLAL_ERROR( func, XLAL_EINVAL );
+                XLAL_ERROR( XLAL_EINVAL );
                 break;
 	    }
 	    break;
@@ -528,12 +513,12 @@ INT4 XLALGetFactorizedWaveform( COMPLEX16             * restrict hlm,
 		rholm	= 1. + hCoeffs->rho81v2 * v2;
 		break;
 	      default:
-                XLAL_ERROR( func, XLAL_EINVAL );
+                XLAL_ERROR( XLAL_EINVAL );
                 break;
 	    }
 	    break;
 	  default:
-            XLAL_ERROR( func, XLAL_EINVAL );
+            XLAL_ERROR( XLAL_EINVAL );
             break;
 	}
 
@@ -546,7 +531,7 @@ INT4 XLALGetFactorizedWaveform( COMPLEX16             * restrict hlm,
         }
 
 	*hlm = XLALCOMPLEX16MulReal( XLALCOMPLEX16Mul( Tlm, XLALCOMPLEX16Polar( 1.0, deltalm) ),
-				     Slm*rholmPwrl*hNQC );
+				     Slm*rholmPwrl );
         *hlm = XLALCOMPLEX16Mul( *hlm, hNewton );
 
 	return XLAL_SUCCESS;
@@ -716,7 +701,7 @@ REAL8 XLALEffectiveHamiltonian( const REAL8 eta,
 /*-------------------------------------------------------------------*/
 
 REAL8
-LALpphiInitP4PN(
+XLALpphiInitP4PN(
             const REAL8 r,
             EOBACoefficients * restrict coeffs
             )
@@ -736,17 +721,16 @@ LALpphiInitP4PN(
 }
 
 /*-------------------------------------------------------------------*/
-  void
-LALprInitP4PN(
-             LALStatus *status,
-             REAL8 *pr,
+REAL8
+XLALprInitP4PN(
              REAL8 p,
              void *params
              )
 {
-  REAL8   u, u2, u3, u4, p2, p3, p4, q2, A;
+  REAL8  pr;
+  REAL8  u, u2, p2, p3, p4, A;
   REAL8  onebyD, AbyD, Heff, HReal, etahH;
-  REAL8 eta, eta2, z3, r, vr, q;
+  REAL8 eta, z3, r, vr, q;
   pr3In *ak;
 
   /* TODO: Change this to use tortoise coord */
@@ -757,17 +741,12 @@ LALprInitP4PN(
   vr = ak->vr;
   r = ak->r;
   q = ak->q;
-  eta2 = eta*eta;
-
 
    p2 = p*p;
    p3 = p2*p;
    p4 = p2*p2;
-   q2 = q*q;
    u = 1./ r;
    u2 = u*u;
-   u3 = u2 * u;
-   u4 = u2 * u2;
    z3 = 2. * (4. - 3. * eta) * eta;
 
    A = XLALCalculateEOBA( r, ak->aCoeffs );
@@ -778,10 +757,11 @@ LALprInitP4PN(
    HReal = sqrt(1. + 2.*eta*(Heff - 1.)) / eta;
    etahH = eta*Heff*HReal;
 
-   *pr = -vr +  A*(AbyD*p + 2. * z3 * u2 * p3)/etahH;
 /* This sets pr = dH/dpr - vr, calls rootfinder,
    gets value of pr s.t. dH/pr = vr */
-   RETURN(status);
+   pr = -vr +  A*(AbyD*p + 2. * z3 * u2 * p3)/etahH;
+
+   return pr;
 }
 
 
@@ -842,7 +822,7 @@ XLALrOfOmegaP4PN(
 
 #ifndef LAL_NDEBUG
   if ( !params )
-    XLAL_ERROR_REAL8( "XLALrOfOmegaP4PN", XLAL_EFAULT );
+    XLAL_ERROR_REAL8( XLAL_EFAULT );
 #endif
 
   pr3in = (pr3In *) params;
@@ -870,8 +850,7 @@ LALHCapDerivativesP4PN( double UNUSED t,
 
   REAL8 eta, omega;
 
-  double r, s, p, q;
-  double dr, ds, dp, dq;
+  double r, p, q;
   REAL8 r2, p2, p4, q2;
   REAL8 u, u2, u3;
   REAL8 A, AoverSqrtD, dAdr, Heff, Hreal;
@@ -893,7 +872,6 @@ LALHCapDerivativesP4PN( double UNUSED t,
   z3   = 2. * ( 4. - 3. * eta ) * eta;
 
   r = values[0];
-  s = values[1];
   p = values[2];
   q = values[3];
 
@@ -919,22 +897,23 @@ LALHCapDerivativesP4PN( double UNUSED t,
 
   HeffHreal = Heff * Hreal;
 
-  dr = dvalues[0] = AoverSqrtD * u2 * p * (r2 + 2. * p2 * z3 * A ) / HeffHreal;
-  ds = dvalues[1] = omega = q * A * u2 / HeffHreal;
+  /* rDot */
+  dvalues[0] = AoverSqrtD * u2 * p * (r2 + 2. * p2 * z3 * A ) / HeffHreal;
+
+  /* sDot */
+  dvalues[1] = omega = q * A * u2 / HeffHreal;
 
   /* Note that the only field of dvalues used in the flux is dvalues->data[1] */
   /* which we have already calculated. */
   flux = XLALInspiralFactorizedFlux( &valuesVec, omega, params, lMax );
 
-  dp = dvalues[2] = 0.5 * AoverSqrtD * u3 * (  2.0 * ( q2 + p4 * z3) * A
+  /* pDot */
+  dvalues[2] = 0.5 * AoverSqrtD * u3 * (  2.0 * ( q2 + p4 * z3) * A
                      - r * ( q2 + r2 + p4 * z3 ) * dAdr ) / HeffHreal
                      - (p / q) * (flux / (eta * omega));
 
-  dq = flux;
-  /* This function can fail */
-  /* TODO: Implement proper error checking */
-
-  dq = dvalues[3] = - dq / (eta * omega);
+  /* qDot */
+  dvalues[3] = - flux / (eta * omega);
 
   return GSL_SUCCESS;
 }
@@ -1002,12 +981,12 @@ XLALHighSRStoppingCondition(double UNUSED t,
 }
 
 /*-------------------------------------------------------------------*/
-REAL8 LALvrP4PN( const REAL8 r,
+REAL8 XLALvrP4PN( const REAL8 r,
                  const REAL8 omega,
                  pr3In *params )
 {
   REAL8 A, dAdr, d2Adr2, dA, d2A, NA, DA, dDA, dNA, d2DA, d2NA;
-  REAL8 r2, r3, r4, r5, u, u2, u3, u4, v, x1;
+  REAL8 r2, r3, r4, r5, u, u2, v, x1;
   REAL8 eta, FDIS;
   REAL8 twoUAPlusu2dA;
 
@@ -1022,8 +1001,6 @@ REAL8 LALvrP4PN( const REAL8 r,
   u = 1./ r;
 
   u2 = u*u;
-  u3 = u2*u;
-  u4 = u2*u2;
 
   NA = r4 * aCoeffs->n4
      + r5 * aCoeffs->n5;
@@ -1086,7 +1063,7 @@ GetRingdownAttachCombSize( INT4 l, INT4 m )
            return 8.;
            break;
          default:
-           XLAL_ERROR_REAL8( __func__, XLAL_EINVAL );
+           XLAL_ERROR_REAL8( XLAL_EINVAL );
            break;
         }
         break;
@@ -1097,7 +1074,7 @@ GetRingdownAttachCombSize( INT4 l, INT4 m )
        }
        else
        {
-         XLAL_ERROR_REAL8( __func__, XLAL_EINVAL );
+         XLAL_ERROR_REAL8( XLAL_EINVAL );
        }
        break;
      case 4:
@@ -1107,7 +1084,7 @@ GetRingdownAttachCombSize( INT4 l, INT4 m )
        }
        else
        {
-         XLAL_ERROR_REAL8( __func__, XLAL_EINVAL );
+         XLAL_ERROR_REAL8( XLAL_EINVAL );
        }
        break;
      case 5:
@@ -1117,18 +1094,18 @@ GetRingdownAttachCombSize( INT4 l, INT4 m )
        }
        else
        {
-         XLAL_ERROR_REAL8( __func__, XLAL_EINVAL );
+         XLAL_ERROR_REAL8( XLAL_EINVAL );
        }
        break;
      default:
-       XLAL_ERROR_REAL8( __func__, XLAL_EINVAL );
+       XLAL_ERROR_REAL8( XLAL_EINVAL );
        break;
   }
 
   /* It should not be possible to get to this point */
   /* Put an return path here to avoid compiler warningd */
   XLALPrintError( "We shouldn't ever reach this point!\n" );
-  XLAL_ERROR_REAL8( __func__, XLAL_EINVAL );
+  XLAL_ERROR_REAL8( XLAL_EINVAL );
 
 }
 
@@ -1142,46 +1119,86 @@ LALEOBPPWaveform (
    )
 {
 
+   INITSTATUS(status, "LALEOBPPWaveform", LALEOBPPWAVEFORMC);
+
+   XLALPrintDeprecationWarning( "LALEOBPPWaveform", "XLALEOBPPWaveform" );
+
+   if ( XLALEOBPPWaveform( signalvec, params ) == XLAL_FAILURE )
+   {
+     ABORTXLAL( status );
+   }
+
+   RETURN( status );
+}
+
+int
+XLALEOBPPWaveform(
+    REAL4Vector      *signalvec,
+    InspiralTemplate *params
+    )
+{
+
    UINT4 count;
    InspiralInit paramsInit;
-   INITSTATUS(status, "LALEOBPPWaveform", LALEOBPPWAVEFORMC);
-   ATTATCHSTATUSPTR(status);
 
-   ASSERT(signalvec,  status,
-	LALINSPIRALH_ENULL, LALINSPIRALH_MSGENULL);
-   ASSERT(signalvec->data,  status,
-   	LALINSPIRALH_ENULL, LALINSPIRALH_MSGENULL);
-   ASSERT(params,  status,
-   	LALINSPIRALH_ENULL, LALINSPIRALH_MSGENULL);
-   ASSERT(params->nStartPad >= 0, status,
-   	LALINSPIRALH_ESIZE, LALINSPIRALH_MSGESIZE);
-   ASSERT(params->nEndPad >= 0, status,
-   	LALINSPIRALH_ESIZE, LALINSPIRALH_MSGESIZE);
-   ASSERT(params->fLower > 0, status,
-   	LALINSPIRALH_ESIZE, LALINSPIRALH_MSGESIZE);
-   ASSERT(params->tSampling > 0, status,
-   	LALINSPIRALH_ESIZE, LALINSPIRALH_MSGESIZE);
-   ASSERT(params->totalMass > 0., status,
-   	LALINSPIRALH_ESIZE, LALINSPIRALH_MSGESIZE);
+#ifndef LAL_NDEBUG
+   if ( !signalvec )
+   {
+     XLAL_ERROR( XLAL_EFAULT );
+   }
+   if ( !signalvec->data )
+   {
+     XLAL_ERROR( XLAL_EFAULT );
+   }
+   if ( !params )
+   {
+     XLAL_ERROR( XLAL_EFAULT );
+   }
+   if ( params->nStartPad < 0 || params->nEndPad < 0 )
+   {
+     XLALPrintError( "nStartPad and nEndPad must be >= 0.\n");
+     XLAL_ERROR( XLAL_EDOM );
+   }
+   if ( params->fLower <= 0. )
+   {
+     XLALPrintError( "fLower must be > 0.\n");
+     XLAL_ERROR( XLAL_EDOM );
+   }
+   if ( params->tSampling <= 0. )
+   {
+     XLALPrintError( "tSampling must be > 0.\n");
+     XLAL_ERROR( XLAL_EDOM );
+   }
+   if ( params->totalMass <= 0. )
+   {
+     XLALPrintError( "totalMass must be > 0.\n");
+     XLAL_ERROR( XLAL_EDOM );
+   }
+#endif
 
-   LALInspiralSetup (status->statusPtr, &(paramsInit.ak), params);
-   CHECKSTATUSPTR(status);
-   LALInspiralChooseModel(status->statusPtr, &(paramsInit.func),
-					 &(paramsInit.ak), params);
-   CHECKSTATUSPTR(status);
+   if ( XLALInspiralSetup( &(paramsInit.ak), params) == XLAL_FAILURE )
+   {
+     XLAL_ERROR( XLAL_EFUNC );
+   }
+
+   if ( XLALInspiralChooseModel( &(paramsInit.func),
+           &(paramsInit.ak), params ) == XLAL_FAILURE )
+   {
+     XLAL_ERROR( XLAL_EFUNC );
+   }
 
    memset(signalvec->data, 0, signalvec->length * sizeof( REAL4 ));
 
    /* Call the engine function */
-   LALEOBPPWaveformEngine(status->statusPtr, signalvec, NULL,
-			NULL, NULL, &count, params, &paramsInit);
-   CHECKSTATUSPTR( status );
+   if ( XLALEOBPPWaveformEngine( signalvec, NULL, NULL, NULL, 
+          &count, params, &paramsInit) == XLAL_FAILURE )
+   {
+     XLAL_ERROR( XLAL_EFUNC );
+   }
 
-   DETATCHSTATUSPTR(status);
-   RETURN(status);
+   return XLAL_SUCCESS;
 }
 
-NRCSID (LALEOBPPWAVEFORMTEMPLATESC, "$Id$");
 
 void
 LALEOBPPWaveformTemplates (
@@ -1192,50 +1209,95 @@ LALEOBPPWaveformTemplates (
    )
 {
 
+   INITSTATUS(status, "LALEOBPPWaveform", LALEOBPPWAVEFORMC);
+
+   XLALPrintDeprecationWarning( "LALEOBPPWaveformTemplates", "XLALEOBPPWaveformTemplates" );
+
+   if ( XLALEOBPPWaveformTemplates( signalvec1, signalvec2, params ) == XLAL_FAILURE )
+   {
+     ABORTXLAL( status );
+   }
+
+   RETURN( status );
+}
+
+
+int
+XLALEOBPPWaveformTemplates (
+   REAL4Vector      *signalvec1,
+   REAL4Vector      *signalvec2,
+   InspiralTemplate *params
+   )
+{
    UINT4 count;
 
    InspiralInit paramsInit;
 
-   INITSTATUS(status, "LALEOBPPWaveformTemplates", LALEOBPPWAVEFORMTEMPLATESC);
-   ATTATCHSTATUSPTR(status);
+#ifndef LAL_NDEBUG
+   if ( !signalvec1 )
+   {
+     XLAL_ERROR( XLAL_EFAULT );
+   }
+   if ( !signalvec2 )
+   {
+     XLAL_ERROR( XLAL_EFAULT );
+   }
+   if ( !signalvec1->data )
+   {
+     XLAL_ERROR( XLAL_EFAULT );
+   }
+   if ( !signalvec2->data )
+   {
+     XLAL_ERROR( XLAL_EFAULT );
+   }
+   if ( !params )
+   {
+     XLAL_ERROR( XLAL_EFAULT );
+   }
+   if ( params->nStartPad < 0 || params->nEndPad < 0 )
+   {
+     XLALPrintError( "nStartPad and nEndPad must be >= 0.\n");
+     XLAL_ERROR( XLAL_EDOM );
+   }
+   if ( params->fLower <= 0. )
+   {
+     XLALPrintError( "fLower must be > 0.\n");
+     XLAL_ERROR( XLAL_EDOM );
+   }
+   if ( params->tSampling <= 0. )
+   {
+     XLALPrintError( "tSampling must be > 0.\n");
+     XLAL_ERROR( XLAL_EDOM );
+   }
+   if ( params->totalMass <= 0. )
+   {
+     XLALPrintError( "totalMass must be > 0.\n");
+     XLAL_ERROR( XLAL_EDOM );
+   }
+#endif
 
-   ASSERT(signalvec1,  status,
-	LALINSPIRALH_ENULL, LALINSPIRALH_MSGENULL);
-   ASSERT(signalvec2,  status,
-   	LALINSPIRALH_ENULL, LALINSPIRALH_MSGENULL);
-   ASSERT(signalvec1->data,  status,
-   	LALINSPIRALH_ENULL, LALINSPIRALH_MSGENULL);
-   ASSERT(signalvec2->data,  status,
-   	LALINSPIRALH_ENULL, LALINSPIRALH_MSGENULL);
-   ASSERT(params,  status, LALINSPIRALH_ENULL,
-   	LALINSPIRALH_MSGENULL);
-   ASSERT(params->nStartPad >= 0, status,
-   	LALINSPIRALH_ESIZE, LALINSPIRALH_MSGESIZE);
-   ASSERT(params->nEndPad >= 0, status,
-   	LALINSPIRALH_ESIZE, LALINSPIRALH_MSGESIZE);
-   ASSERT(params->fLower > 0, status,
-   	LALINSPIRALH_ESIZE, LALINSPIRALH_MSGESIZE);
-   ASSERT(params->tSampling > 0, status,
-   	LALINSPIRALH_ESIZE, LALINSPIRALH_MSGESIZE);
-   ASSERT(params->totalMass > 0., status,
-   	LALINSPIRALH_ESIZE, LALINSPIRALH_MSGESIZE);
+   if ( XLALInspiralSetup( &(paramsInit.ak), params) == XLAL_FAILURE )
+   {
+     XLAL_ERROR( XLAL_EFUNC );
+   }
 
-   LALInspiralSetup (status->statusPtr, &(paramsInit.ak), params);
-   CHECKSTATUSPTR(status);
-   LALInspiralChooseModel(status->statusPtr, &(paramsInit.func),
-					&(paramsInit.ak), params);
-   CHECKSTATUSPTR(status);
+   if ( XLALInspiralChooseModel( &(paramsInit.func),
+           &(paramsInit.ak), params ) == XLAL_FAILURE )
+   {
+     XLAL_ERROR( XLAL_EFUNC );
+   }
 
    memset(signalvec1->data, 0, signalvec1->length * sizeof( REAL4 ));
    memset(signalvec2->data, 0, signalvec2->length * sizeof( REAL4 ));
 
    /* Call the engine function */
-   LALEOBPPWaveformEngine(status->statusPtr, signalvec1, signalvec2,
-			   NULL, NULL, &count, params, &paramsInit);
-   CHECKSTATUSPTR( status );
+   if ( XLALEOBPPWaveformEngine( signalvec1, signalvec2, NULL, NULL, 
+       &count, params, &paramsInit) == XLAL_FAILURE )
+   {
+     XLAL_ERROR( XLAL_EFUNC );
+   }
 
-   DETATCHSTATUSPTR(status);
-   RETURN(status);
+   return XLAL_SUCCESS;
 }
 
 
@@ -1251,7 +1313,26 @@ LALEOBPPWaveformForInjection (
 			    PPNParamStruc    *ppnParams
 			    )
 {
+  INITSTATUS(status, "LALEOBPPWaveformForInjection", LALEOBPPWAVEFORMC);
 
+  XLALPrintDeprecationWarning( "LALEOBPPWaveformForInjection", "XLALEOBPPWaveformForInjection" );
+
+  if ( XLALEOBPPWaveformForInjection( waveform, params, ppnParams ) == XLAL_FAILURE )
+  {
+    ABORTXLAL( status );
+  }
+
+  RETURN( status );
+}
+
+
+int
+XLALEOBPPWaveformForInjection (
+                            CoherentGW       *waveform,
+                            InspiralTemplate *params,
+                            PPNParamStruc    *ppnParams
+                            )
+{
   UINT4 count, i;
 
   REAL4Vector *h=NULL;/* pointers to generated polarization data */
@@ -1259,41 +1340,60 @@ LALEOBPPWaveformForInjection (
   REAL8 phiC;/* phase at coalescence */
   InspiralInit paramsInit;
 
-  INITSTATUS(status, "LALEOBPPWaveformForInjection", LALEOBPPWAVEFORMTEMPLATESC);
-  ATTATCHSTATUSPTR(status);
-
-
+#ifndef LAL_NDEBUG
   /* Make sure parameter and waveform structures exist. */
-  ASSERT( params, status, LALINSPIRALH_ENULL,  LALINSPIRALH_MSGENULL );
-  ASSERT(waveform, status, LALINSPIRALH_ENULL, LALINSPIRALH_MSGENULL);
+  if ( !params )
+    XLAL_ERROR( XLAL_EFAULT );
+
+  if ( !waveform )
+    XLAL_ERROR( XLAL_EFAULT );
+
   /* Make sure waveform fields don't exist. */
-  ASSERT( !( waveform->a ), status,
-  	LALINSPIRALH_ENULL, LALINSPIRALH_MSGENULL );
-  ASSERT( !( waveform->h ), status,
-  	LALINSPIRALH_ENULL, LALINSPIRALH_MSGENULL );
-  ASSERT( !( waveform->f ), status,
-  	LALINSPIRALH_ENULL, LALINSPIRALH_MSGENULL );
-  ASSERT( !( waveform->phi ), status,
-  	LALINSPIRALH_ENULL, LALINSPIRALH_MSGENULL );
-  ASSERT( !( waveform->shift ), status,
-  	LALINSPIRALH_ENULL, LALINSPIRALH_MSGENULL );
+  if ( waveform->a )
+  {
+    XLALPrintError( "Pointer for waveform->a exists. Was expecting NULL.\n" );
+    XLAL_ERROR( XLAL_EFAULT );
+  }
+  if ( waveform->h )
+  {     
+    XLALPrintError( "Pointer for waveform->h exists. Was expecting NULL.\n" );
+    XLAL_ERROR( XLAL_EFAULT );
+  } 
+  if ( waveform->f )
+  {     
+    XLALPrintError( "Pointer for waveform->f exists. Was expecting NULL.\n" );
+    XLAL_ERROR( XLAL_EFAULT );
+  }
+  if ( waveform->phi )
+  {     
+    XLALPrintError( "Pointer for waveform->phi exists. Was expecting NULL.\n" );
+    XLAL_ERROR( XLAL_EFAULT );
+  }
+  if ( waveform->shift )
+  {     
+    XLALPrintError( "Pointer for waveform->shift exists. Was expecting NULL.\n" );
+    XLAL_ERROR( XLAL_EFAULT );
+  }
+#endif
 
   params->ampOrder = 0;
   XLALPrintWarning( "WARNING: Amp Order has been reset to %d\n", params->ampOrder);
 
   /* Compute some parameters*/
-  LALInspiralInit(status->statusPtr, params, &paramsInit);
-  CHECKSTATUSPTR(status);
+  if( XLALInspiralInit( params, &paramsInit) == XLAL_FAILURE )
+  {
+    XLAL_ERROR( XLAL_EFUNC );
+  }
 
   if (paramsInit.nbins==0)
     {
-      DETATCHSTATUSPTR(status);
-      RETURN (status);
+      XLALPrintWarning( "Waveform is of zero length!!\n" );
+      return XLAL_SUCCESS;
     }
   /* Now we can allocate memory and vector for coherentGW structure*/
   if ( (h = XLALCreateREAL4Vector(2*paramsInit.nbins)) == NULL )
   {
-    ABORTXLAL( status );
+    XLAL_ERROR( XLAL_EFUNC );
   }
 
   phiC = ppnParams->phi;
@@ -1303,13 +1403,12 @@ LALEOBPPWaveformForInjection (
 
   /* Call the engine function */
   params->startPhase = ppnParams->phi;
-  LALEOBPPWaveformEngine(status->statusPtr, NULL, NULL, h,
-			   &phiC, &count, params, &paramsInit);
-  BEGINFAIL( status )
+  if( XLALEOBPPWaveformEngine( NULL, NULL, h,
+        &phiC, &count, params, &paramsInit) == XLAL_FAILURE )
   {
      XLALDestroyREAL4Vector( h );
+     XLAL_ERROR( XLAL_EFUNC );
   }
-  ENDFAIL( status );
 
   /* Check an empty waveform hasn't been returned */
   for (i = 0; i < h->length; i++)
@@ -1319,7 +1418,7 @@ LALEOBPPWaveformForInjection (
     {
       XLALDestroyREAL4Vector(h);
       XLALPrintError( "An empty waveform has been generated!\n" );
-      ABORT( status, LALINSPIRALH_ENOWAVEFORM, LALINSPIRALH_MSGENOWAVEFORM );
+      XLAL_ERROR( XLAL_EFAILED );
     }
   }
 
@@ -1328,7 +1427,7 @@ LALEOBPPWaveformForInjection (
          LALMalloc( sizeof(REAL4TimeVectorSeries) ) ) == NULL )
   {
     XLALDestroyREAL4Vector( h );
-    ABORT( status, LALINSPIRALH_EMEM, LALINSPIRALH_MSGEMEM );
+    XLAL_ERROR( XLAL_ENOMEM );
   }
   memset( waveform->h, 0, sizeof(REAL4TimeVectorSeries) );
 
@@ -1336,7 +1435,7 @@ LALEOBPPWaveformForInjection (
   {
     LALFree( waveform->h );
     XLALDestroyREAL4Vector( h );
-    ABORTXLAL( status );
+    XLAL_ERROR( XLAL_EFUNC );
   }
 
 
@@ -1368,15 +1467,13 @@ LALEOBPPWaveformForInjection (
 
   XLALDestroyREAL4Vector(h);
 
-  DETATCHSTATUSPTR(status);
-  RETURN(status);
+  return XLAL_SUCCESS;
 }
 
 /* Engine function for generating waveform
    Craig Robinson 15/07/05 */
-static void
-LALEOBPPWaveformEngine (
-                LALStatus        *status,
+static int
+XLALEOBPPWaveformEngine (
                 REAL4Vector      *signalvec1,
                 REAL4Vector      *signalvec2,
                 REAL4Vector      *h,
@@ -1397,7 +1494,7 @@ LALEOBPPWaveformEngine (
    REAL8                   eta, m, r, s, p, q, dt, t, v, omega, f, ampl0;
    REAL8                   omegaOld;
 
-   void                    *funcParams1, *funcParams2, *funcParams3;
+   void                    *funcParams;
 
    REAL8Vector             *values, *dvalues;
    InspiralDerivativesIn   in3;
@@ -1412,7 +1509,6 @@ LALEOBPPWaveformEngine (
    pr3In                   pr3in;
    expnCoeffs              ak;
    expnFunc                func;
-   rOfOmegaIn              rofomegain;
    DFindRootIn             rootIn2, rootIn3;
 
    /* Stuff for pre-computed EOB values */
@@ -1425,7 +1521,7 @@ LALEOBPPWaveformEngine (
 
    /* Variables to allow the waveform to be generated */
    /* from a specific fLower */
-   REAL8                   sInit, sSub = 0.0;  /* Initial phase, and phase to subtract */
+   REAL8                   /*sInit,*/ sSub = 0.0;  /* Initial phase, and phase to subtract */
 
    REAL8                   rmin = 20;        /* Smallest value of r at which to generate the waveform */
    COMPLEX16  MultSphHarmP;    /* Spin-weighted spherical harmonics */
@@ -1438,7 +1534,7 @@ LALEOBPPWaveformEngine (
    INT4       nModes;         /* number of modes required */
    REAL4      inclination;    /* binary inclination       */
    REAL4      coa_phase;      /* binary coalescence phase */
-   REAL8      y_1, y_2, z1, z2; /* (2,2) and (2,-2) spherical harmonics needed in (h+,hx) */
+   REAL8      y_1, y_2, z_1, z_2; /* (2,2) and (2,-2) spherical harmonics needed in (h+,hx) */
 
 
    /* Used for EOBNR */
@@ -1452,8 +1548,6 @@ LALEOBPPWaveformEngine (
 
    /* Variables used in injection */
    REAL8 unitHz;
-   REAL8 cosI;/* cosine of system inclination */
-   REAL8 apFac, acFac;/* extra factor in plus and cross amplitudes */
 
    /* Accuracy of root finding algorithms */
    const REAL8 xacc = 1.0e-12;
@@ -1495,21 +1589,14 @@ LALEOBPPWaveformEngine (
 
    INT4 currentMode;
 
-   INITSTATUS(status, "LALEOBPPWaveformEngine", LALEOBPPWAVEFORMC);
-   ATTATCHSTATUSPTR(status);
-
-
    ak   = paramsInit->ak;
    func = paramsInit->func;
-
-   ASSERT(ak.totalmass/LAL_MTSUN_SI > 0.4, status,
-   	LALINSPIRALH_ESIZE, LALINSPIRALH_MSGESIZE);
 
    /* Check order is consistent */
    if ( params->order != LAL_PNORDER_PSEUDO_FOUR )
    {
      XLALPrintError( "Order must be LAL_PNORDER_PSEUDO_FOUR for approximant EOBNRv2.\n" );
-     ABORT( status, LALINSPIRALH_ECHOICE, LALINSPIRALH_MSGECHOICE );
+     XLAL_ERROR( XLAL_EFUNC );
    }
 
    /* Since h contains both plus and cross, it is twice the length of the vectors */
@@ -1523,7 +1610,7 @@ LALEOBPPWaveformEngine (
    {
      XLALDestroyREAL8Vector( values );
      XLALDestroyREAL8Vector( dvalues );
-     ABORTXLAL( status );
+     XLAL_ERROR( XLAL_EFUNC );
    }
 
    /* Set dt to sampling interval specified by user */
@@ -1536,9 +1623,6 @@ LALEOBPPWaveformEngine (
 
    /* only used in injection case */
    unitHz = m*(REAL8)LAL_PI;
-   cosI   = cos( params->inclination );
-   apFac  = -2.0 * (1.0 + cosI*cosI) * eta * params->totalMass * LAL_MRSUN_SI/params->distance;
-   acFac  = -4.0 * cosI * eta * params->totalMass * LAL_MRSUN_SI/params->distance;
 
    /* Set the amplitude depending on whether the distance is given */
    if ( params->distance > 0.0 )
@@ -1564,7 +1648,7 @@ LALEOBPPWaveformEngine (
    else
    {
      XLALPrintError( "Unsupported approximant\n" );
-     ABORT( status, LALINSPIRALH_ECHOICE, LALINSPIRALH_MSGECHOICE );
+     XLAL_ERROR( XLAL_EINVAL );
    }
 
    /* Check that the 220 QNM freq. is less than the Nyquist freq. */
@@ -1574,7 +1658,7 @@ LALEOBPPWaveformEngine (
    if ( xlalStatus != XLAL_SUCCESS )
    {
      XLALDestroyCOMPLEX8Vector( modefreqs );
-     ABORTXLAL( status );
+     XLAL_ERROR( XLAL_EFUNC );
    }
 
    /* If Nyquist freq. <  220 QNM freq., exit */
@@ -1584,7 +1668,7 @@ LALEOBPPWaveformEngine (
      XLALDestroyCOMPLEX8Vector( modefreqs );
      XLALPrintError( "Ringdown freq greater than Nyquist freq. "
            "Increase sample rate or consider using EOB approximant.\n" );
-     ABORT( status, LALINSPIRALH_ECHOICE, LALINSPIRALH_MSGECHOICE);
+     XLAL_ERROR( XLAL_EINVAL );
    }
 
    /* Calculate the time we will need to step back for ringdown */
@@ -1596,27 +1680,33 @@ LALEOBPPWaveformEngine (
    eobParams.eta = eta;
    eobParams.m1  = params->mass1;
    eobParams.m2  = params->mass2;
-   eobParams.aCoeffs  = &aCoeffs;
-   eobParams.hCoeffs  = &hCoeffs;
-   eobParams.prefixes = &prefixes;
+   eobParams.aCoeffs   = &aCoeffs;
+   eobParams.hCoeffs   = &hCoeffs;
+   eobParams.nqcCoeffs = &nqcCoeffs;
+   eobParams.prefixes  = &prefixes;
 
    if ( XLALCalculateEOBACoefficients( &aCoeffs, eta ) == XLAL_FAILURE )
    {
-     ABORTXLAL( status );
+     XLAL_ERROR( XLAL_EFUNC );
    }
 
   if ( XLALCalcFacWaveformCoefficients( &hCoeffs, eta) == XLAL_FAILURE )
   {
-    ABORTXLAL( status );
+     XLAL_ERROR( XLAL_EFUNC );
   }
 
   if ( XLALComputeNewtonMultipolePrefixes( &prefixes, eobParams.m1, eobParams.m2 )
          == XLAL_FAILURE )
   {
-    ABORTXLAL( status );
+    XLAL_ERROR( XLAL_EFUNC );
   }
 
-  funcParams3 = (void *) &eobParams;
+  /* For the dynamics, we need to use preliminary calculated versions   */
+  /*of the NQC coefficients for the (2,2) mode. We calculate them here. */
+  if ( XLALGetCalibratedNQCCoeffs( &nqcCoeffs, 2, 2, eta ) == XLAL_FAILURE )
+  {
+    XLAL_ERROR( XLAL_EFUNC );
+  }
 
    /* Calculate the resample factor for attaching the ringdown */
    /* We want it to be a power of 2 */
@@ -1653,11 +1743,9 @@ LALEOBPPWaveformEngine (
 
    /* Then the initial phase */
    s = params->startPhase / 2.;
-   sInit = s;
+   /*sInit = s;*/
 
    /* initial r as a function of omega - where to start evolution */
-   rofomegain.eta = eta;
-   rofomegain.omega = omega;
    rootIn3.xacc = xacc;
    rootIn2.xmax = 1000.;
    rootIn2.xmin = 3.;
@@ -1677,25 +1765,13 @@ LALEOBPPWaveformEngine (
    in3.coeffs = &ak;
    in3.nqcCoeffs = &nqcCoeffs;
 
-   funcParams1 = (void *) &rofomegain;
-
-   switch (params->order)
-   {
-     case LAL_PNORDER_PSEUDO_FOUR:
-       rOfOmegaFunc = XLALrOfOmegaP4PN;
-       funcParams2 = (void *) &pr3in;
-       break;
-     default:
-       XLALPrintError( "There are no EOBNRv2 waveforms implemented at order %d\n", params->order);
-       XLALDestroyREAL8Vector( values );
-       XLALDestroyREAL8Vector( dvalues );
-       ABORT( status, LALINSPIRALH_ECHOICE, LALINSPIRALH_MSGECHOICE);
-   }
+   rOfOmegaFunc = XLALrOfOmegaP4PN;
+   funcParams = (void *) &pr3in;
    r = XLALDBisectionFindRoot( rOfOmegaFunc, rootIn2.xmin,
-              rootIn2.xmax, xacc, funcParams2);
+              rootIn2.xmax, xacc, funcParams);
    if ( XLAL_IS_REAL8_FAIL_NAN( r ) )
    {
-     ABORTXLAL( status );
+     XLAL_ERROR( XLAL_EFUNC );
    }
 
    /* We want the waveform to generate from a point which won't cause */
@@ -1712,31 +1788,23 @@ LALEOBPPWaveformEngine (
    /* Now that r is changed recompute omega corresponding */
    /* to that r and only then compute initial pr and pphi */
 
-   switch (params->order)
+   omega = omegaofrP4PN( r, eta, &aCoeffs );
+   pr3in.omega = omega;
+   q = XLALpphiInitP4PN(r, &aCoeffs );
+   /* first we compute vr (we need coeef->Fp6) */
+   pr3in.q = q;
+   funcParams = (void *) &pr3in;
+   pr3in.vr = XLALvrP4PN(r, omega, (void *) &pr3in);
+   /* then we compute the initial value of p */
+   p = XLALDBisectionFindRoot( XLALprInitP4PN, rootIn3.xmin, rootIn3.xmax, xacc, funcParams);
+   if ( XLAL_IS_REAL8_FAIL_NAN( p ) )
    {
-     case LAL_PNORDER_PSEUDO_FOUR:
-       omega = omegaofrP4PN( r, eta, &aCoeffs );
-       pr3in.omega = omega;
-       q = LALpphiInitP4PN(r, &aCoeffs );
-       rootIn3.function = LALprInitP4PN;
-       /* first we compute vr (we need coeef->Fp6) */
-       pr3in.q = q;
-       funcParams2 = (void *) &pr3in;
-       pr3in.vr = LALvrP4PN(r, omega, (void *) &pr3in);
-       /* then we compute the initial value of p */
-       LALDBisectionFindRoot(status->statusPtr, &p, &rootIn3, funcParams2);
-       CHECKSTATUSPTR(status);
-       /* We need to change P to be the tortoise co-ordinate */
-       /* TODO: Change prInit to calculate this directly */
-       p = p * XLALCalculateEOBA(r, &aCoeffs);
-       p = p / sqrt( XLALCalculateEOBD( r, eta ) );
-       break;
-     default:
-       XLALPrintError( "There are no EOB/EOBNR waveforms implemented at order %d\n", params->order );
-       XLALDestroyREAL8Vector( values );
-       XLALDestroyREAL8Vector( dvalues );
-       ABORT( status, LALINSPIRALH_ECHOICE, LALINSPIRALH_MSGECHOICE);
+     XLAL_ERROR( XLAL_EFUNC );
    }
+   /* We need to change P to be the tortoise co-ordinate */
+   /* TODO: Change prInit to calculate this directly */
+   p = p * XLALCalculateEOBA(r, &aCoeffs);
+   p = p / sqrt( XLALCalculateEOBD( r, eta ) );
 
    values->data[0] = r;
    values->data[1] = s;
@@ -1755,7 +1823,7 @@ LALEOBPPWaveformEngine (
      if ( freq ) XLALDestroyREAL4Vector( freq );
      XLALDestroyREAL8Vector( values );
      XLALDestroyREAL8Vector( dvalues );
-     ABORT( status, LALINSPIRALH_EMEM, LALINSPIRALH_MSGEMEM );
+     XLAL_ERROR( XLAL_ENOMEM );
    }
 
    memset(sig1->data, 0, sig1->length * sizeof( REAL4 ));
@@ -1785,7 +1853,7 @@ LALEOBPPWaveformEngine (
      if ( freq ) XLALDestroyREAL4Vector( freq );
      XLALDestroyREAL8Vector( values );
      XLALDestroyREAL8Vector( dvalues );
-     ABORT( status, LALINSPIRALH_EMEM, LALINSPIRALH_MSGEMEM );
+     XLAL_ERROR( XLAL_ENOMEM );
    }
 
    memset(sig1Hi->data, 0, sig1Hi->length * sizeof( REAL4 ));
@@ -1808,7 +1876,7 @@ LALEOBPPWaveformEngine (
      XLALDestroyREAL4Vector( freq );
      XLALDestroyREAL8Vector( values );
      XLALDestroyREAL8Vector( dvalues );
-     ABORT(status, LALINSPIRALH_EMEM, LALINSPIRALH_MSGEMEM);
+     XLAL_ERROR( XLAL_EFUNC );
    }
 
    integrator->stopontestonly = 1;
@@ -1867,12 +1935,11 @@ LALEOBPPWaveformEngine (
    /* Now we have the dynamics, we tweak the factorized coefficients for the waveform */
   if ( XLALModifyFacWaveformCoefficients( &hCoeffs, eta) == XLAL_FAILURE )
   {
-    ABORTXLAL( status );
+    XLAL_ERROR( XLAL_EFUNC );
   }
 
    /* We can now start calculating things for NQCs, and hiSR waveform */
    omegaOld = 0.0;
-   phaseCounter = 0;
 
    for ( currentMode = 0; currentMode < nModes; currentMode++ )
    {
@@ -1887,6 +1954,7 @@ LALEOBPPWaveformEngine (
        continue;
      }
 
+     phaseCounter = 0;
      for ( i=0; i < (UINT4)retLen; i++ )
      {
        omega = XLALCalculateOmega( eta, rVecHi.data[i], prVecHi.data[i], pPhiVecHi.data[i], &aCoeffs );
@@ -1927,7 +1995,7 @@ LALEOBPPWaveformEngine (
     /* Stuff to find the actual peak time */
     gsl_spline    *spline = NULL;
     gsl_interp_accel *acc = NULL;
-    REAL8 omegaDeriv1, omegaDeriv2;
+    REAL8 omegaDeriv1;
     REAL8 time1, time2;
     REAL8 timePeak, omegaDerivMid;
 
@@ -1941,11 +2009,9 @@ LALEOBPPWaveformEngine (
     if ( omegaDeriv1 > 0. )
     {
       time2 = dynamicsHi->data[peakIdx+1];
-      omegaDeriv2 = gsl_spline_eval_deriv( spline, time2, acc );
     }
     else
     {
-      omegaDeriv2 = omegaDeriv1;
       time2 = time1;
       time1 = dynamicsHi->data[peakIdx-1];
       peakIdx--;
@@ -1959,7 +2025,6 @@ LALEOBPPWaveformEngine (
 
       if ( omegaDerivMid * omegaDeriv1 < 0.0 )
       {
-        omegaDeriv2 = omegaDerivMid;
         time2 = timePeak;
       }
       else
@@ -1997,7 +2062,7 @@ LALEOBPPWaveformEngine (
     if ( i == hiSRndx )
     {
       XLALPrintError( "We don't seem to have crossed the low frequency cut-off\n" );
-      ABORT( status, LALINSPIRALH_ENOWAVEFORM, LALINSPIRALH_MSGENOWAVEFORM );
+      XLAL_ERROR( XLAL_EFAILED );
     }
 
     startIdx = i;
@@ -2028,7 +2093,7 @@ LALEOBPPWaveformEngine (
        count++;
        i++;
     }
-
+    
     /* Now apply the NQC correction to the high sample part */
     for ( i = 0; i <= finalIdx; i++ )
     {
@@ -2073,7 +2138,7 @@ LALEOBPPWaveformEngine (
      if ( ceil( tStepBack * params->tSampling / 2.0 ) > peakIdx )
      {
        XLALPrintError( "Invalid index for first ringdown matching point.\n" );
-       ABORT( status, LALINSPIRALH_ESIZE , LALINSPIRALH_MSGESIZE );
+       XLAL_ERROR( XLAL_EFAILED );
      }
 
      REAL8 combSize = GetRingdownAttachCombSize( modeL, modeM );
@@ -2094,7 +2159,7 @@ LALEOBPPWaveformEngine (
        XLALDestroyREAL4Vector( sig1 );
        XLALDestroyREAL4Vector( sig2 );
        XLALDestroyREAL4Vector( freq );
-       ABORTXLAL( status );
+       XLAL_ERROR( XLAL_EFUNC );
      }
      XLALDestroyREAL8Vector( rdMatchPoint );
      params->tSampling = tmpSamplingRate;
@@ -2131,7 +2196,7 @@ LALEOBPPWaveformEngine (
        XLALDestroyREAL4Vector( sig1 );
        XLALDestroyREAL4Vector( sig2 );
        XLALDestroyREAL4Vector( freq );
-       ABORTXLAL( status );
+       XLAL_ERROR( XLAL_EFUNC );
      }
 
      modeM = -modeM;
@@ -2141,13 +2206,18 @@ LALEOBPPWaveformEngine (
        XLALDestroyREAL4Vector( sig1 );
        XLALDestroyREAL4Vector( sig2 );
        XLALDestroyREAL4Vector( freq );
-       ABORTXLAL( status );
+       XLAL_ERROR( XLAL_EFUNC );
      }
 
+     if ( modeL % 2 ) /* odd modeL gives a minus sign to negative m modes */ 
+     {
+       MultSphHarmM.re = - MultSphHarmM.re;
+       MultSphHarmM.im = - MultSphHarmM.im;
+     }
      y_1 =   MultSphHarmP.re + MultSphHarmM.re;
      y_2 =   MultSphHarmM.im - MultSphHarmP.im;
-     z1 = - MultSphHarmM.im - MultSphHarmP.im;
-     z2 =   MultSphHarmM.re - MultSphHarmP.re;
+     z_1 = - MultSphHarmM.im - MultSphHarmP.im;
+     z_2 =   MultSphHarmM.re - MultSphHarmP.re;
 
      /* Next, compute h+ and hx from hLM, hLM*, YLM, YL-M */
      for ( i = 0; i < sig1->length; i++)
@@ -2156,7 +2226,7 @@ LALEOBPPWaveformEngine (
        x1 = sig1->data[i];
        x2 = sig2->data[i];
        sig1->data[i] = (x1 * y_1) + (x2 * y_2);
-       sig2->data[i] = (x1 * z1) + (x2 * z2);
+       sig2->data[i] = (x1 * z_1) + (x2 * z_2);
      }
 
      /*------------------------------------------------------
@@ -2213,6 +2283,5 @@ LALEOBPPWaveformEngine (
    XLALDestroyREAL8Vector( p1 );
    XLALDestroyREAL8Vector( p2 );
 
-   DETATCHSTATUSPTR(status);
-   RETURN(status);
+   return XLAL_SUCCESS;
 }
