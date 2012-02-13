@@ -24,7 +24,6 @@
  * \ingroup SFTfileIO
  * \brief Utility functions for handling of SFTtype and SFTVector's.
  *
- * $Id$
  *
  */
 
@@ -40,8 +39,6 @@
 #include <lal/LISAspecifics.h>
 
 #include "SFTutils.h"
-
-NRCSID( SFTUTILSC, "$Id$" );
 
 /*---------- DEFINES ----------*/
 #define MIN(x,y) ((x) < (y) ? (x) : (y))
@@ -201,7 +198,7 @@ LALCreateSFTtype (LALStatus *status,	/**< pointer to LALStatus structure */
 {
   SFTtype *sft = NULL;
 
-  INITSTATUS( status, "LALCreateSFTtype", SFTUTILSC);
+  INITSTATUS(status);
   ATTATCHSTATUSPTR( status );
 
   ASSERT (output != NULL, status, SFTUTILS_ENULL,  SFTUTILS_MSGENULL);
@@ -240,7 +237,7 @@ LALCreateSFTVector (LALStatus *status,	/**< pointer to LALStatus structure */
 {
   SFTVector *vect;
 
-  INITSTATUS( status, "LALCreateSFTVector", SFTUTILSC);
+  INITSTATUS(status);
   ATTATCHSTATUSPTR( status );
 
   ASSERT (output != NULL, status, SFTUTILS_ENULL,  SFTUTILS_MSGENULL);
@@ -316,7 +313,7 @@ void LALCreateMultiSFTVector ( LALStatus *status,     /**< pointer to LALStatus 
   UINT4 k, j, numifo;
   MultiSFTVector *multSFTVec=NULL;
 
-  INITSTATUS (status, "LALCreateMultiSFTs", SFTUTILSC);
+  INITSTATUS(status);
   ATTATCHSTATUSPTR (status);
 
   ASSERT ( out, status, SFTUTILS_ENULL, SFTUTILS_MSGENULL );
@@ -362,7 +359,7 @@ LALDestroySFTtype (LALStatus *status,	/**< pointer to LALStatus structure */
 		   SFTtype **sft)	/**< SFT-struct to free */
 {
 
-  INITSTATUS( status, "LALDestroySFTtype", SFTUTILSC);
+  INITSTATUS(status);
   ATTATCHSTATUSPTR (status);
 
   ASSERT (sft != NULL, status, SFTUTILS_ENULL,  SFTUTILS_MSGENULL);
@@ -394,7 +391,7 @@ void
 LALDestroySFTVector (LALStatus *status,	/**< pointer to LALStatus structure */
 		     SFTVector **vect)	/**< the SFT-vector to free */
 {
-  INITSTATUS( status, "LALDestroySFTVector", SFTUTILSC);
+  INITSTATUS(status);
 
   ASSERT (vect != NULL, status, SFTUTILS_ENULL,  SFTUTILS_MSGENULL);
 
@@ -447,7 +444,7 @@ LALDestroyPSDVector (LALStatus *status,	/**< pointer to LALStatus structure */
   UINT4 i;
   REAL8FrequencySeries *psd;
 
-  INITSTATUS( status, "LALDestroyPSDVector", SFTUTILSC);
+  INITSTATUS(status);
   ATTATCHSTATUSPTR( status );
 
   ASSERT (vect != NULL, status, SFTUTILS_ENULL,  SFTUTILS_MSGENULL);
@@ -486,7 +483,7 @@ LALDestroyMultiSFTVector (LALStatus *status,		/**< pointer to LALStatus structur
 {
   UINT4 i;
 
-  INITSTATUS( status, "LALDestroyMultiSFTVector", SFTUTILSC);
+  INITSTATUS(status);
   ATTATCHSTATUSPTR( status );
 
   ASSERT (multvect != NULL, status, SFTUTILS_ENULL,  SFTUTILS_MSGENULL);
@@ -518,7 +515,7 @@ LALDestroyMultiPSDVector (LALStatus *status,		/**< pointer to LALStatus structur
 {
   UINT4 i;
 
-  INITSTATUS( status, "LALDestroyMultiPSDVector", SFTUTILSC);
+  INITSTATUS(status);
   ATTATCHSTATUSPTR( status );
 
   ASSERT (multvect != NULL, status, SFTUTILS_ENULL,  SFTUTILS_MSGENULL);
@@ -557,7 +554,7 @@ LALCopySFT (LALStatus *status,	/**< pointer to LALStatus structure */
 {
 
 
-  INITSTATUS( status, "LALCopySFT", SFTUTILSC);
+  INITSTATUS(status);
   ATTATCHSTATUSPTR ( status );
 
   ASSERT (dest,  status, SFTUTILS_ENULL,  SFTUTILS_MSGENULL);
@@ -601,7 +598,7 @@ LALSubtractSFTVectors (LALStatus *status,	/**< pointer to LALStatus structure */
   CHAR prefix[LALNameLength];
   UINT4 halfNameLength;
 
-  INITSTATUS( status, "LALSubtractSFTVectors", SFTUTILSC);
+  INITSTATUS(status);
   ATTATCHSTATUSPTR (status);
 
   ASSERT (outVect,  status, SFTUTILS_ENULL,  SFTUTILS_MSGENULL);
@@ -699,7 +696,7 @@ LALLinearlyCombineSFTVectors
   UINT4 i, j, k;
   SFTVector *ret = NULL;
 
-  INITSTATUS( status, "LALLinearlyCombineSFTVectors", SFTUTILSC);
+  INITSTATUS(status);
   ATTATCHSTATUSPTR (status);
 
   ASSERT (outVect,  status, SFTUTILS_ENULL,  SFTUTILS_MSGENULL);
@@ -807,7 +804,7 @@ LALAppendSFT2Vector (LALStatus *status,		/**< pointer to LALStatus structure */
 		     const SFTtype *sft)	/**< the SFT to append */
 {
   UINT4 oldlen;
-  INITSTATUS( status, "LALAppendSFT2Vector", SFTUTILSC);
+  INITSTATUS(status);
   ATTATCHSTATUSPTR (status);
 
   ASSERT ( sft, status, SFTUTILS_ENULL, SFTUTILS_MSGENULL );
@@ -861,7 +858,7 @@ LALCreateTimestampVector (LALStatus *status,		/**< pointer to LALStatus structur
 {
   LIGOTimeGPSVector *out = NULL;
 
-  INITSTATUS( status, "LALCreateTimestampVector", SFTUTILSC);
+  INITSTATUS(status);
 
   ASSERT (vect != NULL, status, SFTUTILS_ENULL,  SFTUTILS_MSGENULL);
   ASSERT (*vect == NULL, status, SFTUTILS_ENONULL,  SFTUTILS_MSGENONULL);
@@ -899,7 +896,7 @@ void
 LALDestroyTimestampVector (LALStatus *status,		/**< pointer to LALStatus structure */
 			   LIGOTimeGPSVector **vect)	/**< timestamps-vector to be freed */
 {
-  INITSTATUS( status, "LALDestroyTimestampVector", SFTUTILSC);
+  INITSTATUS(status);
 
   ASSERT (vect != NULL, status, SFTUTILS_ENULL,  SFTUTILS_MSGENULL);
 
@@ -932,7 +929,7 @@ LALMakeTimestamps(LALStatus *status,			/**< pointer to LALStatus structure */
   LIGOTimeGPS tt;
   LIGOTimeGPSVector *ts = NULL;
 
-  INITSTATUS( status, "LALMakeTimestamps", SFTUTILSC);
+  INITSTATUS(status);
   ATTATCHSTATUSPTR (status);
 
   ASSERT (timestamps != NULL, status, SFTUTILS_ENULL,
@@ -980,7 +977,7 @@ LALGetSFTtimestamps (LALStatus *status,			/**< pointer to LALStatus structure */
 {
   LIGOTimeGPSVector *ret = NULL;
 
-  INITSTATUS (status, __func__, SFTUTILSC );
+  INITSTATUS(status);
 
   ASSERT ( timestamps, status, SFTUTILS_ENULL, SFTUTILS_MSGENULL );
   ASSERT ( sfts, status, SFTUTILS_ENULL, SFTUTILS_MSGENULL );
@@ -1110,79 +1107,111 @@ XLALDestroyMultiTimestamps ( MultiLIGOTimeGPSVector *multiTS )
  * it is set to '1', and a warning will be printed if lalDebugLevel > 0.
  *
  * NOTE2: the returned string is allocated here!
+ *
+ * Note3: if more than one valid detector-string is found in the input, an error is returned
+ *
  */
 CHAR *
 XLALGetChannelPrefix ( const CHAR *name )
 {
-  CHAR *channel = LALCalloc( 3, sizeof(CHAR) );  /* 2 chars + \0 */
+  CHAR *channel = XLALCalloc( 3, sizeof(CHAR) );  /* 2 chars + \0 */
+
+#define CHECK_UNIQUE do { if ( channel[0] != 0 ) XLAL_ERROR_NULL ( XLAL_EINVAL, "More than one matching detector name found in '%s'", name ); } while(0)
 
   if ( !channel ) {
-    XLAL_ERROR_NULL ( XLAL_ENOMEM );
+    XLAL_ERROR_NULL ( XLAL_ENOMEM, "Failed to calloc(3)!\n" );
   }
   if ( !name ) {
     LALFree ( channel );
-    XLAL_ERROR_NULL ( XLAL_EINVAL );
+    XLAL_ERROR_NULL ( XLAL_EINVAL, "Invalid NULL input 'name'" );
   }
 
   /* first handle (currently) unambiguous ones */
-  if ( strstr( name, "ALLEGRO") || strstr ( name, "A1") )
+  if ( strstr( name, "ALLEGRO") || strstr ( name, "A1") ) {
+    CHECK_UNIQUE;
     strcpy ( channel, "A1");
-  else if ( strstr(name, "NIOBE") || strstr( name, "B1") )
+  }
+  if ( strstr(name, "NIOBE") || strstr( name, "B1") ) {
+    CHECK_UNIQUE;
     strcpy ( channel, "B1");
-  else if ( strstr(name, "EXPLORER") || strstr( name, "E1") )
+  }
+  if ( strstr(name, "EXPLORER") || strstr( name, "E1") ) {
+    CHECK_UNIQUE;
     strcpy ( channel, "E1");
-  else if ( strstr(name, "GEO") || strstr(name, "G1") )
+  }
+  if ( strstr(name, "GEO") || strstr(name, "G1") ) {
+    CHECK_UNIQUE;
     strcpy ( channel, "G1" );
-  else if ( strstr(name, "ACIGA") || strstr (name, "K1") )
+  }
+  if ( strstr(name, "ACIGA") || strstr (name, "K1") ) {
+    CHECK_UNIQUE;
     strcpy ( channel, "K1" );
-  else if ( strstr(name, "LLO") || strstr(name, "Livingston") || strstr(name, "L1") )
+  }
+  if ( strstr(name, "LLO") || strstr(name, "Livingston") || strstr(name, "L1") ) {
+    CHECK_UNIQUE;
     strcpy ( channel, "L1" );
-  else if ( strstr(name, "Nautilus") || strstr(name, "N1") )
+  }
+  if ( strstr(name, "Nautilus") || strstr(name, "N1") ) {
+    CHECK_UNIQUE;
     strcpy ( channel, "N1" );
-  else if ( strstr(name, "AURIGA") || strstr(name,"O1") )
+  }
+  if ( strstr(name, "AURIGA") || strstr(name,"O1") ) {
+    CHECK_UNIQUE;
     strcpy ( channel, "O1" );
-  else if ( strstr(name, "CIT_40") || strstr(name, "Caltech-40") || strstr(name, "P1") )
+  }
+  if ( strstr(name, "CIT_40") || strstr(name, "Caltech-40") || strstr(name, "P1") ) {
+    CHECK_UNIQUE;
     strcpy ( channel, "P1" );
-  else if ( strstr(name, "TAMA") || strstr(name, "T1") )
+  }
+  if ( strstr(name, "TAMA") || strstr(name, "T1") ) {
+    CHECK_UNIQUE;
     strcpy (channel, "T1" );
+  }
   /* currently the only real ambiguity arises with H1 vs H2 */
-  else if ( strstr(name, "LHO") || strstr(name, "Hanford") || strstr(name, "H1") || strstr(name, "H2") )
-    {
-      if ( strstr(name, "LHO_2k") ||  strstr(name, "H2") )
-	strcpy ( channel, "H2" );
-      else if ( strstr(name, "LHO_4k") ||  strstr(name, "H1") )
-	strcpy ( channel, "H1" );
-      else /* otherwise: guess */
-	{
-	  strcpy ( channel, "H1" );
-	  if ( lalDebugLevel )
-	    XLALPrintError("WARNING: Detector-name '%s' not unique, guessing '%s'\n", name, channel );
-	}
-    } /* if LHO */
+  if ( strstr(name, "LHO") || strstr(name, "Hanford") || strstr(name, "H1") || strstr(name, "H2") ) {
+    if ( strstr(name, "LHO_2k") ||  strstr(name, "H2") )
+      {
+        CHECK_UNIQUE;
+        strcpy ( channel, "H2" );
+      }
+    if ( strstr(name, "LHO_4k") ||  strstr(name, "H1") )
+      {
+        CHECK_UNIQUE;
+        strcpy ( channel, "H1" );
+      }
+    /* otherwise: guess */
+    if ( channel[0] == 0 )
+      {
+        strcpy ( channel, "H1" );
+        XLALPrintWarning("Detector-name '%s' ambiguous, guessing '%s'\n", name, channel );
+      }
+  } /* if LHO */
   /* LISA channel names are simply left unchanged */
-  else if ( strstr(name, "Z1") || strstr(name, "Z2") || strstr(name, "Z3")
-	    || strstr(name, "Z4") || strstr(name, "Z5") || strstr(name, "Z6")
-	    || strstr(name, "Z7") || strstr(name, "Z8") || strstr(name, "Z9") )
+  if ( strstr(name, "Z1") || strstr(name, "Z2") || strstr(name, "Z3")
+       || strstr(name, "Z4") || strstr(name, "Z5") || strstr(name, "Z6")
+       || strstr(name, "Z7") || strstr(name, "Z8") || strstr(name, "Z9") )
     {
+      CHECK_UNIQUE;
       strncpy ( channel, name, 2);
       channel[2] = 0;
     }
-  /* try matching VIRGO last, because 'V1','V2' might be used as version-numbers
-   * also in some input-strings */
-  else if ( strstr(name, "Virgo") || strstr(name, "VIRGO") || strstr(name, "V1") || strstr(name, "V2") )
+  if ( strstr(name, "Virgo") || strstr(name, "VIRGO") || strstr(name, "V1") || strstr(name, "V2") )
     {
-      if ( strstr(name, "Virgo_CITF") || strstr(name, "V1") )
-	strcpy ( channel, "V1" );
-      else if ( strstr(name, "Virgo") || strstr(name, "VIRGO") || strstr(name, "V2") )
-	strcpy ( channel, "V2" );
+      if ( strstr(name, "Virgo_CITF") || strstr(name, "V2") )
+        {
+          CHECK_UNIQUE;
+          strcpy ( channel, "V2" );
+        }
+      if ( strstr(name, "Virgo") || strstr(name, "VIRGO") || strstr(name, "V1") )
+        {
+          CHECK_UNIQUE;
+          strcpy ( channel, "V1" );
+        }
     } /* if Virgo */
 
-
+  /* Did we fail to find any matches? */
   if ( channel[0] == 0 )
-    {
-      if ( lalDebugLevel ) XLALPrintError ( "\nERROR: unknown detector-name '%s'\n\n", name );
-      XLAL_ERROR_NULL ( XLAL_EINVAL );
-    }
+    XLAL_ERROR_NULL ( XLAL_EINVAL, "Unknown detector-name '%s'", name );
   else
     return channel;
 
@@ -1276,7 +1305,7 @@ void LALComputeNoiseWeights  (LALStatus        *status,
   LALRunningMedianPar rngMedPar;
 
   /* --------------------------------------------- */
-  INITSTATUS (status, "LALComputeNoiseWeights", SFTUTILSC);
+  INITSTATUS(status);
   ATTATCHSTATUSPTR (status);
 
   /*   Make sure the arguments are not NULL: */
@@ -1380,7 +1409,7 @@ void LALComputeMultiNoiseWeights  (LALStatus             *status,
   MultiNoiseWeights *weights;
   REAL8 Tsft = 1.0 / rngmed->data[0]->data[0].deltaF;
 
-  INITSTATUS (status, "LALComputeMultiNoiseWeights", SFTUTILSC);
+  INITSTATUS(status);
   ATTATCHSTATUSPTR (status);
 
   ASSERT ( rngmed, status, SFTUTILS_ENULL, SFTUTILS_MSGENULL);
@@ -1483,7 +1512,7 @@ LALDestroyMultiNoiseWeights  (LALStatus         *status,
 {
   UINT4 k;
 
-  INITSTATUS (status, "LALDestroyMultiNoiseWeights", SFTUTILSC);
+  INITSTATUS(status);
   ATTATCHSTATUSPTR (status);
 
   ASSERT ( weights != NULL, status, SFTUTILS_ENULL,  SFTUTILS_MSGENULL);
@@ -1524,7 +1553,7 @@ upsampleMultiSFTVector (LALStatus *status,		/**< pointer to LALStatus structure 
 {
   UINT4 X, numDet;
 
-  INITSTATUS( status, "upsampleMultiSFTVector", SFTUTILSC );
+  INITSTATUS(status);
   ATTATCHSTATUSPTR (status);
 
   ASSERT ( inout, status, SFTUTILS_ENULL, SFTUTILS_MSGENULL);
@@ -1557,7 +1586,7 @@ upsampleSFTVector (LALStatus *status,		/**< pointer to LALStatus structure */
 {
   UINT4 alpha, numSFTs;
 
-  INITSTATUS( status, "upsampleSFTVector", SFTUTILSC );
+  INITSTATUS(status);
   ATTATCHSTATUSPTR (status);
 
   ASSERT ( inout, status, SFTUTILS_ENULL, SFTUTILS_MSGENULL);

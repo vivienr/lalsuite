@@ -116,6 +116,7 @@ tagCoincInspiralStatParams
   REAL4    param_a[LAL_NUM_IFO];
   REAL4    param_b[LAL_NUM_IFO];
   REAL4    eff_snr_denom_fac;
+  REAL4    chisq_index;
 }
 CoincInspiralStatParams;
 
@@ -151,6 +152,7 @@ typedef enum
   no_stat,
   snrsq,
   effective_snrsq,
+  new_snrsq,
   s3_snr_chi_stat,
   bitten_l,
   bitten_lsq,
@@ -207,7 +209,17 @@ tagSnglInspiralBCVCalphafCut
 }
 SnglInspiralBCVCalphafCut;
 
-
+/** The \c CDataNode is a structure that saves the names of the
+    time-series of matched-filter outputs that are written into
+    a frame file by the inspiral code.
+*/
+typedef struct
+tagCDataNode
+{
+  CHAR cdataStrNode[LALNameLength];
+  struct tagCDataNode *next;
+}
+CDataNode;
 
 /*
  *
@@ -474,6 +486,12 @@ XLALCountCoincInspiral(
     CoincInspiralTable *head
     );
 
+int
+XLALAddSnglInspiralCData(
+    CDataNode                 **cdataStrCat,
+    CHAR                       *id
+    );
+
 /* coinc inspiral */
 void
 LALCreateTwoIFOCoincList(
@@ -622,7 +640,14 @@ LALCoincCutSnglInspiral(
 int
 XLALGenerateCoherentBank(
     SnglInspiralTable         **coherentBank,
-    CoincInspiralTable         *coincInput
+    CoincInspiralTable         *coincInput,
+    CohbankRunType              runType,
+    INT8                        ringStartNS,
+    INT8                        ringEndNS,
+    int                         numSlides,
+    REAL8                       slideStep[LAL_NUM_IFO],
+    REAL4                       eff_snrsq_threshold,
+    CHAR                       *ifos
     );
 
 INT8
@@ -986,6 +1011,7 @@ int XLALClusterInEventID(
 
 int XLALCoincSegCutSnglInspiral(
     INT4                         startTime,
+    INT4                         endTime,
     SnglInspiralTable          **inspiralList
     );
 

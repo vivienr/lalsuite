@@ -92,9 +92,6 @@ static UNUSED REAL4Vector *XLALCutAtFreq(
     REAL8 cutFreq,
     REAL8 deltaT);
 
-NRCSID (LALPHENOMWAVEFORMC, "$Id$");
-
-
 /*
  *
  * Wrapper functions to be called from LALInspiralWave
@@ -499,7 +496,11 @@ int XLALBBHPhenTimeDomEngine(
 
   sigLength = 0;
   if (signalvec1) sigLength = signalvec1->length;
-  if (signalvec2) sigLength = signalvec2->length;
+  else if (signalvec2) sigLength = signalvec2->length;
+  else if (freqVec) sigLength = freqVec->length;
+  else if (phiVec) sigLength = phiVec->length;
+  else if (aVec) sigLength = aVec->length / 2;
+  else if (h) sigLength = h->length / 2;
 
   /* inclination-weights on two polarizations */
   z1 = -0.5*(1. + cosI*cosI);
@@ -554,6 +555,7 @@ int XLALBBHPhenWaveTimeDomForInjection (
   UINT4 count, i;
   REAL8 s, phiC;            /* phase at coalescence */
   CHAR message[256];
+  LIGOTimeGPS zero_time = {0, 0};
   InspiralInit paramsInit;
   int returnval = XLAL_SUCCESS;
 
@@ -648,10 +650,10 @@ int XLALBBHPhenWaveTimeDomForInjection (
   }
   memset(waveform->h, 0, sizeof(REAL4TimeVectorSeries));
   memset(waveform->a, 0, sizeof(REAL4TimeVectorSeries));
-  waveform->h->data = XLALCreateREAL4VectorSequence(2, count);
-  waveform->a->data = XLALCreateREAL4VectorSequence(2, count);
-  waveform->f = XLALCreateREAL4TimeSeries("Phenom inspiral frequency", NULL, 0, 1. / params->tSampling, &lalHertzUnit, count);
-  waveform->phi = XLALCreateREAL8TimeSeries("Phenom inspiral phase", NULL, 0, 1 / params->tSampling, &lalDimensionlessUnit, count);
+  waveform->h->data = XLALCreateREAL4VectorSequence(count, 2);
+  waveform->a->data = XLALCreateREAL4VectorSequence(count, 2);
+  waveform->f = XLALCreateREAL4TimeSeries("Phenom inspiral frequency", &zero_time, 0, 1. / params->tSampling, &lalHertzUnit, count);
+  waveform->phi = XLALCreateREAL8TimeSeries("Phenom inspiral phase", &zero_time, 0, 1 / params->tSampling, &lalDimensionlessUnit, count);
   if (!(waveform->h->data) || !(waveform->a->data) || !(waveform->f) || !(waveform->phi)) {
     XLALError(__func__, __FILE__, __LINE__, XLAL_ENOMEM);
     returnval = XLAL_FAILURE;
@@ -666,8 +668,8 @@ int XLALBBHPhenWaveTimeDomForInjection (
    */
   memcpy(waveform->h->data->data, h->data, 2*count*(sizeof(REAL4)));
   memcpy(waveform->a->data->data, a->data, 2*count*(sizeof(REAL4)));
-  memcpy(waveform->f->data, ff->data, count*(sizeof(REAL4)));
-  memcpy(waveform->phi->data, phi->data, count*(sizeof(REAL8)));
+  memcpy(waveform->f->data->data, ff->data, count*(sizeof(REAL4)));
+  memcpy(waveform->phi->data->data, phi->data, count*(sizeof(REAL8)));
 
   /* also set other parameters in the waveform structure */
   waveform->h->sampleUnits = waveform->a->sampleUnits = lalStrainUnit;
@@ -1179,7 +1181,7 @@ void LALBBHPhenWaveFreqDom(
     LALStatus        *status,
     REAL4Vector      *signalvec,
     InspiralTemplate *params) {
-  INITSTATUS (status, "LALBBHPhenWaveFreqDom", LALPHENOMWAVEFORMC);
+  INITSTATUS(status);
   ATTATCHSTATUSPTR(status);
   XLALPrintDeprecationWarning(__func__, "XLALBBHPhenWaveFreqDom");
   switch (params->approximant) {
@@ -1201,7 +1203,7 @@ void LALBBHPhenWaveFreqDomTemplates(
     REAL4Vector      *signalvec1,
     REAL4Vector      *signalvec2,
     InspiralTemplate *params) {
-  INITSTATUS (status, "LALBBHPhenWaveFreqDomTemplates", LALPHENOMWAVEFORMC);
+  INITSTATUS(status);
   ATTATCHSTATUSPTR(status);
   XLALPrintDeprecationWarning(__func__, "XLALBBHPhenWaveFreqDomTemplates");
   switch (params->approximant) {
@@ -1222,7 +1224,7 @@ void LALBBHPhenWaveTimeDom(
     LALStatus        *status,
     REAL4Vector      *signalvec1,
     InspiralTemplate *insp_template) {
-  INITSTATUS(status, "LALBBHPhenWaveTimeDom", LALPHENOMWAVEFORMC);
+  INITSTATUS(status);
   ATTATCHSTATUSPTR(status);
   XLALPrintDeprecationWarning(__func__, "XLALBBHPhenWaveTimeDom");
   if (XLALBBHPhenWaveTimeDom(signalvec1, insp_template)) ABORTXLAL(status);
@@ -1236,7 +1238,7 @@ void LALBBHPhenWaveTimeDomTemplates(
     REAL4Vector      *signalvec1,
     REAL4Vector      *signalvec2,
     InspiralTemplate *insp_template) {
-  INITSTATUS(status, "LALBBHPhenWaveTimeDomTemplates", LALPHENOMWAVEFORMC);
+  INITSTATUS(status);
   ATTATCHSTATUSPTR(status);
   XLALPrintDeprecationWarning(__func__, "XLALBBHPhenWaveTimeDomTemplates");
   if (XLALBBHPhenWaveTimeDomTemplates(signalvec1, signalvec2, insp_template))
@@ -1256,7 +1258,7 @@ void LALBBHPhenTimeDomEngine(
     REAL8Vector      *phiVec,
     UINT4            *countback,
     InspiralTemplate *params) {
-  INITSTATUS(status, "LALBBHPhenTimeDomEngine", LALPHENOMWAVEFORMC);
+  INITSTATUS(status);
   ATTATCHSTATUSPTR(status);
   XLALPrintDeprecationWarning(__func__, "XLALBBHPhenTimeDomEngine");
   if (XLALBBHPhenTimeDomEngine(signalvec1, signalvec2, h, aVec,
@@ -1270,7 +1272,7 @@ void LALBBHPhenWaveTimeDomForInjection(
     CoherentGW       *waveform,
     InspiralTemplate *params,
     PPNParamStruc    *ppnParams) {
-  INITSTATUS(status, "LALBBHPhenWaveTimeDomForInjection", LALPHENOMWAVEFORMC);
+  INITSTATUS(status);
   ATTATCHSTATUSPTR(status);
   XLALPrintDeprecationWarning(__func__, "XLALBBHPhenWaveTimeDomForInjection");
   if (XLALBBHPhenWaveTimeDomForInjection(waveform, params, ppnParams))

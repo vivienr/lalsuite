@@ -25,7 +25,7 @@
 \file
 
 \brief Functions to generate the EOBNRv2 waveforms, as defined in
-Pan et al, arXiv:1106.1021v1 [gr-qc].
+Pan et al, PRD84, 124052(2011).
 
 */
 
@@ -613,8 +613,9 @@ XLALHighSRStoppingCondition(double UNUSED t,       /**<< Current time (required 
                            void UNUSED *funcParams /**<< Structure containing necessary parameters */
                           )
 {
+  EOBParams *params = (EOBParams *)funcParams;
 
-  if ( values[0] <= 1.0 || isnan( dvalues[3] ) || isnan (dvalues[2]) )
+  if ( values[0] <= 2.5 - 6.0 * params->eta || isnan(dvalues[3]) || isnan (dvalues[2]) || isnan (dvalues[1]) || isnan (dvalues[0]) )
   {
     return 1;
   }
@@ -701,7 +702,7 @@ REAL8 XLALvrP4PN( const REAL8 r,    /**<< Orbital separation (in units of total 
 /**
  * Calculates the time window over which the ringdown attachment takes
  * place. These values were calibrated to numerical relativity simulations,
- * and come from Pan et al, arXiv:1106.1021v1 [gr-qc]. 
+ * and come from Pan et al, PRD84, 124052(2011). 
  * The time returned is in units of M.
  */
 static REAL8
@@ -905,7 +906,6 @@ static int
 XLALSimIMREOBNRv2Generator(
               REAL8TimeSeries **hplus,
               REAL8TimeSeries **hcross,
-              LIGOTimeGPS      *tC,
               const REAL8       phiC,
               const REAL8       deltaT,
               const REAL8       m1SI,
@@ -914,10 +914,8 @@ XLALSimIMREOBNRv2Generator(
               const REAL8       distance,
               const REAL8       inclination,
               const int         higherModeFlag
-                )
+              )
 {
-
-
    UINT4                   count, nn=4, hiSRndx=0;
 
    /* Vector containing the current signal mode */
@@ -934,7 +932,7 @@ XLALSimIMREOBNRv2Generator(
    REAL8Vector             *values, *dvalues;
 
    /* Time to use as the epoch of the returned time series */
-   LIGOTimeGPS             epoch;
+   LIGOTimeGPS             epoch = LIGOTIMEGPSZERO;
 
    /* Variables for the integrator */
    ark4GSLIntegrator       *integrator = NULL;
@@ -1204,6 +1202,7 @@ XLALSimIMREOBNRv2Generator(
               rInitMax, xacc, &pr3in);
    if ( XLAL_IS_REAL8_FAIL_NAN( r ) )
    {
+     XLALPrintError( "Failed solving the initial radius. The desired initial orbital frequency is %e\n", omega );
      XLALDestroyREAL8Vector( values );
      XLALDestroyREAL8Vector( dvalues );
      XLAL_ERROR( XLAL_EFUNC );
@@ -1324,11 +1323,6 @@ XLALSimIMREOBNRv2Generator(
    prVec.data   = dynamics->data+3*retLen;
    pPhiVec.data = dynamics->data+4*retLen;
 
-   /* It is not easy to define an exact coalescence phase for this model */
-   /* Therefore we will just choose it to be the point where the peak was */
-   /* estimated to be here */
-   sSub = phiVec.data[retLen - 1] - phiC/2.;
-
    dt = dt/(REAL8)resampFac;
    values->data[0] = rVec.data[hiSRndx];
    values->data[1] = phiVec.data[hiSRndx];
@@ -1406,10 +1400,15 @@ XLALSimIMREOBNRv2Generator(
 
   startIdx = i;
 
-  /* Set the coalescence time */
+  /* Set the coalescence time and phase */
+  /* It is not easy to define an exact coalescence time and phase for an IMR time-domain model */
+  /* Therefore we set them at the time when the orbital frequency reaches maximum */
+  /* Note that the coalescence phase is defined for the ORBITAL phase, not the GW phasae */
+  /* With PN corrections in the GW modes, GW phase is not exactly m times orbital phase */
+  /* In brief, at the highest orbital frequency, the orbital phase is phiC/2 */ 
   t = m * (dynamics->data[hiSRndx] + dynamicsHi->data[peakIdx] - dynamics->data[startIdx]);
+  sSub = phiVecHi.data[peakIdx] - phiC/2.;
 
-  epoch = *tC;
   XLALGPSAdd( &epoch, -t);
 
   /* Allocate vectors for current modes and final output */
@@ -1718,14 +1717,13 @@ XLALSimIMREOBNRv2Generator(
 /**
  * This function generates the plus and cross polarizations for the dominant
  * (2,2) mode of the EOBNRv2 approximant. This model is defined in Pan et al,
- * arXiv:1106.1021v1 [gr-qc].
+ * PRD84, 124052(2011).
  */
 int
 XLALSimIMREOBNRv2DominantMode(
               REAL8TimeSeries **hplus,      /**<< The +-polarization waveform (returned) */
               REAL8TimeSeries **hcross,     /**<< The x-polarization waveform (returned) */
-              LIGOTimeGPS      *tC,         /**<< The coalescence time (defined as above) */
-              const REAL8       phiC,       /**<< The phase at the coalescence time */
+              const REAL8       phiC,       /**<< The phase at the coalescence time (twice the orbital phase at the max orbital frequency moment) */
               const REAL8       deltaT,     /**<< Sampling interval (in seconds) */
               const REAL8       m1SI,       /**<< First component mass (in kg) */
               const REAL8       m2SI,       /**<< Second component mass (in kg) */
@@ -1735,7 +1733,7 @@ XLALSimIMREOBNRv2DominantMode(
               )
 {
 
-  if ( XLALSimIMREOBNRv2Generator( hplus, hcross, tC, phiC, deltaT, m1SI, m2SI,
+  if ( XLALSimIMREOBNRv2Generator( hplus, hcross, phiC, deltaT, m1SI, m2SI,
               fLower, distance, inclination, 0 ) == XLAL_FAILURE )
   {
     XLAL_ERROR( XLAL_EFUNC );
@@ -1747,14 +1745,13 @@ XLALSimIMREOBNRv2DominantMode(
 /**
  * This function generates the plus and cross polarizations for the EOBNRv2 approximant
  * with all available modes included. This model is defined in Pan et al,
- * arXiv:1106.1021v1 [gr-qc].
+ * PRD84, 124052(2011).
  */
 int
 XLALSimIMREOBNRv2AllModes(
               REAL8TimeSeries **hplus,      /**<< The +-polarization waveform (returned) */
               REAL8TimeSeries **hcross,     /**<< The x-polarization waveform (returned) */
-              LIGOTimeGPS      *tC,         /**<< The coalescence time (defined as above) */
-              const REAL8       phiC,       /**<< The phase at the coalescence time */
+              const REAL8       phiC,       /**<< The phase at the coalescence time (twice the orbital phase at the max orbital frequency moment) */
               const REAL8       deltaT,     /**<< Sampling interval (in seconds) */
               const REAL8       m1SI,       /**<< First component mass (in kg) */
               const REAL8       m2SI,       /**<< Second component mass (in kg) */
@@ -1764,7 +1761,7 @@ XLALSimIMREOBNRv2AllModes(
               )
 {
 
-  if ( XLALSimIMREOBNRv2Generator( hplus, hcross, tC, phiC, deltaT, m1SI, m2SI, 
+  if ( XLALSimIMREOBNRv2Generator( hplus, hcross, phiC, deltaT, m1SI, m2SI, 
               fLower, distance, inclination, 1 ) == XLAL_FAILURE )
   {
     XLAL_ERROR( XLAL_EFUNC );

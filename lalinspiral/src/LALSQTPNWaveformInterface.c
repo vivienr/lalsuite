@@ -10,14 +10,12 @@
 #include <lal/LALSQTPNWaveformInterface.h>
 #include <lal/LALSQTPNWaveform.h>
 
-NRCSID (LALSQTPNWAVEFORMINTERFACEC, "$Id LALSQTPNWaveformInterface.c$");
-
 void LALSQTPNWaveformTemplates (LALStatus *status, REAL4Vector *signalvec1, 
 		REAL4Vector *signalvec2, InspiralTemplate *params) {
 
 	XLALPrintDeprecationWarning("LALSQTPNWaveformTemplates", 
 		"XLALSQTPNWaveformTemplates");
-	INITSTATUS(status, "LALSTPNWaveform", LALSQTPNWAVEFORMINTERFACEC);
+	INITSTATUS(status);
 	ATTATCHSTATUSPTR(status);
 
 	if(XLALSQTPNWaveformTemplates(signalvec1, signalvec2, params))
@@ -66,7 +64,7 @@ int XLALSQTPNWaveformTemplates (REAL4Vector *signalvec1,
 void LALSQTPNWaveform (LALStatus *status, REAL4Vector *signalvec, InspiralTemplate *params){
 
 	XLALPrintDeprecationWarning("LALSQTPNWaveform", "XLALSQTPNWaveform");
-	INITSTATUS(status, "LALSQTPNWaveform", LALSQTPNWAVEFORMINTERFACEC);
+	INITSTATUS(status);
 	ATTATCHSTATUSPTR(status);
 
 	if(XLALSQTPNWaveform(signalvec, params))
@@ -118,8 +116,7 @@ void LALSQTPNWaveformForInjection(LALStatus *status, CoherentGW *waveform,
 
 	XLALPrintDeprecationWarning("LALSQTPNWaveformForInjection", 
 		"XLALSQTPNWaveformForInjection");
-	INITSTATUS(status, "LALSQTPNWaveformForInjection", 
-		LALSQTPNWAVEFORMINTERFACEC);
+	INITSTATUS(status);
 	ATTATCHSTATUSPTR(status);
 
 	if(XLALSQTPNWaveformForInjection(waveform, params, ppnParams))
@@ -333,9 +330,9 @@ void XLALSQTPNFillParams(LALSQTPNWaveformParams *wave, InspiralTemplate *params)
 	wave->phi = 0.;
 	wave->signalAmp = 4. * wave->totalMass * wave->eta * LAL_MRSUN_SI / wave->distance;
 	wave->order = params->order;
-	wave->spinInteraction = params->spinInteraction;
-	if (wave->spinInteraction) {
-		wave->spinInteraction |= LAL_SOInter;
+	wave->interaction = params->interaction;
+	if (wave->interaction) {
+		wave->interaction |= LAL_SIM_INSPIRAL_INTERACTION_SPIN_ORBIT_15PN;
 	}
 	/*printf("masses: %lg %lg\n", wave->mass[0], wave->mass[1]);
 	printf("chis1: %lg %lg %lg\n", wave->chi[0][0], wave->chi[0][1], wave->chi[0][2]);
@@ -348,6 +345,6 @@ void XLALSQTPNFillParams(LALSQTPNWaveformParams *wave, InspiralTemplate *params)
 	printf("sT: %lg\n", wave->samplingTime);
 	printf("amp: %lg\n", wave->signalAmp);
 	printf("order: %d\n", wave->order);
-	printf("spin: %d\n", wave->spinInteraction);*/
+	printf("spin: %d\n", wave->interaction);*/
 }
 

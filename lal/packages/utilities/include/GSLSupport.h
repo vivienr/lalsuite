@@ -29,14 +29,11 @@
 #include <gsl/gsl_vector.h>
 #include <gsl/gsl_matrix.h>
 
-#include <lal/LALRCSID.h>
 #include <lal/LALDatatypes.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-  NRCSID(GSLSUPPORTH, "$Id$");
 
   /**
    * Functions
@@ -61,7 +58,7 @@ extern "C" {
 #define ALLOC_GSL_1D(type, var, n, errval)                                        \
   if ((var = gsl_ ## type ## _alloc(n)) == NULL) {                                \
     XLALPrintError("%s: Could not allocate '%s'", __func__, #var);                \
-    XLAL_ERROR_VAL(XLAL_ENOMEM, errval);                                          \
+    XLAL_ERROR_VAL(errval, XLAL_ENOMEM);                                          \
   }
 #define PRINT_GSL_1D(type, var, format)                                           \
 {                                                                                 \
@@ -82,7 +79,7 @@ extern "C" {
 #define ALLOC_GSL_2D(type, var, m, n, errval)                                     \
   if ((var = gsl_ ## type ## _alloc(m, n)) == NULL) {                             \
     XLALPrintError("%s: Could not allocate '%s'", __func__, #var);                \
-    XLAL_ERROR_VAL(XLAL_ENOMEM, errval);                                           \
+    XLAL_ERROR_VAL(errval, XLAL_ENOMEM);                                           \
   }
 #define PRINT_GSL_2D(type, var, format)                                           \
 {                                                                                 \

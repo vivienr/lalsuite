@@ -29,8 +29,6 @@
 extern "C" {
 #endif
 
-NRCSID (LALSQTPNWAVEFORMH, "$Id$ LALSQTPNWaveform.h");
-
 #define UNUSED(expr) do { (void)(expr); } while (0)
 
 /**		The macro function returns the square of the argument.
@@ -112,7 +110,7 @@ typedef struct tagLALSQTPNWaveformParams{
 	REAL8 samplingTime; ///< sampling time in \f$s\f$
 	REAL8 coalescenceTime;	///< the time at the coalescence
 	LALPNOrder order; ///< the Post_Newtonian order of the GW generation
-	LALSpinInteraction spinInteraction; ///< which spin interaction will be included in the generation
+	LALSimInspiralInteraction interaction; ///< which spin interaction will be included in the generation
 	LALSQTPNCoefficients coeff; ///< coefficients for the deriving the parameters
 	//@}
 } LALSQTPNWaveformParams;

@@ -28,8 +28,6 @@
 #include <lal/LALDatatypes.h>
 #include <lal/BandPassTimeSeries.h>
 
-NRCSID (CALIBRATIONH,"$Id$");
-
 #if defined(__cplusplus)
 extern "C" {
 #elif 0
@@ -289,11 +287,6 @@ void LALGetFactors(
     LALStatus              *status,
     StrainOut              *output,
     StrainIn               *input
-    );
-
-int XLALFIRFilter(
-    REAL8TimeSeries        *tseries,
-    REAL8IIRFilter         *FIR
     );
 
 void LALMakeFIRLP(LALStatus *status,

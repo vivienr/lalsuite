@@ -20,7 +20,6 @@
 /** \file
  * \ingroup std
  * \author Creighton, J. D. E., and Creighton, T. D.
- * \date $Id$
  * \brief Provides the basic LAL datatypes.
  *
  * This header defines the standard data types and data
@@ -37,7 +36,6 @@
  */
 /********************************* <lalVerbatim file="LALDatatypesHV">
 Author: J. D. E. Creighton, T. D. Creighton
-$Id$
 ********************************** </lalVerbatim> */
 
 /* <lalLaTeX>
@@ -238,15 +236,9 @@ typedef enum
 }
 LALTYPECODE;
 
-
-#include <lal/LALRCSID.h>
-
 #ifdef  __cplusplus
 extern "C" {
 #endif
-
-NRCSID (LALDATATYPESH, "$Id$");
-
 
 /* <lalLaTeX>
 \newpage
@@ -1114,7 +1106,7 @@ quantity being sampled.
 </lalLaTeX> */
 
 /** Length of name fields of LAL structured data types. */
-enum { LALNameLength = 64 };
+enum enumLALNameLength { LALNameLength = 64 };
 
 /** Time series of INT2 data. */
 typedef struct

@@ -67,9 +67,6 @@ extern "C" {
 } /* so that editors will match preceding brace */
 #endif
 
-NRCSID( GENERATEINSPIRALH,
-    "$Id$" );
-
 /**\name Error Codes */ /*@{*/
 #define GENERATEINSPIRALH_ENORM 0
 #define GENERATEINSPIRALH_ENULL 1
@@ -127,7 +124,7 @@ LALGetApproximantFromString(
  *	@param[in]	thisEvent	: string containing the spin interaction
  *	@return error code
  */
-int XLALGetSpinInteractionFromString(LALSpinInteraction *inter, CHAR *thisEvent);
+int XLALGetInteractionFromString(LALSimInspiralInteraction *inter, CHAR *thisEvent);
 
 int XLALGetAxisChoiceFromString(InputAxis *axisChoice, CHAR *thisEvent);
 

@@ -111,9 +111,6 @@ extern "C" {
 } /* so that editors will match preceding brace */
 #endif
 
-
-NRCSID (FINDCHIRPH, "$Id$");
-
 /**\name Error Codes */ /*@{*/
 #define FINDCHIRPH_ENULL 1
 #define FINDCHIRPH_ENNUL 2
@@ -841,7 +838,8 @@ LALFindChirpClusterEvents (
     FindChirpFilterParams      *params,
     FindChirpBankVetoData      *bankVetoData,
     UINT4                       subBankIndex,
-    int                         writeCData
+    int                         writeCData,
+    InspiralTemplate           *bankCurrent
     );
 
 

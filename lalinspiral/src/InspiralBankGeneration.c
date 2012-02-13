@@ -25,9 +25,6 @@
 #include<lal/LALInspiralBank.h>
 #include<lal/LIGOMetadataTables.h>
 
-
-NRCSID(INSPIRALBANKGENERATIONC, "$Id$");
-
 void
 LALInspiralBankGeneration(
      LALStatus *status,
@@ -55,7 +52,7 @@ LALInspiralBankGeneration(
   REAL8 *chi, *kappa, dChi, dKappa;
   REAL8 ds1z,ds2z;
 
-  INITSTATUS(status, "LALInspiralBankGeneration", INSPIRALBANKGENERATIONC);
+  INITSTATUS(status);
   ATTATCHSTATUSPTR(status);
 
   ASSERT( input != NULL, status, LALINSPIRALBANKH_ENULL,
@@ -65,12 +62,15 @@ LALInspiralBankGeneration(
   ASSERT( input->numFreqCut >= 1, status, LALINSPIRALBANKH_ENUMFCUT,
           LALINSPIRALBANKH_MSGENUMFCUT );
 
-  /* For nonspinning approximants, call LALInspiralCreateCoarseBank(). */
+  /* For nonspinning approximants or (for the moment) IMRPhenomB, call LALInspiralCreateCoarseBank(). */
   switch( input->approximant )
   {
   case BCV:
   case EOB:
   case EOBNR:
+  case EOBNRv2:
+  case IMRPhenomA:
+  case IMRPhenomB:
   case PadeT1:
   case PadeF1:
   case TaylorT4:
