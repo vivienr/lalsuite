@@ -707,11 +707,12 @@ def fromLALCache(cache, etg, start=None, end=None, columns=None,\
 
   # load files
   for i,e in enumerate(cache):
-    trigs.extend(re.search('(xml|xml.gz)\z', e.path()) and\
-                 fromtrigxml(open(e.path), etg=etg, start=start, end=end,\
-                             columns=columns) or\
-                 fromtrigfile(open(e.path()), etg=etg, start=start, end=end,\
-                              columns=columns))
+    if re.search('(xml|xml.gz)\Z', e.path()):
+      trigs.extend(fromtrigxml(open(e.path()), tablename=trigs.tableName,\
+                               start=start, end=end, columns=columns))
+    else:
+      trigs.extend(fromtrigfile(open(e.path()), etg=etg, start=start, end=end,\
+                                columns=columns))
     # print verbose message
     if verbose and len(cache)>1:
       progress = int((i+1)/num)
@@ -1135,18 +1136,18 @@ def cluster(triggers,params=[('time',1)],rank='snr'):
 
   cols = [p[0] for p in params]
   coldata = dict((p, get_column(triggers, p)) for p in cols+[rank])
-  if 'time' in cols:
-    if _burst_regex.search(triggers.tableName):
-      coldata['stop_time'] = get_column(triggers, 'stop_time') +\
-                             get_column(triggers, 'stop_time_ns')*1e-9
-      coldata['start_time'] = get_column(triggers, 'start_time') +\
-                              get_column(triggers, 'start_time_ns')**1e-9
-    else:
-      coldata['stop_time'] = coldata['time']
-      coldata['start_time'] = coldata['time']
-  if 'peak_frequency' in cols:
+  # need bandwidth and duration for all burst triggers
+  if _burst_regex.search(triggers.tableName):
+    coldata['stop_time'] = get_column(triggers, 'stop_time') +\
+                           get_column(triggers, 'stop_time_ns')*1e-9
+    coldata['start_time'] = get_column(triggers, 'start_time') +\
+                            get_column(triggers, 'start_time_ns')*1e-9
     coldata['flow'] = get_column(triggers, 'flow')
     coldata['fhigh'] = get_column(triggers, 'fhigh')
+  # need time for time clustering
+  elif 'time' in cols:
+    coldata['stop_time'] = coldata['time']
+    coldata['start_time'] = coldata['time']
 
   for key in coldata.keys():
     coldata[key] = coldata[key].astype(float)
@@ -1209,10 +1210,38 @@ def cluster(triggers,params=[('time',1)],rank='snr'):
 
   # process clusters
   for cluster in clusters:
-
-    cluster.sort(key=lambda i: coldata[rank][i], reverse=True)
-    if len(cluster)>=1:
-      outtrigs.append(triggers[cluster[0]])
+    if len(cluster)==1:
+      outtrigs.append(copy.deepcopy(triggers[cluster[0]]))
+    elif len(cluster) > 1:
+      carray = numpy.asarray(cluster)
+      cluster.sort(key=lambda i: coldata[rank][i], reverse=True)
+      t = copy.deepcopy(triggers[cluster[0]])    
+      # reset burst params for a clustered event
+      if _burst_regex.search(triggers.tableName):
+        # record most significant trigger
+        t.ms_start_time = t.start_time
+        t.ms_start_time_ns = t.start_time_ns
+        t.ms_stop_time = t.stop_time
+        t.ms_stop_time_ns = t.stop_time_ns
+        t.ms_duration = t.duration
+        t.ms_bandwidth = t.bandwidth
+        t.ms_flow = t.flow
+        t.ms_fhigh = t.fhigh
+        t.ms_snr = t.snr
+        # record cluster
+        start = LIGOTimeGPS(min(coldata['start_time'][carray]))
+        t.start_time = start.seconds
+        t.start_time_ns = start.nanoseconds
+        stop = LIGOTimeGPS(max(coldata['stop_time'][carray]))
+        t.stop_time = stop.seconds
+        t.stop_time_ns = stop.nanoseconds
+        t.duration = float(t.get_stop()-t.get_start())
+        t.flow = min(coldata['flow'][carray])
+        t.fhigh = max(coldata['fhigh'][carray])
+        t.bandwidth = t.fhigh-t.flow
+        t.central_freq = t.flow + t.bandwidth/2
+        t.tfvolume = t.bandwidth * t.duration
+      outtrigs.append(t)
 
   # resort trigs in first parameter
   outtrigs.sort(key=lambda t: get(t, cols[0]))
@@ -1534,12 +1563,16 @@ def fromomegafile(fname, start=None, end=None, ifo=None, channel=None,\
   if 'central_freq' in columns:   attr_map['central_freq']   = freq
   if 'peak_frequency' in columns: attr_map['peak_frequency'] = freq
   if 'bandwidth' in columns:      attr_map['bandwidth']      = bandwidth
+  if 'ms_bandwidth' in columns:   attr_map['ms_bandwidth']   = bandwidth
   if 'flow' in columns:           attr_map['flow']           = freq-bandwidth/2
   if 'fhigh' in columns:          attr_map['fhigh']          = freq+bandwidth/2
+  if 'ms_flow' in columns:        attr_map['ms_flow']        = freq-bandwidth/2
+  if 'ms_fhigh' in columns:       attr_map['ms_fhigh']       = freq+bandwidth/2
 
   if 'duration' in columns:       attr_map['duration']       = duration
   if 'ms_duration' in columns:    attr_map['ms_duration']    = duration
   if 'snr' in columns:            attr_map['snr']      = numpy.sqrt(2*amplitude)
+  if 'ms_snr' in columns:         attr_map['ms_snr']   = numpy.sqrt(2*amplitude)
 
   if 'cluster_size' in columns or 'param_one_value' in columns:
     attr_map['param_one_name'] = ['cluster_size'] * numtrigs

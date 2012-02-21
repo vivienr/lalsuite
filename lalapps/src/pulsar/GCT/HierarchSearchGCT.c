@@ -201,6 +201,7 @@ int XLALExtrapolateToplistPulsarSpins ( toplist_t *list,
 /* ---------- Global variables -------------------- */
 LALStatus *global_status; /* a global pointer to MAIN()s head of the LALStatus structure */
 extern int lalDebugLevel;
+char *global_column_headings_stringp;
 
 /* ###################################  MAIN  ################################### */
 
@@ -1001,6 +1002,36 @@ int MAIN( int argc, char *argv[]) {
     XLAL_ERROR ( XLAL_EFUNC );
   numDetectors = detectorIDs->length;
 
+  /* assemble column headings string for output file */
+  char colum_headings_string_base[] = "freq alpha delta f1dot f2dot nc <2F>";
+  UINT4 column_headings_string_length = sizeof(colum_headings_string_base);
+  if ( uvar_computeLV ) {
+    column_headings_string_length += 3 + numDetectors*8; /* 3 for " LV" and 8 per detector for " <2F_XY>" */
+  }
+  if ( uvar_recalcToplistStats ) {
+    column_headings_string_length += 6 + numDetectors*9; /* 6 for " <2Fr>" and 9 per detector for " <2Fr_XY>" */
+  }
+  char column_headings_string[column_headings_string_length];
+  INIT_MEM( column_headings_string );
+  strcat ( column_headings_string, colum_headings_string_base );
+  if ( uvar_computeLV ) {
+    strcat ( column_headings_string, " LV" );
+    for ( UINT4 X = 0; X < numDetectors ; X ++ ) {
+      char headingX[9];
+      snprintf ( headingX, sizeof(headingX), " <2F_%s>", detectorIDs->data[X] );
+      strcat ( column_headings_string, headingX );
+    } /* for X < numDet */
+  }
+  if ( uvar_recalcToplistStats ) {
+    strcat ( column_headings_string, " <2Fr>" );
+    for ( UINT4 X = 0; X < numDetectors ; X ++ ) {
+      char headingX[10];
+      snprintf ( headingX, sizeof(headingX), " <2Fr_%s>", detectorIDs->data[X] );
+      strcat ( column_headings_string, headingX );
+    } /* for X < numDet */
+  }
+  global_column_headings_stringp = column_headings_string;
+
   /* get effective number of segments per detector (needed for correct averaging in single-IFO F calculation) */
   UINT4 * NsegmentsX = NULL;
   if ( uvar_computeLV )
@@ -1738,10 +1769,13 @@ int MAIN( int argc, char *argv[]) {
 
   UINT4 Nrefine = nf1dots_fg;
 
-  LogPrintf( LOG_NORMAL, "Finished analysis.\n");
+  LogPrintf( LOG_NORMAL, "Finished main analysis.\n");
 
   /* Also compute F, FX (for line veto statistics) for all candidates in final toplist */
   if ( uvar_recalcToplistStats ) {
+
+    LogPrintf( LOG_NORMAL, "Recalculating statistics for the final toplist... ");
+
     /* timing */
     if ( uvar_outputTiming )
       timeStamp1 = XLALGetTimeOfDay();
@@ -1762,6 +1796,9 @@ int MAIN( int argc, char *argv[]) {
       timeStamp2 = XLALGetTimeOfDay();
       vetoTime = timeStamp2 - timeStamp1;
     }
+
+    LogPrintfVerbatim( LOG_NORMAL, "done.\n");
+
   }
 
   if ( uvar_outputTiming )
