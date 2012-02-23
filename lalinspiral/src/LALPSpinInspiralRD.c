@@ -411,10 +411,11 @@ static int XLALPSpinInspiralRDSetParams(LALPSpinInspiralRDparams *mparams,Inspir
 
 static int XLALSpinInspiralTest(double t, const double values[], double dvalues[], void *mparams) {
 
-  LALPSpinInspiralRDparams *params=(LALPSpinInspiralRDparams *) mparams;
+  LALPSpinInspiralRDparams *params = (LALPSpinInspiralRDparams *) mparams;
   REAL8 omega;
   REAL8 energy;
   REAL8 denergy;
+  INT4 returnint;
 
   UNUSED(t);
   omega   = values[1];
@@ -432,28 +433,31 @@ static int XLALSpinInspiralTest(double t, const double values[], double dvalues[
   if ( (energy > 0.0) || (( denergy > - 0.01*energy/params->dt*params->m*LAL_MTSUN_SI )&&(energy<0.) ) ) {
     /*energy increase*/
     /*XLALPrintWarning("** LALPSpinInspiralRD WARNING **: Energy increases dE %12.6e E %12.6e  m/M:(%12.4e, %12.4e)  om %12.6e vs. omM %12.6e\n",denergy, 0.01*energy, params->m1m, params->m2m, omega, omegaMatch);*/
-    return LALPSIRDPN_TEST_ENERGY;
+    returnint= LALPSIRDPN_TEST_ENERGY;
   }
   else if (omega < 0.0) {
     XLALPrintWarning("** LALPSpinInspiralRD WARNING **: Omega has become -ve, this should lead to nan's \n");
-    return LALPSIRDPN_TEST_OMEGANONPOS;
+    returnint= LALPSIRDPN_TEST_OMEGANONPOS;
   }
   else if (dvalues[1] < 0.0) {
     /* omegadot < 0 */
-    return LALPSIRDPN_TEST_OMEGADOT;
+    returnint= LALPSIRDPN_TEST_OMEGADOT;
   }
   else if (isnan(omega)) {
     /* omega is nan */
-    return LALPSIRDPN_TEST_OMEGANAN;
+    returnint= LALPSIRDPN_TEST_OMEGANAN;
   } 
   else if ((params->inspiralOnly==1)&&(omega>params->OmCutoff)) {
-    return LALPSIRDPN_TEST_OMEGACUT;
+    returnint= LALPSIRDPN_TEST_OMEGACUT;
   }
   else if ((params->inspiralOnly!=1)&&(omega>omegaMatch)) {
-    return LALPSIRDPN_TEST_OMEGAMATCH;
+    returnint= LALPSIRDPN_TEST_OMEGAMATCH;
   }
   else
-    return GSL_SUCCESS;
+    returnint= GSL_SUCCESS;
+
+  return returnint;
+
 }
 
 /**
@@ -480,7 +484,7 @@ static int XLALSpinInspiralDerivatives(double t, const double values[], double d
     REAL8 v, v2, v3, v4, v5, v6, v7;
     REAL8 tmpx, tmpy, tmpz, cross1x, cross1y, cross1z, cross2x, cross2y, cross2z, LNhxy;
 
-    LALPSpinInspiralRDparams *params=(LALPSpinInspiralRDparams *) mparams;
+    LALPSpinInspiralRDparams *params= (LALPSpinInspiralRDparams *) mparams;
     
     UNUSED(t);
 
@@ -990,7 +994,7 @@ int XLALPSpinInspiralRDFreqDom(
     REAL4Vector *tsigR4=XLALCreateREAL4Vector(nbins);
     for (idx=0;idx<nbins;idx++) tsigR4->data[idx]=(REAL4) tsignalvec->data[idx];
     XLALDestroyREAL8Vector(tsignalvec);
-    XLALInspiralWaveTaper(tsigR4, 3);
+    XLALSimInspiralREAL4WaveTaper(tsigR4, 3);
 
     forwPlan = XLALCreateForwardREAL4FFTPlan(nbins, 0);
     if (forwPlan == NULL) {
@@ -1756,7 +1760,7 @@ static int XLALSpinInspiralEngine(
   XLALDestroyREAL8Vector(ddalpha);
 
   return XLAL_SUCCESS;
-}
+} /* End of XLALSpinInspiralEngine*/
 
 static int XLALSpinInspiralAdaptiveEngine(
 					const UINT4 neqs, 
@@ -1823,7 +1827,8 @@ static int XLALSpinInspiralAdaptiveEngine(
 
   INT4 errcode;
 
-  REAL8 *yin = (REAL8 *) LALMalloc(sizeof(REAL8) * neqs);
+  REAL8 *yin = XLALMalloc(sizeof(REAL8) * neqs);
+  if (!yin) XLAL_ERROR(XLAL_ENOMEM);
 
   /* allocate the integrator */
   integrator = XLALAdaptiveRungeKutta4Init(neqs,XLALSpinInspiralDerivatives,XLALSpinInspiralTest,1.0e-6,1.0e-6);
@@ -2121,7 +2126,7 @@ static int XLALSpinInspiralAdaptiveEngine(
     }
     else alpha = alphaold;
 
-    errcode  = XLALSpinInspiralFillH2Modes(h2P2,h2M2,h2P1,h2M1,h20,j,amp22,v,mparams.eta,mparams.dm,Psi,alpha,&trigAngle);
+    errcode  = XLALSpinInspiralFillH2Modes(h2P2,h2M2,h2P1,h2M1,h20,j,amp22,v,mparams->eta,mparams->dm,Psi,alpha,&trigAngle);
 
     /*if (j>2) {
       if ((alphaold*alphaoold)<0.) {
@@ -2144,8 +2149,8 @@ static int XLALSpinInspiralAdaptiveEngine(
 
   phenPars->alpha=alpha;
 
-  XLALFree(yin);
-  XLALDestroyREAL8Array(yout);
+  if (yin)  XLALFree(yin);
+  if (yout) XLALDestroyREAL8Array(yout);  
 
   return XLAL_SUCCESS;
 
@@ -2284,15 +2289,16 @@ static int XLALPSpinInspiralRDEngine(
   omegaMatch = OmMatch(LNhS1,LNhS2,S1S1,S1S2,S2S2);
 
   if ( initomega > omegaMatch ) {
-    /*if ((params->spin1[0]==params->spin1[1])&&(params->spin1[1]==params->spin2[0])&&(params->spin2[0]==params->spin2[1])&&(params->spin2[1]==0.)) {
+    if ((params->spin1[0]==params->spin1[1])&&(params->spin1[1]==params->spin2[0])&&(params->spin2[0]==params->spin2[1])&&(params->spin2[1]==0.)) {
       //Beware, this correspond to a shift of the initial phase!
       initomega = 0.95*omegaMatch;
-      fprintf(stdout,"*** LALPSpinInspiralRD WARNING ***: Initial frequency reset from %12.6e to %12.6e Hz, m:(%12.4e,%12.4e)\n",params->fLower,initomega/unitHz,params->mass1,params->mass2);
-      }*/
-    /*else {*/
-    XLALPrintError("**** LALPSpinInspiralRD ERROR ****: Initial frequency too high: %11.5e for omM ~ %11.5e and m:(%8.3f, %8.3f)\n",params->fLower,omegaMatch/unitHz,params->mass1,params->mass2);
+      //fprintf(stdout,"*** LALPSpinInspiralRD WARNING ***: Initial frequency reset from %12.6e to %12.6e Hz, m:(%12.4e,%12.4e)\n",params->fLower,initomega/unitHz,params->mass1,params->mass2);
+    }
+    else {
+    XLALPrintError("**** LALPSpinInspiralRD ERROR ****: the product of initial frequency times masses is too high: %11.5e for omM ~ %11.5e\n",params->fLower*mass*LAL_PI,omegamaMatch);
+    XLALPrintError("****                                please consider decreasing inital freq %8.3f or m:(%8.3f, %8.3f) Msun\n",params->fLower,params->mass1,params->mass2);
     XLAL_ERROR(XLAL_EFAILED);
-    /*}*/
+    }
   }
 
   /* Here we use the following convention:
@@ -2575,20 +2581,88 @@ static int XLALPSpinInspiralRDEngine(
 
   if (params->fixedStep == 1) {
     if (signalvec2==NULL) {
-      if (XLALSpinInspiralEngine(neqs,yinit,amp22ini,&mparams,h2P2,h2M2,h2P1,h2M1,h20,h3P3,h3M3,h3P2,h3M2,h3P1,h3M1,h30,h4P4,h4M4,h4P3,h4M3,h4P2,h4M2,h4P1,h4M1,h40,fap,phap,&phenPars) == XLAL_FAILURE)
+      if (XLALSpinInspiralEngine(neqs,yinit,amp22ini,&mparams,h2P2,h2M2,h2P1,h2M1,h20,h3P3,h3M3,h3P2,h3M2,h3P1,h3M1,h30,h4P4,h4M4,h4P3,h4M3,h4P2,h4M2,h4P1,h4M1,h40,fap,phap,&phenPars) == XLAL_FAILURE) {
+	XLALDestroyREAL8Vector(h2P2);
+	XLALDestroyREAL8Vector(h2M2);
+	XLALDestroyREAL8Vector(h2P1);
+	XLALDestroyREAL8Vector(h2M1);
+	XLALDestroyREAL8Vector(h20);
+	XLALDestroyREAL8Vector(h3P3);
+	XLALDestroyREAL8Vector(h3M3);
+	XLALDestroyREAL8Vector(h3P2);
+	XLALDestroyREAL8Vector(h3M2);
+	XLALDestroyREAL8Vector(h3P1);
+	XLALDestroyREAL8Vector(h3M1);
+	XLALDestroyREAL8Vector(h30);
+	XLALDestroyREAL8Vector(h4P4);
+	XLALDestroyREAL8Vector(h4M4);
+	XLALDestroyREAL8Vector(h4P3);
+	XLALDestroyREAL8Vector(h4M3);
+	XLALDestroyREAL8Vector(h4P2);
+	XLALDestroyREAL8Vector(h4M2);
+	XLALDestroyREAL8Vector(h4P1);
+	XLALDestroyREAL8Vector(h4M1);
+	XLALDestroyREAL8Vector(h40);
+	XLALDestroyREAL8Vector(sigp);
+	XLALDestroyREAL8Vector(sigc);
+	XLALDestroyREAL8Vector(fap);
+	XLALDestroyREAL8Vector(hap);
+	XLALDestroyREAL8Vector(phap);
 	XLAL_ERROR(XLAL_EFUNC);
+      }
     }  else {
-      if (XLALSpinInspiralEngine(neqs,yinit,amp22ini,&mparams,h2P2,h2M2,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,fap,phap,&phenPars) == XLAL_FAILURE)
-      XLAL_ERROR(XLAL_EFUNC);
+      if (XLALSpinInspiralEngine(neqs,yinit,amp22ini,&mparams,h2P2,h2M2,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,fap,phap,&phenPars) == XLAL_FAILURE) {
+	XLALDestroyREAL8Vector(sigp);
+	XLALDestroyREAL8Vector(sigc);
+	XLALDestroyREAL8Vector(fap);
+	XLALDestroyREAL8Vector(hap);
+	XLALDestroyREAL8Vector(phap);
+	XLALDestroyREAL8Vector(h2P2);
+	XLALDestroyREAL8Vector(h2M2);
+	XLAL_ERROR(XLAL_EFUNC);
+      }
+    }
+  }
+  else { /* Chiama adaptive */
+    if (signalvec2==NULL) {
+      if (XLALSpinInspiralAdaptiveEngine(neqs,yinit,amp22ini,&mparams,h2P2,h2M2,h2P1,h2M1,h20,h3P3,h3M3,h3P2,h3M2,h3P1,h3M1,h30,h4P4,h4M4,h4P3,h4M3,h4P2,h4M2,h4P1,h4M1,h40,fap,phap,&phenPars) == XLAL_FAILURE) {
+	XLALDestroyREAL8Vector(h2P2);
+	XLALDestroyREAL8Vector(h2M2);
+	XLALDestroyREAL8Vector(h2P1);
+	XLALDestroyREAL8Vector(h2M1);
+	XLALDestroyREAL8Vector(h20);
+	XLALDestroyREAL8Vector(h3P3);
+	XLALDestroyREAL8Vector(h3M3);
+	XLALDestroyREAL8Vector(h3P2);
+	XLALDestroyREAL8Vector(h3M2);
+	XLALDestroyREAL8Vector(h3P1);
+	XLALDestroyREAL8Vector(h3M1);
+	XLALDestroyREAL8Vector(h30);
+	XLALDestroyREAL8Vector(h4P4);
+	XLALDestroyREAL8Vector(h4M4);
+	XLALDestroyREAL8Vector(h4P3);
+	XLALDestroyREAL8Vector(h4M3);
+	XLALDestroyREAL8Vector(h4P2);
+	XLALDestroyREAL8Vector(h4M2);
+	XLALDestroyREAL8Vector(h4P1);
+	XLALDestroyREAL8Vector(h4M1);
+	XLALDestroyREAL8Vector(h40);
+	XLALDestroyREAL8Vector(sigp);
+	XLALDestroyREAL8Vector(sigc);
+	XLALDestroyREAL8Vector(fap);
+	XLALDestroyREAL8Vector(hap);
+	XLALDestroyREAL8Vector(phap);
+	XLAL_ERROR(XLAL_EFUNC);
+      }
     }
     else {
-      if (signalvec2==NULL) {
-	if (XLALSpinInspiralAdaptiveEngine(neqs,yinit,amp22ini,&mparams,h2P2,h2M2,h2P1,h2M1,h20,h3P3,h3M3,h3P2,h3M2,h3P1,h3M1,h30,h4P4,h4M4,h4P3,h4M3,h4P2,h4M2,h4P1,h4M1,h40,fap,phap,&phenPars) == XLAL_FAILURE)
-	  XLAL_ERROR(XLAL_EFUNC);
-      }
-      else {
-	if (XLALSpinInspiralAdaptiveEngine(neqs,yinit,amp22ini,&mparams,h2P2,h2M2,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,fap,phap,&phenPars) == XLAL_FAILURE)
-	  XLAL_ERROR(XLAL_EFUNC);
+      if (XLALSpinInspiralAdaptiveEngine(neqs,yinit,amp22ini,&mparams,h2P2,h2M2,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,fap,phap,&phenPars) == XLAL_FAILURE) {
+	XLALDestroyREAL8Vector(sigp);
+	XLALDestroyREAL8Vector(sigc);
+	XLALDestroyREAL8Vector(fap);
+	XLALDestroyREAL8Vector(hap);
+	XLALDestroyREAL8Vector(phap);
+	XLAL_ERROR(XLAL_EFUNC);
       }
     }
   }
@@ -2660,7 +2734,7 @@ static int XLALPSpinInspiralRDEngine(
       XLAL_ERROR(XLAL_EFAILED);
     }
     else {
-      trigAngle.ci = phenPars.ci;
+      trigAngle.ci   = phenPars.ci;
       trigAngle.cdi  = 2. * trigAngle.ci * trigAngle.ci - 1.;
       trigAngle.c2i  = trigAngle.ci * trigAngle.ci;
       trigAngle.s2i  = 1. - trigAngle.ci * trigAngle.ci;
@@ -2787,7 +2861,7 @@ static int XLALPSpinInspiralRDEngine(
 	amp33 = -amp22 / 4. * sqrt(5. / 42.);
 	amp44 = amp22 * sqrt(5./7.) * 2./9.   * v2;
 
-	if (signalvec1==NULL) {
+	if (signalvec2==NULL) {
 	  errcode=XLALSpinInspiralFillH2Modes(h2P2,h2M2,h2P1,h2M1,h20,count,amp22,v,mparams.eta,mparams.dm,Psi,alpha,&trigAngle);
 
 	  errcode += XLALSpinInspiralFillH3Modes(h3P3,h3M3,h3P2,h3M2,h3P1,h3M1,h30,count,amp33,v,mparams.eta,mparams.dm,Psi,alpha,&trigAngle);
@@ -3087,7 +3161,7 @@ static int XLALPSpinInspiralRDEngine(
 	sigp->data[i] += x0 * MultSphHarmP.re - x1 * MultSphHarmP.im + x2 * MultSphHarmM.re - x3 * MultSphHarmM.im;
 	sigc->data[i] -= x0 * MultSphHarmP.im + x1 * MultSphHarmP.re + x2 * MultSphHarmM.im + x3 * MultSphHarmM.re;
       }
-  }
+    }
 
     errcode  = XLALSphHarm(&MultSphHarmP, 3, 0, inc, 0.);
     if (errcode != XLAL_SUCCESS) {
@@ -3240,5 +3314,6 @@ static int XLALPSpinInspiralRDEngine(
   XLALDestroyREAL8Vector(sigc);
 
   return count;
+
   /*End */
 }

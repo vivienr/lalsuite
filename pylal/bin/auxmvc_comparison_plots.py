@@ -1,7 +1,16 @@
 #!/usr/bin/python
-# Written to load and manipulate output from different classifiers.
 # Reed Essick (reed.essick@ligo.org), Young-Min Kim (young-min.kim@ligo.org)
-# last modified: 12/07/2011
+
+
+
+__author__ = "Young-Min Kim, Reed Essick, Ruslan Vaulin"
+__version__ = "$Revision$"[11:-2]
+__date__ = "$Date$"[7:-2]
+
+__prog__="auxmvc_comparison_plots.py"
+__Id__ = "$Id$"
+
+
 
 from optparse import *
 import glob
@@ -18,27 +27,54 @@ import bisect
 import pickle
 from pylal import InspiralUtils
 
+def CalculateFAPandEFF(total_data,classifier):
+	"""
+	Calculates fap, eff for the classifier and saves them into the corresponding columns of total_data.
+	"""	
+	if not classifier == 'cveto':
+		glitch_ranks = total_data[numpy.nonzero(total_ranked_data['glitch'] == 1.0)[0],:][classifier+'_rank']
+		clean_ranks = total_data[numpy.nonzero(total_ranked_data['glitch'] == 0.0)[0],:][classifier+'_rank']
+		
+		glitch_ranks.sort()
+		clean_ranks.sort()
+	else:
+		print "Can not compute FAP and Efficiency for CVeto. Not an MVC classifier."
+		sys.exit(1)
+	  			  
+	for trigger in total_data:
+		trigger[classifier +'_fap'] = auxmvc_utils.compute_FAP(clean_ranks, glitch_ranks, trigger[classifier+'_rank'])
+		trigger[classifier +'_eff'] = auxmvc_utils.compute_Eff(clean_ranks, glitch_ranks, trigger[classifier+'_rank'])
+		
+	return total_data
 
-def calculateFAPEFF(total_data,classifiers):
-	## calculate fap, eff for each MVCi, put those into total_data and return it
-	glitches = total_data[numpy.nonzero(total_ranked_data['glitch'] == 1.0)[0],:]
-	cleans = total_data[numpy.nonzero(total_ranked_data['glitch'] == 0.0)[0],:]
-	for cls in classifiers:
-		glitches = numpy.sort(glitches, order=[cls[0]+'_rank'])
-		cleans = numpy.sort(cleans, order=[cls[0]+'_rank'])
-		for i,rank in enumerate(cleans[cls[0]+'_rank']):
-			num_of_false_alarms = len(cleans) - numpy.searchsorted(cleans[cls[0]+'_rank'],rank)
-			j = numpy.searchsorted(glitches[cls[0]+'_rank'],rank)
-			num_of_true_alarms = len(glitches) - j
-			fap = num_of_false_alarms/float(len(cleans))
-			eff = num_of_true_alarms/float(len(glitches))
-			numpy.put(cleans[cls[0]+'_fap'],[i],[fap])
-			numpy.put(cleans[cls[0]+'_eff'],[i],[eff])
-			numpy.put(glitches[cls[0]+'_fap'],[j],[fap])
-			numpy.put(glitches[cls[0]+'_eff'],[j],[eff])
-	return numpy.concatenate((numpy.sort(glitches,order=['GPS']),numpy.sort(cleans,order=['GPS'])))
 
+def compute_combined_rank(total_data):
+	"""
+	Computes combined rank defined as logarithm of highest EFF/FAP from the classifiers.
+	"""
 
+	for trigger in total_data:
+		# We need to add here CVeto
+		combined_mvc_rank = max(eff_over_fap(trigger,'mvsc'), eff_over_fap(trigger,'ann'), eff_over_fap(trigger,'svm'))
+		# set highest combined rank to 1000.0
+		if combined_mvc_rank == numpy.inf: 
+			trigger['combined_rank'] = 1000.0
+		else:
+			trigger['combined_rank'] = combined_mvc_rank
+	
+	return total_data
+	
+def eff_over_fap(trigger, classifier):
+  """
+  Calculate ratio of eff over fap which approximates likelihood ratio.
+  """	
+  
+  if trigger[classifier+'_fap'] == 0.0:
+    return numpy.inf
+  else:
+    return numpy.log10(trigger[classifier+'_eff'] / trigger[classifier+'_fap'])
+	
+  
 def PrateToRank(ranks,Prate):
 	### convert a certain positive rate(Prate) to a corresponding rank in rank data
 	ranks_sorted=numpy.sort(ranks)
@@ -66,7 +102,10 @@ def vetoGlitchesUnderFAP(glitch_data, rank_name, Rankthr, FAPthr):
 	return glitch_data_vetoed, efficiency
 
 
-def ReadMVSCRanks(list_of_files, classifier):
+def ReadMVCRanks(list_of_files, classifier):
+	"""
+	Reads ranks from the classifier ouput files. Can read MVSC, ANN or SVM *.dat files.   
+	"""
 	data = auxmvc_utils.ReadMVSCTriggers(list_of_files)
 	if classifier == 'mvsc':
 		ranker = 'Bagger'
@@ -78,15 +117,12 @@ def ReadMVSCRanks(list_of_files, classifier):
 		ranker = 'SVMRank'
 		rank_name = 'svm_rank'
 
-	variables=['GPS','i',rank_name]
+	variables=['GPS','glitch',rank_name]
 	formats=['g8','i','g8']
 	gps_ranks = numpy.empty(len(data),dtype={'names':variables,'formats':formats})
-	gps_ranks['i']=data['i']
+	gps_ranks['glitch']=data['i']
 	gps_ranks[rank_name]=data[ranker]
-	for i in range(len(data)):
-		#numpy.put(gps_ranks['GPS_s'],[i],[data['GPS_s'][i]])
-		#numpy.put(gps_ranks['GPS_ms'],[i],[data['GPS_ms'][i]])
-		numpy.put(gps_ranks['GPS'],[i],[str(int(data['GPS_s'][i]))+'.'+str(int(data['GPS_ms'][i]))])
+	gps_ranks['GPS'] = data['GPS_s'] + data['GPS_ms']*10**(-3)
 
 	return gps_ranks
 
@@ -100,57 +136,74 @@ def BinToDec(binary):
 	return decimal
 
 
-def generateTotalRankedTriggers(classifiers):
-	## This function is to read MVCs(MVSC,ANN,SVM)' ranked data and CVeto data and combine them into total_data array.
+def ReadDataFromClassifiers(classifiers):
+	"""
+	This function reads MVCs(MVSC,ANN,SVM) ranked data and CVeto data and combines them into total_data array.
+	When combining, it is assumed that input files contain same triggers. 
+	In particular that sorting triggers in time is enough for cross-identification. 
+	"""
+	#reading all data from the first classifier
 	data = auxmvc_utils.ReadMVSCTriggers(classifiers[0][1])
 	n_triggers = len(data)
+
+	# defining variables and formats for total_data array
 	variables = ['GPS','glitch'] + list(data.dtype.names[5:-1])
 	for var in ['mvsc','ann','svm','cveto']:
 		variables += [var+j for j in ['_rank','_fap','_eff']]
-	variables += ['cveto_chan','Urank']
-
+	variables += ['cveto_chan','combined_rank', 'combined_eff', 'combined_fap']
 	formats = ['g8','i']+['g8' for a in range(len(variables)-2)]
+
+	# creating total_data array
 	total_data = numpy.zeros(n_triggers, dtype={'names':variables, 'formats':formats})
+
+	# populating columns using data from the first classifier
 	total_data['glitch']=data['i']
 	total_data[classifiers[0][0]+'_rank']=data[data.dtype.names[-1]]
 
 	for name in data.dtype.names[5:-1]:
 		total_data[name] = data[name]
 
-	for n in range(n_triggers):
-		numpy.put(total_data['GPS'],[n],[str(int(data['GPS_s'][n]))+'.'+str(int(data['GPS_ms'][n]))])
+	
+	total_data['GPS'] = data['GPS_s'] + data['GPS_ms']*10**(-3)
 
+	# sort total data first by glitch and then by GPS time.
+	# numpy.lexsort() does inderct sort and return array's indices
+	total_data=total_data[numpy.lexsort((total_data['GPS'], total_data['glitch']))]
+	
+	# looping over remaning classifiers
 	if classifiers[1:]:
 		for cls in classifiers[1:]:
 			ranks_data=[]
 			if not cls[0] == 'cveto':
-				ranks_data=ReadMVSCRanks(cls[1],cls[0])
+				ranks_data=ReadMVCRanks(cls[1],cls[0])
+				#sort trigers first in glitch then in GPS time to ensure correct merging
+				ranks_data=ranks_data[numpy.lexsort((ranks_data['GPS'], ranks_data['glitch']))]
+			
+				# populating this classifier rank column in total_data array
 				total_data[cls[0]+'_rank']=ranks_data[cls[0]+'_rank']
-				#below 2 lines, GPS times are used to assign mvc ranks into right places. It needs to check !.
-				#for i, gps in enumerate(ranks_data['GPS']):
-				#	numpy.put(total_data[cls[0]+'_rank'],[numpy.searchsorted(total_data['GPS'],gps)],[ranks_data[cls[0]+'_rank'][i]])
-
-	# this next bit of code was added by R. Essick. He doesn't really know what he's doing, so please check this
+			
+	
+	# Reading in information from CVeto and populating corresponding columns in total_data
 	if classifiers[-1][0] == 'cveto':
 		# we first need to retrieve the CVeto data
 		cveto_raw = auxmvc_utils.loadCV(classifiers[-1][1]) 
 		# we want to iterate through all the glitches stored in total_data
-		for n in range(len(total_data['GPS'][:])):
+		for glitch_index  in numpy.nonzero(total_data['glitch'] == 1.0)[0]:
 			# we look for matching GW glitches in the CVeto data using the GPS time
-			cveto_stuff = giveMeCVeto(cveto_raw, total_data['GPS'][n])
-			if len(cveto_stuff) > 0:
-				total_data['cveto_eff'][n] = cveto_stuff[0]
-				total_data['cveto_fap'][n] = cveto_stuff[1]
-				total_data['cveto_rank'][n] = cveto_stuf[2]
-				total_data['cveto_chan'][n] = cveto_stuff[3]
+			cveto_rank = GetCVetoRank(cveto_raw, total_data[glitch_index]['GPS'])
+			if len(cveto_rank) > 0:
+				total_data[glitch_index]['cveto_eff'] = cveto_rank[0]
+				total_data[glitch_index]['cveto_fap'] = cveto_rank[1]
+				total_data[glitch_index]['cveto_rank'] = cveto_rank[2]
+				total_data[glitch_index]['cveto_chan'] = cveto_rank[3]
 			else:
 				pass
 	return total_data
 
 
-def giveMeCVeto(CVetoOutput, gwtcent, deltat = 0):
+def GetCVetoRank(CVetoOutput, gwtcent, deltat = 0):
   '''
-  this is meant to return the CVeto data corresponding to a given central time (tcent) for a GW glitch. the CVeto data returned is a list of the form:
+  This is meant to return the CVeto rank-data corresponding to a given central time (tcent) for a GW glitch. the CVeto data returned is a list of the form:
     [cveto_eff, cveto_fap, cveto_rank, cveto_chan]
   the output arguments correspond to internal CVeto data as follows:
     cveto_eff  : c_eff
@@ -197,19 +250,30 @@ def giveMeCVeto(CVetoOutput, gwtcent, deltat = 0):
     print('found multiple glitches at:' + repr(gwtcent))
   return cveto_dat[0]
 
+usage= """Written to load and manipulate output from different classifiers."""
 
 
-parser=OptionParser(usage="Generates comparison plots", version = "auxmvc")
+
+parser=OptionParser(usage=usage, version = git_version.verbose_msg)
 parser.add_option("","--cveto-ranked-files", default=False, type="string", help="Provide the path for HVeto Results files which contain all trigger data and those ranks and globbing pattern")
 parser.add_option("","--mvsc-ranked-files", default=False, type="string", help="Provide the path for MVSC *.dat files and globbing pattern")
 parser.add_option("","--ann-ranked-files", default=False, type="string", help="Provide the path for ANN *.dat files and globbing pattern")
 parser.add_option("","--svm-ranked-files", default=False, type="string", help="Provide the path for SVM *.dat files and globbing pattern")
-parser.add_option("","--tag", default="auxmvc_results", help="filenames will be ROC_tag.png and efficiency_deadtime_tag.txt")
 parser.add_option("","--fap-threshold", default=0.1,type="float", help="False Alarm Probability which is adapted to veto")
-parser.add_option("","--output-dir", default=".", help="directory where output files will be written to")
-(opts,files)=parser.parse_args()
+parser.add_option("-P","--output-path",action="store",type="string",default="",  metavar="PATH", help="path where the figures would be stored")	  
+parser.add_option("-O","--enable-output",action="store_true", default="True",  metavar="OUTPUT", help="enable the generation of the html and cache documents")	 	  
+parser.add_option("-u","--user-tag",action="store",type="string", default=None,metavar=" USERTAG", help="a user tag for the output filenames" )
+parser.add_option("", "--figure-resolution",action="store",type="int", default=50, help="dpi of the thumbnails (50 by default)")
+parser.add_option("", "--html-for-cbcweb",action="store", default=False, metavar = "CVS DIRECTORY", help="publish the html "\
+      "output in a format that can be directly published on the cbc webpage "\
+      "or in CVS. This only works IF --enable-output is also specified. The "\
+      "argument should be the cvs directory where the html file will be placed "\
+      "Example: --html-for-cbcweb protected/projects/s5/yourprojectdir")
+parser.add_option("","--verbose", action="store_true", default=False, help="print information" )
 
-try: os.mkdir(opts.output_dir)
+(opts,args)=parser.parse_args()
+
+try: os.mkdir(opts.output_path)
 except: pass
 
 
@@ -217,12 +281,12 @@ except: pass
 ranked_data={}
 
 classifiers=[]
-if opts.mvsc_ranked_files:
-	#classifiers.append(['mvsc',glob.glob(opts.mvsc_ranked_files)])
-	classifiers.append(['mvsc',opts.mvsc_ranked_files.split(',')])
 if opts.ann_ranked_files:
 	#classifiers.append(['ann',glob.glob(opts.ann_ranked_files)])
 	classifiers.append(['ann',opts.ann_ranked_files.split(',')])
+if opts.mvsc_ranked_files:
+	#classifiers.append(['mvsc',glob.glob(opts.mvsc_ranked_files)])
+	classifiers.append(['mvsc',opts.mvsc_ranked_files.split(',')])
 if opts.svm_ranked_files:
 	#classifiers.append(['svm',glob.glob(opts.svm_ranked_files)])
 	classifiers.append(['svm',opts.svm_ranked_files.split(',')])
@@ -236,84 +300,178 @@ if not classifiers:
 	print "Errors!! No Input Files(*.dat with MVCs' ranks and/or *.pickle with HVeto's ranks)"
 	sys.exit()
 
-# Construction of total triggers with all ranks for all classifers(MVSC,ANN,SVM,CVeto).
+if opts.verbose:
+	print "Reading and combining data..."
 
-total_ranked_data = generateTotalRankedTriggers(classifiers)
-total_ranked_data = calculateFAPEFF(total_ranked_data,classifiers)
+# Reading and combining data from all classifers(MVSC,ANN,SVM,CVeto).
+total_ranked_data = ReadDataFromClassifiers(classifiers)
+
+# Computing FAP and Efficiency for MVCs
+for cls in classifiers:
+  if not cls[0] == 'cveto':
+    total_ranked_data = CalculateFAPandEFF(total_ranked_data,cls[0])
+	
+# Computing combined rank		
+total_ranked_data = compute_combined_rank(total_ranked_data)
+
+# Computing FAP and Efficiency for combned rank
+total_ranked_data = CalculateFAPandEFF(total_ranked_data,'combined')
+
+# add combined  to the list of classifiers
+classifiers.append(['combined'])
+
+#splitting data into glitch and clean samples
 glitches = total_ranked_data[numpy.nonzero(total_ranked_data['glitch'] == 1.0)[0],:]
 cleans = total_ranked_data[numpy.nonzero(total_ranked_data['glitch'] == 0.0)[0],:]
 
+if opts.verbose:
+	print "Done."
 
-# write all data into test_file
-test_file=open(opts.tag+'_data.dat','w')
-test_file.write(' '.join(total_ranked_data.dtype.names)+'\n')
+if opts.verbose:
+	print "Writing combined data into a file..."
+# write glitch samples into a file
+glitch_file=open(opts.user_tag+'_glitch_data.dat','w')
+glitch_file.write(' '.join(glitches.dtype.names)+'\n')
 
-for da in total_ranked_data:
-	test_file.write(' '.join(map(str,da))+'\n')
+for da in glitches:
+	glitch_file.write(' '.join(map(str,da))+'\n')	
+	
+glitch_file.close()
 
-## Create scattered plots of mvc ranks vs. SNR and mvc ranks vs. Siginificance of GWTriggers
+# write clean samples into a file
+clean_file=open(opts.user_tag+'_clean_data.dat','w')
+clean_file.write(' '.join(cleans.dtype.names)+'\n')
+
+for da in cleans:
+	clean_file.write(' '.join(map(str,da))+'\n')
+	
+clean_file.close()
+
+if opts.verbose:
+	print "Done."
+
+################   PLOTS   #############################################################
+
+# Initializing the html output
+InspiralUtils.message(opts, "Initialisation...")
+opts = InspiralUtils.initialise(opts, __prog__, __version__)
+fnameList = []
+tagList = []
+fig_num = 0
+comments = ""
+###########################################################################################3
+
+## Create scattered plots of Significance vs  SNR for GW Triggers
+fig_num += 1
+pylab.figure(fig_num)
+pylab.plot(glitches['signif'],glitches['SNR'],'rx',label='glitches')
+pylab.xlabel('Significance of GW Triggers')
+pylab.ylabel('SNR of GW Triggers')
+pylab.yscale('log')
+pylab.xscale('log')
+pylab.title(r"Fig. "+str(fig_num)+": significance vs SNR of GW trigger")
+pylab.legend()
+# adding to html page
+name = 'Sig_vs_SNR'
+fname = InspiralUtils.set_figure_name(opts, name)
+fname_thumb = InspiralUtils.savefig_pylal(filename=fname, doThumb=True, dpi_thumb=opts.figure_resolution)
+fnameList.append(fname)
+tagList.append(name)
+pylab.close()
+
+
+
+## Create scattered plots of mvc ranks vs. SNR and mvc ranks vs. Significance of GWTriggers
 for cls in classifiers:
 	## mvc ranks vs. SNR
-	pylab.figure(1)
-	pylab.plot(glitches[cls[0]+'_rank'],glitches['SNR'],'r*',label='glitches')
-	pylab.plot(cleans[cls[0]+'_rank'],cleans['SNR'],'bo',label='clean samples')
-	pylab.xlabel(cls[0]+' rank')
-	pylab.ylabel('SNR of GW Triggers')
-	pylab.yscale('log')
-	pylab.legend()
-	pylab.savefig(opts.tag+'_SNR_'+cls[0]+'rank.png')
-	pylab.close()
+	#fig_num += 1
+	#pylab.figure(fig_num)
+	#pylab.plot(cleans[cls[0]+'_rank'],cleans['SNR'],'k+',label='clean samples')
+	#pylab.plot(glitches[cls[0]+'_rank'],glitches['SNR'],'rx',label='glitches')
+	#pylab.xlabel(cls[0]+' rank')
+	#pylab.ylabel('SNR of GW Triggers')
+	#pylab.yscale('log')
+	#pylab.xscale('log')
+	#pylab.title(r"Fig. "+str(fig_num)+": " + cls[0]+" rank vs SNR of GW trigger")
+	#pylab.legend()
+	# adding to html page
+	#name = '_SNR_'+cls[0]+'rank'
+	#fname = InspiralUtils.set_figure_name(opts, name)
+	#fname_thumb = InspiralUtils.savefig_pylal(filename=fname, doThumb=True, dpi_thumb=opts.figure_resolution)
+	#fnameList.append(fname)
+	#tagList.append(name)
+	#pylab.close()
+
+
 	## mvc ranks vs. Significance
-	pylab.figure(2)
-	pylab.plot(glitches[cls[0]+'_rank'],glitches['signif'],'r*',label='glitches')
-	pylab.plot(cleans[cls[0]+'_rank'],cleans['signif'],'bo',label='clean samples')
+	fig_num += 1
+	pylab.figure(fig_num)
+	if cls[0] == 'combined':
+		off_scale_glitches = glitches[numpy.nonzero(glitches[cls[0]+'_rank'] == 1000.0)]
+		other_glitches = glitches[numpy.nonzero(glitches[cls[0]+'_rank'] != 1000.0)]
+		pylab.plot(other_glitches[cls[0]+'_rank'],other_glitches['signif'],'rx',label='glitches')
+		pylab.plot(numpy.ones(len(off_scale_glitches)) + max(other_glitches[cls[0]+'_rank']),off_scale_glitches['signif'],'g+',label='off-scale glitches')
+	else:  
+		pylab.plot(glitches[cls[0]+'_rank'],glitches['signif'],'rx',label='glitches')
 	pylab.xlabel(cls[0]+' rank')
 	pylab.ylabel('Significance of GW Triggers')
 	pylab.yscale('log')
+	#pylab.xscale('log')
+	pylab.title(r"Fig. "+str(fig_num)+": " + cls[0]+' rank vs significance of GW trigger')
 	pylab.legend()
-	pylab.savefig(opts.tag+'_Significance_'+cls[0]+'rank.png')
+	# adding to html page
+	name = '_Sig_'+cls[0]+'rank'
+	fname = InspiralUtils.set_figure_name(opts, name)
+	fname_thumb = InspiralUtils.savefig_pylal(filename=fname, doThumb=True, dpi_thumb=opts.figure_resolution)
+	fnameList.append(fname)
+	tagList.append(name)
 	pylab.close()
 
-## Create Cumulative histograms of GW SNR for glitch triggers after vetoing at RankThr and FAPThr
+	
+## Create Cumulative histograms of GW Significance for glitch triggers after vetoing at RankThr and FAPThr
 FAPThr = opts.fap_threshold
-eff_file=open(opts.tag+'_efficiency_at_fap'+str(FAPThr)+'.txt','w')
+eff_file=open(opts.user_tag+'_efficiency_at_fap'+str(FAPThr)+'.txt','w')
 eff_file.write('Vetoed Results at FAP='+str(FAPThr)+'\n')
+
 # histograms for SNR
-pylab.figure(1)
-pylab.hist(glitches['SNR'],400,histtype='step',cumulative=-1,label='before vetoing')
-pylab.title("Cumulative histogram for SNR of glitches after vetoing at FAP "+str(FAPThr))
-pylab.xlabel('SNR')
-pylab.ylabel('Number of Glitches')
-pylab.xscale('log')
-pylab.yscale('log')
-# histograms for Significance
-pylab.figure(2)
+fig_num += 1
+pylab.figure(fig_num)
 pylab.hist(glitches['signif'],400,histtype='step',cumulative=-1,label='before vetoing')
-pylab.title("Cumulative histogram for Significance of glitches after vetoing at FAP "+str(FAPThr))
+for cls in classifiers:
+	rank_name = cls[0]+'_rank'
+	glitches_vetoed = glitches[numpy.nonzero(glitches[cls[0]+'_fap'] > FAPThr)[0],:]
+	pylab.hist(glitches_vetoed['signif'],400,histtype='step',cumulative=-1,label=cls[0])
+	efficiency = min(glitches_vetoed[cls[0]+'_eff'])
+	RankThr = max(glitches_vetoed[cls[0]+'_rank'])
+	eff_file.write(cls[0]+' Efficiency : '+str(efficiency)+', threshold rank :'+str(RankThr)+'\n')
+
+pylab.title("Cumulative histogram for Significance  of glitches after vetoing at FAP "+str(FAPThr))
 pylab.xlabel('Significance')
 pylab.ylabel('Number of Glitches')
 pylab.xscale('log')
 pylab.yscale('log')
-glitches = total_ranked_data[numpy.nonzero(total_ranked_data['glitch'] == 1.0)[0],:]
-for cls in classifiers:
-	rank_name = cls[0]+'_rank'
-	#RankThr = PrateToRank(cleans[rank_name],FAPThr)
-	#glitches_vetoed, efficiency = vetoGlitchesUnderFAP(glitches,rank_name,RankThr,FAPThr)
-	glitches_vetoed = glitches[numpy.nonzero(glitches[cls[0]+'_fap'] > FAPThr)[0],:]
-	efficiency = min(glitches_vetoed[cls[0]+'_eff'])
-	RankThr = max(glitches_vetoed[cls[0]+'_rank'])
-	eff_file.write(cls[0]+' Efficiency : '+str(efficiency)+', threshold rank :'+str(RankThr)+'\n')
-	# histograms for SNR
-	pylab.figure(1)
-	pylab.hist(glitches_vetoed['SNR'],400,histtype='step',cumulative=-1,label=cls[0])
-	# histograms for Significance
-	pylab.figure(2)
-	pylab.hist(glitches_vetoed['signif'],400,histtype='step',cumulative=-1,label=cls[0])
-pylab.figure(1)
+pylab.xlim(xmin=min(glitches['signif']), xmax=max(glitches['signif']))
 pylab.legend()
-pylab.savefig(opts.tag+'_cumul_hist_snr_fap'+str(FAPThr)+'.png')
+# adding to html page
+name = '_cumul_hist_signif_fap'+str(FAPThr)
+fname = InspiralUtils.set_figure_name(opts, name)
+fname_thumb = InspiralUtils.savefig_pylal(filename=fname, doThumb=True, dpi_thumb=opts.figure_resolution)
+fnameList.append(fname)
+tagList.append(name)
 pylab.close()
-pylab.figure(2)
-pylab.legend()
-pylab.savefig(opts.tag+'_cumul_hist_signif_fap'+str(FAPThr)+'.png')
-pylab.close()
+
+eff_file.close()
+
+
+##############################################################################################################
+
+
+html_filename = InspiralUtils.write_html_output(opts, args, fnameList, tagList, comment=comments)
+InspiralUtils.write_cache_output(opts, html_filename, fnameList)
+
+if opts.html_for_cbcweb:
+  html_filename_publish = InspiralUtils.wrifacte_html_output(opts, args, fnameList, tagList, cbcweb=True)
+
+##############################################################################################################
+
+
