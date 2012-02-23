@@ -2295,9 +2295,9 @@ static int XLALPSpinInspiralRDEngine(
       //fprintf(stdout,"*** LALPSpinInspiralRD WARNING ***: Initial frequency reset from %12.6e to %12.6e Hz, m:(%12.4e,%12.4e)\n",params->fLower,initomega/unitHz,params->mass1,params->mass2);
     }
     else {
-    XLALPrintError("**** LALPSpinInspiralRD ERROR ****: the product of initial frequency times masses is too high: %11.5e for omM ~ %11.5e\n",params->fLower*mass*LAL_PI,omegamaMatch);
-    XLALPrintError("****                                please consider decreasing inital freq %8.3f or m:(%8.3f, %8.3f) Msun\n",params->fLower,params->mass1,params->mass2);
-    XLAL_ERROR(XLAL_EFAILED);
+      XLALPrintError("**** LALPSpinInspiralRD ERROR ****: the product of initial frequency times masses is too high: %11.5e for omM ~ %11.5e\n",params->fLower*mass*LAL_PI,omegaMatch);
+      XLALPrintError("****                                please consider decreasing inital freq %8.3f or m:(%8.3f, %8.3f) Msun\n",params->fLower,params->mass1,params->mass2);
+      XLAL_ERROR(XLAL_EFAILED);
     }
   }
 
