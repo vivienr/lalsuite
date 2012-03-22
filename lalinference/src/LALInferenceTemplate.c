@@ -20,6 +20,7 @@
  *  MA  02111-1307  USA
  */
 
+#define LAL_USE_OLD_COMPLEX_STRUCTS
 #include <stdio.h>
 #include <stdlib.h>
 #include <lal/LALInspiral.h>
@@ -762,8 +763,6 @@ void LALInferenceTemplateLAL(LALInferenceIFOData *IFOdata)
   /* actual inspiral parameters: */
   params.mass1       = m1;
   params.mass2       = m2;
-  params.spin1[2]    = spin1;
-  params.spin2[2]    = spin2;
   params.startPhase  = phi;
   if ((params.approximant == EOB) 
       || (params.approximant == EOBNR)
@@ -863,6 +862,10 @@ void LALInferenceTemplateLAL(LALInferenceIFOData *IFOdata)
 
   memset(LALSignal->data,0,LALSignal->length*sizeof(LALSignal->data[0]));
 
+  
+  if (params.fCutoff >= 0.5*params.tSampling)
+    params.fCutoff = 0.5*params.tSampling - 0.5*IFOdata->freqData->deltaF; //should not be needed.
+  
 	// lal_errhandler = LAL_ERR_RTRN;
     // REPORTSTATUS(&status); 
   LALInspiralWave(&status, LALSignal, &params);

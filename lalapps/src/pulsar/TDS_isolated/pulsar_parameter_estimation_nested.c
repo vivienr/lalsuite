@@ -145,6 +145,7 @@ specified then the fake data containing the signal, and a fake signal-only data
 set, will be output.
  */
 
+#define LAL_USE_OLD_COMPLEX_STRUCTS
 #include "pulsar_parameter_estimation_nested.h"
 #include "ppe_models.h"
 #include "ppe_likelihood.h"
@@ -305,7 +306,7 @@ INT4 main( INT4 argc, CHAR *argv[] ){
   gridOutput( &runState );
   
   /* get noise likelihood and add as variable to runState */
-  logZnoise = noise_only_model( runState.data );
+  logZnoise = noise_only_model( &runState );
   LALInferenceAddVariable( runState.algorithmParams, "logZnoise", &logZnoise, 
                            LALINFERENCE_REAL8_t, LALINFERENCE_PARAM_FIXED );
                
@@ -1748,23 +1749,34 @@ set.\n", propfile, tempPar);
       }
     }
     
+    /* if psi is covering the range -pi/2 to pi/2 scale it, so that it covers
+       the 0 to 2pi range of a circular parameter */
+    if( !strcmp(tempPar, "psi") ){
+      if ( scale/LAL_PI > 0.99 && scale/LAL_PI < 1.01 ){
+        scale = 0.5;
+        scaleMin = -LAL_PI/2.;
+        high = LAL_PI/2.;
+        psidef = 1;
+      }
+    }
+    
     /* if theta is covering the range 0 to pi scale it, so that it covers
     the 0 to 2pi range of a circular parameter */
     if( !strcmp(tempPar, "theta") ){
-      if ( scale/LAL_PI > 0.99 && scale/LAL_PI < 1.01 ){
-        scale = 0.5;
-        scaleMin = 0;
-				high = LAL_PI;/* make sure range spans exactly pi*/
+      if ( scale/LAL_TWOPI > 0.99 && scale/LAL_TWOPI < 1.01 ){
+        scale = 1.;
+        scaleMin = 0.;
+				high = 2.*LAL_PI;
       }
     }
     
     /* if lambda is covering the range 0 to pi scale it, so that it covers
-    the 0 to 2pi range of a circular parameter */
+    the 0 to pi range of a circular parameter */
     if( !strcmp(tempPar, "lambda") ){
       if ( scale/LAL_PI > 0.99 && scale/LAL_PI < 1.01 ){
         scale = 0.5;
         scaleMin = 0;
-				high = LAL_PI; /* make sure range spans exactly pi*/
+				high = LAL_PI;
       }
     }
     
@@ -1794,7 +1806,9 @@ set.\n", propfile, tempPar);
       varyType = LALINFERENCE_PARAM_CIRCULAR;
     else if ( !strcmp(tempPar, "psi") && scale == 0.25 ) 
       varyType = LALINFERENCE_PARAM_CIRCULAR;
-    else if ( !strcmp(tempPar, "theta") && scale == 0.5 ) 
+		else if ( !strcmp(tempPar, "psi") && scale == 0.5 ) 
+      varyType = LALINFERENCE_PARAM_CIRCULAR;
+    else if ( !strcmp(tempPar, "theta") && scale == 1.0 ) 
       varyType = LALINFERENCE_PARAM_CIRCULAR;
     else if ( !strcmp(tempPar, "lambda") && scale == 0.5 )
       varyType = LALINFERENCE_PARAM_CIRCULAR;
@@ -1836,7 +1850,8 @@ set.\n", propfile, tempPar);
   
   /* if phi0 and psi have been given in the prop-file and defined at the limits
      of their range the remove them and add the phi0' and psi' coordinates */
-  if( phidef && psidef ){
+  if( phidef && psidef && !LALInferenceCheckVariable(runState->currentParams,"lambda") && !LALInferenceCheckVariable(runState->currentParams,"theta")){
+		fprintf(stderr,"Do phi and psi transform\n");
     LALInferenceIFOData *datatemp = data;
     
     REAL8 phi0 = *(REAL8*)LALInferenceGetVariable( runState->currentParams, 
@@ -2337,9 +2352,9 @@ parameter file %s is wrong.\n", injectfile);
     /* If modeltype uses more than one data stream need to advance data on to
        next, so this loop only runs once if there is only 1 det*/
     for ( k = 1; k < (INT4)freqFactors->length; k++ ){
-			data = data->next;
-			fprintf(stderr,"data has been advanced for 2nd datastream\n");
-		}
+      data = data->next;
+      fprintf(stderr,"data has been advanced for 2nd datastream\n");
+    }
   }
   
   /* reset data to head */
@@ -2353,8 +2368,8 @@ parameter file %s is wrong.\n", injectfile);
       snrmulti[k] += SQUARE(snrval);
       
       /*if ( snrscale[k] == 0 ) */
-      fprintf(fpsnr, "freq_factor: %f, non-scaled snr: %le\t",
-              freqFactors->data[ndets], snrval);
+      fprintf(fpsnr, "freq_factor: %lf, non-scaled snr: %le\t",
+              freqFactors->data[k], snrval);
                              
       data = data->next;
     }
