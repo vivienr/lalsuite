@@ -45,8 +45,7 @@ The 'Nested Sampling' algorithm (developed by [\ref Skilling2006]) used is that
 defined in LALinferenceNestedSampler (see [\ref VeitchVecchio2010]). It is
 essentially an efficient way to perform the integral
 \f[
-Z = \int^{\mathbf{\theta}} p(d|\mathbf{\theta}) p(\mathbf{\theta}) {\rm
-d}\mathbf{\theta},
+Z = \int^{\mathbf{\theta}} p(d|\mathbf{\theta}) p(\mathbf{\theta}) \mathrm{d}\mathbf{\theta},
 \f]
 where \f$ \mathbf{\theta} \f$ is a vector of parameters, \f$
 p(d|\mathbf{\theta}) \f$ is the likelihood of the data given the parameters,
@@ -54,7 +53,7 @@ and \f$ p(\mathbf{\theta}) \f$ is the prior on the parameters. It does this by
 changing the multi-dimensional integral over N parameters into a
 one-dimensional integral
 \f[
-Z = \int^X L(X) {\rm d}X \approx \sum_i L(X_i) \Delta{}X_i,
+Z = \int^X L(X) \mathrm{d}X \approx \sum_i L(X_i) \Delta{}X_i,
 \f]
 where \f$ L(X) \f$ is the likelihood, and \f$ X \f$ is the prior mass. The
 algorithm will draw a number (\f$ N \f$) of samples (live points) from the
@@ -687,8 +686,6 @@ void readPulsarData( LALInferenceRunState *runState ){
       tempdets = XLALStringDuplicate( detectors );
       
       for( i = 0; i < ml*numDets; i++ ){
-        LALStatus status;
-	
         CHAR *tmpstr = NULL;
         REAL8 psdvalf = 0.;
         
@@ -701,14 +698,13 @@ void readPulsarData( LALInferenceRunState *runState ){
           
           if( !strcmp(dets[FACTOR(i,ml)], "H1") || 
               !strcmp(dets[FACTOR(i,ml)], "L1") ||  
-              !strcmp(dets[FACTOR(i,ml)], "H2") ){ /* ALIGO */
-            LALAdvLIGOPsd( &status, &psdvalf, 
-                           pfreq*modelFreqFactors->data[(INT4)(fmod(i,ml))] );
-            psdvalf *= 1.e-49; /* scale factor in LALAdvLIGOPsd.c */
+              !strcmp(dets[FACTOR(i,ml)], "H2") ){ /* ALIGO */            
+            psdvalf = XLALSimNoisePSDaLIGOZeroDetHighPower(
+              pfreq*modelFreqFactors->data[(INT4)(fmod(i,ml))] );
           }
           else if( !strcmp(dets[FACTOR(i,ml)], "V1") ){ /* AVirgo */
-            LALEGOPsd( &status, &psdvalf,
-                       pfreq*modelFreqFactors->data[(INT4)(fmod(i,ml))] );
+            psdvalf = XLALSimNoisePSDAdvVirgo(
+              pfreq*modelFreqFactors->data[(INT4)(fmod(i,ml))] );
           }
           else{
             fprintf(stderr, "Error... trying to use Advanced detector that is\
@@ -722,27 +718,25 @@ void readPulsarData( LALInferenceRunState *runState ){
           if( !strcmp(dets[FACTOR(i,ml)], "H1") || 
               !strcmp(dets[FACTOR(i,ml)], "L1") ||  
               !strcmp(dets[FACTOR(i,ml)], "H2") ){ /* Initial LIGO */
-            psdvalf = 
-              XLALLIGOIPsd( pfreq*modelFreqFactors->data[(INT4)(fmod(i,ml))] );
-          
+            psdvalf = XLALSimNoisePSDiLIGOSRD(
+              pfreq*modelFreqFactors->data[(INT4)(fmod(i,ml))] );
+            
             /* divide H2 psds by 2 */
             if( !strcmp(dets[FACTOR(i,ml)], "H2") ){
               psdvalf /= 2.;
             }
           }
           else if( !strcmp(dets[FACTOR(i,ml)], "V1") ){ /* Initial Virgo */
-            LALVIRGOPsd( &status, &psdvalf,
-                         pfreq*modelFreqFactors->data[(INT4)(fmod(i,ml))] );
+            psdvalf = XLALSimNoisePSDVirgo(
+              pfreq*modelFreqFactors->data[(INT4)(fmod(i,ml))] );
           }
           else if( !strcmp(dets[FACTOR(i,ml)], "G1") ){ /* GEO 600 */
-            LALGEOPsd( &status, &psdvalf,
-                       pfreq*modelFreqFactors->data[(INT4)(fmod(i,ml))] );
-            psdvalf *= 1.e-46; /* scale factor in LALGEOPsd.c */
+            psdvalf = XLALSimNoisePSDGEO(
+              pfreq*modelFreqFactors->data[(INT4)(fmod(i,ml))] );
           }
           else if( !strcmp(dets[FACTOR(i,ml)], "T1") ){ /* TAMA300 */
-            LALTAMAPsd( &status, &psdvalf,
-                        pfreq*modelFreqFactors->data[(INT4)(fmod(i,ml))] );
-            psdvalf *= 75. * 1.e-46; /* scale factor in LALTAMAPsd.c */
+            psdvalf = XLALSimNoisePSDTAMA(
+              pfreq*modelFreqFactors->data[(INT4)(fmod(i,ml))] );
           }
           else{
             fprintf(stderr, "Error... trying to use detector that is\
@@ -2254,7 +2248,7 @@ void injectSignal( LALInferenceRunState *runState ){
   BinaryPulsarParams injpars;
  
   FILE *fpsnr = NULL; /* output file for SNRs */
-  INT4 ndets = 0, j = 1, k = 0, numSNRs = 1;
+  INT4 ndets = 0, j = 1, k = 0, numSNRs = 1, ml=1;
   
   REAL8Vector *freqFactors = NULL;
   REAL8 *snrmulti = NULL, *snrscale = NULL;
@@ -2284,7 +2278,6 @@ parameter file %s is wrong.\n", injectfile);
  
   freqFactors = *(REAL8Vector **)LALInferenceGetVariable( data->dataParams, 
                                                           "freqfactors" );
- 
   snrscale = XLALCalloc(sizeof(REAL8), numSNRs);
   
   ppt = LALInferenceGetProcParamVal( commandLine, "--scale-snr" );
@@ -2292,7 +2285,7 @@ parameter file %s is wrong.\n", injectfile);
     /* if there are more than one data streams (i.e. a stream at twice the 
        pulsar frequency and one at the pulsar frequency) the SNRs for the 
        individual (multi-detector) streams can be set, rather than having a 
-       combined SNR. The SNR vales are set as comma separated values to 
+       combined SNR. The SNR values are set as comma separated values to 
        --scale-snr. If only one value is given, but the data has multiple 
        streams then the combined multi-stream SNR will still be used. */
     CHAR *snrscales = NULL, *tmpsnrs = NULL, *tmpsnr = NULL, snrval[256];
@@ -2303,24 +2296,29 @@ parameter file %s is wrong.\n", injectfile);
       
     /* count the number of SNRs (comma seperated values) */
     numSNRs = count_csv( snrscales );
+		fprintf(stderr,"Number of snrs: %d\n",numSNRs);
+		
+		ml=(INT4)freqFactors->length;
     
-    if( (numSNRs != 1) && (numSNRs != (INT4)freqFactors->length) ){
-      fprintf(stderr, "Error... number of SNR values must either be 1, or equal\
- to the number of data streams required for your model!\n");
+    if(numSNRs != ml){
+      fprintf(stderr, "Error... number of SNR values must equal\
+			the number of data streams required for your model!\n");
       exit(0);
     }
     
     snrscale = XLALRealloc(snrscale, sizeof(REAL8)*numSNRs);
-    
+		
+    /*goes through the input scale snr string and adds the values to the snrscale vector.*/
     for( k = 0; k < numSNRs; k++ ){
       tmpsnr = strsep( &tmpsnrs, "," );
       XLALStringCopy( snrval, tmpsnr, strlen(tmpsnr)+1 );
       snrscale[k] = atof(snrval);
     }
   }
- 
-  snrmulti = XLALCalloc(sizeof(REAL8), numSNRs);
- 
+
+
+  snrmulti = XLALCalloc(sizeof(REAL8), 1);
+
   ppt = LALInferenceGetProcParamVal( commandLine, "--outfile" );
   if( !ppt ){
     fprintf(stderr, "Error... no output file specified!\n");
@@ -2364,20 +2362,21 @@ parameter file %s is wrong.\n", injectfile);
   while ( data ){
     for ( k = 0; k < numSNRs; k++ ){
       REAL8 snrval = calculate_time_domain_snr( data );
-   
-      snrmulti[k] += SQUARE(snrval);
-      
-      /*if ( snrscale[k] == 0 ) */
+
+      snrmulti[0] += SQUARE(snrval);
+			
       fprintf(fpsnr, "freq_factor: %lf, non-scaled snr: %le\t",
               freqFactors->data[k], snrval);
-                             
+			fprintf(stderr, "freq_factor: %lf, non-scaled snr: %le\t",freqFactors->data[k], snrval);
+			fprintf(stderr, "SNR multi %le\n",snrmulti[0]);
+
       data = data->next;
     }
     ndets++;
   }
   
   /* get overall multi-detector SNR */
-  for ( k = 0; k < numSNRs; k++ ) snrmulti[k] = sqrt( snrmulti[k] );
+  snrmulti[0] = sqrt(snrmulti[0]);
   
   /* only need to print out multi-detector snr if the were multiple detectors */
   if( numSNRs == 1 && snrscale[0] == 0 ){
@@ -2387,15 +2386,12 @@ parameter file %s is wrong.\n", injectfile);
   else{
     /* rescale the signal and calculate the SNRs */
     data = runState->data;
-   
-    for ( k = 0; k < numSNRs; k++ ){
-      snrscale[k] /= snrmulti[k];
-    }
-    
+    snrscale[0] /= snrmulti[0];
+
     /* rescale the h0 for triaxial mode only) */
     if ( !strcmp(modeltype, "triaxial")  ){
       for ( k = 0; k < numSNRs; k++ ){
-        if ( freqFactors->data[k] == 2. ) injpars.h0 *= snrscale[k];
+        if ( freqFactors->data[k] == 2. ) injpars.h0 *= snrscale[0];
       }
     }
     
@@ -2427,7 +2423,7 @@ parameter file %s is wrong.\n", injectfile);
     data = runState->data;
     
     /* get new snrs */
-    for ( k = 0; k < numSNRs; k++ ) snrmulti[k] = 0;
+    snrmulti[0] = 0;
     
     while( data ){
       for ( k = 0; k < numSNRs; k++ ){
@@ -2436,7 +2432,7 @@ parameter file %s is wrong.\n", injectfile);
         /* recalculate the SNR */
         snrval = calculate_time_domain_snr( data );
       
-        snrmulti[k] += SQUARE(snrval);
+        snrmulti[0] += SQUARE(snrval);
       
         fprintf(fpsnr, "scaled snr: %le\t", snrval);
       
@@ -2444,11 +2440,12 @@ parameter file %s is wrong.\n", injectfile);
       }
     }
     
-    for ( k = 0; k < numSNRs; k++ ) snrmulti[k] = sqrt( snrmulti[k] );
+    snrmulti[0] = sqrt( snrmulti[0] );
+		fprintf(stderr, "scaled multi data snr: %le\n", snrmulti[0]);
     
     if( ndets > 1 ){
       for ( k = 0; k < numSNRs; k++ ){
-        fprintf(fpsnr, "%le\t", snrmulti[k]);
+        fprintf(fpsnr, "%le\t", snrmulti[0]);
       }
       fprintf(fpsnr, "\n"); 
     }
@@ -3918,7 +3915,7 @@ void phi0_psi_transform( REAL8 phi0, REAL8 psi, REAL8 *phi0prime,
  * transform:
  \f{eqnarray*}{
  \left( \begin{array}{c} {\phi}_0 \\ {\psi} \end{array} \right) & = &
- \left( \begin{array}{cc} \sin{\theta} & \cos{\theta} \\ -\sin(\theta} &
+ \left( \begin{array}{cc} \sin{\theta} & \cos{\theta} \\ -\sin(\theta) &
 \cos{\theta} \end{array} \right)^{-1}
  \left( \begin{array}{c} {\phi'}_0 \\ {\psi'} \end{array} \right), \\
  & = & \left( \begin{array}{cc} \frac{1}{2\sin{\theta}} &
