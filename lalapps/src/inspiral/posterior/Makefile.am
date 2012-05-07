@@ -49,10 +49,12 @@ bin_SCRIPTS = \
 	lalapps_coherence_test \
 	lalapps_merge_nested_sampling_runs \
 	lalapps_nest_pipe \
-	lalapps_vo_nest2pos
+	lalapps_vo_nest2pos \
+    lalinference_pipe
 pkgpython_DATA = \
 	nest_utils.py \
-	combine_evidence.py
+	combine_evidence.py \
+    lalinference_pipe_utils.py
 endif
 
 EXTRA_DIST = \
@@ -64,7 +66,9 @@ EXTRA_DIST = \
 	nest_pipe.in \
 	nest_utils.py \
 	combine_evidence.py \
-	lalapps_vo_nest2pos.in
+	lalapps_vo_nest2pos.in \
+    lalinference_pipe.in \
+    lalinference_pipe_utils.py
 
 python_config.sed: Makefile
 	@-rm -f python_config.sed
@@ -90,6 +94,10 @@ lalapps_nest_pipe: $(srcdir)/nest_pipe.in python_config.sed
 lalapps_vo_nest2pos: $(srcdir)/lalapps_vo_nest2pos.in python_config.sed
 	$(AM_V_GEN)sed -f python_config.sed $(srcdir)/lalapps_vo_nest2pos.in >lalapps_vo_nest2pos
 	@chmod a+x lalapps_vo_nest2pos
+
+lalinference_pipe: $(srcdir)/lalinference_pipe.in python_config.sed
+	$(AM_V_GEN)sed -f python_config.sed $(srcdir)/lalinference_pipe.in > lalinference_pipe
+	@chmod a+x lalinference_pipe
 
 
 CLEANFILES = \
