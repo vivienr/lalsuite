@@ -23,7 +23,7 @@
 
 
 #define XLAL_CLOBBER_EVENTS \
-  while ( eventHead ); \
+  while ( eventHead ) \
 { \
   thisEvent = eventHead; \
   eventHead = (eventHead)->next; \
@@ -484,7 +484,7 @@ MultiInspiralTable    * XLALMultiInspiralTableFromLIGOLw (
 
 
 #define CLOBBER_EVENTS \
-  while ( *eventHead ); \
+  while ( *eventHead ) \
 { \
   thisEvent = *eventHead; \
   *eventHead = (*eventHead)->next; \
@@ -980,7 +980,7 @@ LALSnglInspiralTableFromLIGOLw (
 #undef CLOBBER_EVENTS
 
 #define CLOBBER_BANK \
-  while ( *bankHead ); \
+  while ( *bankHead ) \
 { \
   thisTmplt = *bankHead; \
   *bankHead = (*bankHead)->next; \
@@ -1372,7 +1372,7 @@ InspiralTmpltBankFromLIGOLw (
 }
 
 #define CLOBBER_SIM \
-  while ( *simHead ); \
+  while ( *simHead ) \
 { \
   thisSim = *simHead; \
   *simHead = (*simHead)->next; \
@@ -1787,7 +1787,7 @@ SimInspiralTableFromLIGOLw (
 
 
 #define CLOBBER_VAL \
-  while ( *sumHead ); \
+  while ( *sumHead ) \
 { \
   thisValue = *sumHead; \
   *sumHead = (*sumHead)->next; \
@@ -1958,7 +1958,7 @@ SummValueTableFromLIGOLw (
 
 
 #define CLOBBER_EVENTS \
-  while ( *eventHead ); \
+  while ( *eventHead ) \
 { \
   thisEvent = *eventHead; \
   *eventHead = (*eventHead)->next; \
@@ -2562,7 +2562,7 @@ void XLALCleanSummValueTable(SummValueTable **inputSummValue)
 
 
 #define CLOBBER_EVENTS \
-  while ( *eventHead ); \
+  while ( *eventHead ) \
 { \
   thisEvent = *eventHead; \
   *eventHead = (*eventHead)->next; \

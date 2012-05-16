@@ -855,8 +855,12 @@ def omega_online_cache(start, end, ifo, mask='DOWNSELECT',\
 
   # loop over time segments constructing file paths and appending to the cache
   while t<end:
-    trigfile = '%s/%.10d-%10.d/%s-OMEGA_TRIGGERS_%s-%.10d-%d.txt'\
-               % (basedir, t, t+triglength, ifo, mask, t, triglength)
+    if ifo == 'G1':
+      trigfile = '%s/%.5d/%.10d-%10.d/%s-OMEGA_TRIGGERS_%s-%.10d-%d.txt'\
+          % (basedir, t/100000, t, t+triglength, ifo, mask, t, triglength)
+    else:
+      trigfile = '%s/%.10d-%10.d/%s-OMEGA_TRIGGERS_%s-%.10d-%d.txt'\
+          % (basedir, t, t+triglength, ifo, mask, t, triglength)
     if intersects(segment(t, t+triglength))\
     and (not check_files_exist or isfile(trigfile)):
       append(from_T050017(trigfile))
@@ -1232,7 +1236,6 @@ def cluster(triggers,params=[('time',1)],rank='snr'):
         t.flow = min(coldata['flow'][carray])
         t.fhigh = max(coldata['fhigh'][carray])
         t.bandwidth = t.fhigh-t.flow
-        t.central_freq = t.flow + t.bandwidth/2
         t.tfvolume = t.bandwidth * t.duration
       outtrigs.append(t)
 
@@ -1572,6 +1575,7 @@ def fromomegafile(fname, start=None, end=None, ifo=None, channel=None,\
     omega_clusters = False
   if len(dat)==11:
     peak, freq, duration, bandwidth, amplitude, cls, cle, cln, av_freq, av_bandwidth, err_freq = dat
+    omega_clusters = True
   else:
     if len(dat)==8:
       peak, freq, duration, bandwidth, amplitude, cls, cle, cln = dat
