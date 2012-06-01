@@ -917,6 +917,16 @@ LALInspiralComputeMetric (
     InspiralMomentsEtc  *moments
     );
 
+int
+XLALInspiralComputeMetric (
+    InspiralMetric     *metric,
+    InspiralMomentsEtc *moments,
+    REAL8 fLower,
+    LALPNOrder order,
+    REAL8 t0,
+    REAL8 t3
+    );
+
 void
 LALInspiralComputeMetricBCV
 (
@@ -941,6 +951,14 @@ LALGetInspiralMoments (
     InspiralTemplate     *params
     );
 
+int
+XLALGetInspiralMoments (
+    InspiralMomentsEtc   *moments,
+    REAL8 fLower,
+    REAL8 fCutoff,
+    REAL8FrequencySeries *psd
+    );
+
 void
 LALGetInspiralMomentsBCV (
     LALStatus               *status,
@@ -954,6 +972,15 @@ LALInspiralMoments (
     LALStatus         *status,
     REAL8             *moment,
     InspiralMomentsIn pars
+    );
+
+REAL8
+XLALInspiralMoments(
+    REAL8 xmin,
+    REAL8 xmax,
+    REAL8 ndx,
+    REAL8 norm,
+    REAL8FrequencySeries *shf
     );
 
 void
