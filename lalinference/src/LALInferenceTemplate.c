@@ -1932,8 +1932,6 @@ void LALInferenceTemplateXLALSimInspiralChooseWaveform(LALInferenceIFOData *IFOd
                                                  inclination, lambda1, lambda2, interactionFlags, 
                                                  amporder, order, approximant), errnum);
       
-      printf("Waveform computed !\n");
-      
       previous_m1 = m1;
       previous_m2 = m2;
       previous_spin1z = spin1z;
@@ -2019,7 +2017,7 @@ void LALInferenceTemplateXLALSimInspiralChooseWaveform(LALInferenceIFOData *IFOd
 	//XLALGPSAdd(&(hplus->epoch), start_time);
 	//XLALGPSAdd(&(hcross->epoch), start_time);
 
-	instant= (IFOdata->timeData->epoch.gpsSeconds + 1e-9*IFOdata->timeData->epoch.gpsNanoSeconds)+hplus->data->length*deltaT;
+	instant= (IFOdata->timeData->epoch.gpsSeconds-hplus->epoch.gpsSeconds + 1e-9*(IFOdata->timeData->epoch.gpsNanoSeconds-hplus->epoch.gpsNanoSeconds));
 	
     /* write template (time axis) location in "->modelParams" so that     */
     /* template corresponds to stored parameter values                    */
