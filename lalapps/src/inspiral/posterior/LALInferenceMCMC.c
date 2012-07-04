@@ -611,11 +611,6 @@ void initVariables(LALInferenceRunState *state)
       fprintf(stderr,"Reading event %d from file\n",event);
       i=0;
       while(i<event) {i++; injTable=injTable->next;} /* select event */
-
-      endtime=XLALGPSGetREAL8(&(injTable->geocent_end_time));
-      AmpOrder=injTable->amp_order;
-      XLALGetOrderFromString(injTable->waveform,&PhaseOrder);
-      XLALGetApproximantFromString(injTable->waveform,&approx);
     }
   }
 
