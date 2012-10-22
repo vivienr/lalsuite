@@ -3,6 +3,7 @@ LALPULSARDIRS = pulsar
 endif
 
 SUBDIRS = \
+	SMEE \
 	lalapps \
 	calibration \
 	frametools \

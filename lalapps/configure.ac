@@ -12,6 +12,7 @@ AC_CONFIG_FILES([\
   man/Makefile \
   misc/Makefile \
   src/Makefile \
+  src/SMEE/Makefile \
   src/lalapps/Makefile \
   src/calibration/Makefile \
   src/frametools/Makefile \
