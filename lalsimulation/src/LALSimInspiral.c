@@ -245,6 +245,16 @@ int XLALInitialiseSpinTaylorT4Coeffs(LALSimInspiralSpinTaylorT4Coeffs *coeff)
   coeff->wdottidal6pn= 0.;
   coeff->Etidal5pn   = 0.;
   coeff->Etidal6pn   = 0.;
+  coeff->quadparam1  = 0.;
+  coeff->quadparam2  = 0.;
+  coeff->wdotQM2S1   = 0.;
+  coeff->wdotQM2S2   = 0.;
+  coeff->wdotQM2S1L  = 0.;
+  coeff->wdotQM2S2   = 0.;
+  coeff->EQM2S1      = 0.;
+  coeff->EQM2S2      = 0.;
+  coeff->EQM2S1L     = 0.;
+  coeff->EQM2S2L     = 0.;
   coeff->fStart      = 0.;
   coeff->fEnd        = 0.;
   coeff->dt          = 0.;
@@ -1680,7 +1690,7 @@ int XLALSimInspiralChooseTDWaveform(
             if( !checkTidesZero(lambda1, lambda2) )
                 ABORT_NONZERO_TIDES(waveFlags);
             /* Call the waveform driver routine */
-            ret = XLALSimSpinInspiralGenerator(hplus, hcross, phi0,
+            ret = XLALSimSpinInspiralGenerator(hplus, hcross, phiRef,
 					       deltaT, m1, m2, f_min, f_ref, r, i, S1x, S1y, S1z, S2x, S2y, S2z,
 					       phaseO, amplitudeO, waveFlags, nonGRparams);
             break;
@@ -1690,7 +1700,7 @@ int XLALSimInspiralChooseTDWaveform(
             if( !checkTidesZero(lambda1, lambda2) )
                 ABORT_NONZERO_TIDES(waveFlags);
             /* Call the waveform driver routine */
-            ret = XLALSimIMRPhenSpinInspiralRDGenerator(hplus, hcross, phi0,
+            ret = XLALSimIMRPhenSpinInspiralRDGenerator(hplus, hcross, phiRef,
 							deltaT, m1, m2, f_min, f_ref, r, i, S1x, S1y, S1z, S2x, S2y, S2z,
 							phaseO, amplitudeO,  waveFlags, nonGRparams);
             break;

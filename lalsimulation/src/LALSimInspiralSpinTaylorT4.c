@@ -576,6 +576,7 @@ static int XLALSimInspiralSpinTaylorT4StoppingTest(
         if( params->ESelfSS2s2 != 0. )
         {   /* Compute 2PN self-spin correction to energy */
             Espin2 += 0.; /* ADD ME!! */
+	}
 
         if( params->EQM2S1 != 0. )
         {   /* Compute 2PN quadrupole-monopole correction to energy */
