@@ -270,8 +270,6 @@ int XLALSimInspiralPNEvolveOrbitSpinTaylorT4(
      * Flags control which spin corrections are included
      */
 
-    XLALInitialiseSpinTaylorT4Coeffs(&params);
-
     if( (interactionFlags & LAL_SIM_INSPIRAL_INTERACTION_SPIN_ORBIT_15PN) == LAL_SIM_INSPIRAL_INTERACTION_SPIN_ORBIT_15PN )
     {
         params.LNhatSO15s1 	= 2. + 3./2. * m2m1;

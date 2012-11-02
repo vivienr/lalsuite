@@ -1517,8 +1517,6 @@ typedef struct tagLALSimInspiralSpinTaylorT4Coeffs
   REAL8 dt;                          // sampling in seconds
 } LALSimInspiralSpinTaylorT4Coeffs;
 
-int XLALInitialiseSpinTaylorT4Coeffs(LALSimInspiralSpinTaylorT4Coeffs *coeff);
-
 int XLALSimInspiralTransformInitialConditionsLtoJ(
 		REAL8 *S1x,	/**< S1 x component (returned) */
 		REAL8 *S1y,	/**< S1 y component (returned) */
