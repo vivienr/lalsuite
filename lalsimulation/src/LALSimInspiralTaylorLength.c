@@ -149,10 +149,10 @@ XLALSimInspiralTaylorLength(
     void *in2;
 
 /* Taylor coefficients of dE(v)/dv. (NOTE v and NOT x) */
-    akEF.dETaN = 2.0 * XLALSimInspiralPNEnergy_0PNCoeff(eta);
-    akEF.dETa1 = 2.0 * XLALSimInspiralPNEnergy_2PNCoeff(eta);
-    akEF.dETa2 = 3.0 * XLALSimInspiralPNEnergy_4PNCoeff(eta);
-    akEF.dETa3 = 4.0 * XLALSimInspiralPNEnergy_6PNCoeff(eta);
+    akEF.dETaN = 2.0 * XLALSimInspiralEnergy_0PNCoeff(eta);
+    akEF.dETa1 = 2.0 * XLALSimInspiralEnergy_2PNCoeff(eta);
+    akEF.dETa2 = 3.0 * XLALSimInspiralEnergy_4PNCoeff(eta);
+    akEF.dETa3 = 4.0 * XLALSimInspiralEnergy_6PNCoeff(eta);
 
 /* Taylor coefficients of flux. */
     akEF.FTaN = XLALSimInspiralTaylorT1Flux_0PNCoeff(eta);

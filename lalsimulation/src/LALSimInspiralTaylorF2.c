@@ -114,10 +114,10 @@ int XLALSimInspiralTaylorF2(
     const REAL8 FTa7 = XLALSimInspiralTaylorT1Flux_7PNCoeff(eta);
 
     /* energy coefficients */
-    const REAL8 dETaN = 2. * XLALSimInspiralPNEnergy_0PNCoeff(eta);
-    const REAL8 dETa1 = 2. * XLALSimInspiralPNEnergy_2PNCoeff(eta);
-    const REAL8 dETa2 = 3. * XLALSimInspiralPNEnergy_4PNCoeff(eta);
-    const REAL8 dETa3 = 4. * XLALSimInspiralPNEnergy_6PNCoeff(eta);
+    const REAL8 dETaN = 2. * XLALSimInspiralEnergy_0PNCoeff(eta);
+    const REAL8 dETa1 = 2. * XLALSimInspiralEnergy_2PNCoeff(eta);
+    const REAL8 dETa2 = 3. * XLALSimInspiralEnergy_4PNCoeff(eta);
+    const REAL8 dETa3 = 4. * XLALSimInspiralEnergy_6PNCoeff(eta);
 
     COMPLEX16FrequencySeries *htilde;
 

@@ -309,10 +309,10 @@ XLALSimInspiralTaylorT4Setup(
     ak->av = pow(LAL_C_SI, 3.0)/(LAL_G_SI*ak->m);
 
     /* PN co-efficients for energy */
-    akdEF->ETaN = XLALSimInspiralPNEnergy_0PNCoeff(ak->nu);
-    akdEF->ETa1 = XLALSimInspiralPNEnergy_2PNCoeff(ak->nu);
-    akdEF->ETa2 = XLALSimInspiralPNEnergy_4PNCoeff(ak->nu);
-    akdEF->ETa3 = XLALSimInspiralPNEnergy_6PNCoeff(ak->nu);
+    akdEF->ETaN = XLALSimInspiralEnergy_0PNCoeff(ak->nu);
+    akdEF->ETa1 = XLALSimInspiralEnergy_2PNCoeff(ak->nu);
+    akdEF->ETa2 = XLALSimInspiralEnergy_4PNCoeff(ak->nu);
+    akdEF->ETa3 = XLALSimInspiralEnergy_6PNCoeff(ak->nu);
     
     /* PN co-efficients for angular acceleration */
     ak->aatN = XLALSimInspiralTaylorT4AngularAccel_0PNCoeff(LAL_G_SI*ak->m/pow(LAL_C_SI, 3.0), ak->nu);

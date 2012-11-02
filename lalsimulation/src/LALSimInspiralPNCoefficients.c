@@ -1,5 +1,5 @@
 /*
-*  Copyright (C) 2011 Drew Keppel
+*  Copyright (C) 2011 Drew Keppel, 2012 Riccardo Sturani
 *
 *  This program is free software; you can redistribute it and/or modify
 *  it under the terms of the GNU General Public License as published by
@@ -20,6 +20,8 @@
 #include <lal/LALConstants.h>
 #include <lal/LALAtomicDatatypes.h>
 
+#include <math.h>
+
 #ifdef __GNUC__
 #define UNUSED __attribute__ ((unused))
 #else
@@ -35,34 +37,56 @@
  * detectors", Phys. Rev. D 80, 084043 (2009), arXiv:0907.0700v1
  */
 
-static REAL8 UNUSED
-XLALSimInspiralPNEnergy_0PNCoeff(
-	REAL8 eta)
+static REAL8 UNUSED 
+XLALSimInspiralEnergy_0PNCoeff(REAL8 eta)
 {
-	return -eta / 2.0;
+  return -eta / 2.0;
 }
 
-static REAL8 UNUSED
-XLALSimInspiralPNEnergy_2PNCoeff(
-	REAL8 eta)
+static REAL8 UNUSED XLALSimInspiralEnergy_2PNCoeff(REAL8 eta)
 {
-	return -(3.0/4.0 + 1.0/12.0 * eta);
+  return -(3.0/4.0 + 1.0/12.0 * eta);
 }
 
-static REAL8 UNUSED
-XLALSimInspiralPNEnergy_4PNCoeff(
-	REAL8 eta)
+static REAL8 UNUSED XLALSimInspiralEnergy_3PNSOCoeff(REAL8 m1Bym2)
 {
-	return -(27.0/8.0 - 19.0/8.0 * eta + 1./24.0 * eta*eta);
+  return 8. / 3. + 2. / m1Bym2;
 }
 
-static REAL8 UNUSED
-XLALSimInspiralPNEnergy_6PNCoeff(
-	REAL8 eta)
+static REAL8 UNUSED XLALSimInspiralEnergy_4PNCoeff(REAL8 eta)
 {
-	return -(67.5/6.4 - (344.45/5.76 - 20.5/9.6 * LAL_PI*LAL_PI) * eta + 15.5/9.6 * eta*eta + 3.5/518.4 * eta*eta*eta);
+  return -(27.0/8.0 - 19.0/8.0 * eta + 1./24.0 * eta*eta);
 }
 
+static REAL8 UNUSED XLALSimInspiralEnergy_4PNSSCoeff(REAL8 eta)
+{
+  return 1./eta;
+}
+
+static REAL8 UNUSED XLALSimInspiralEnergy_4PNSSOCoeff(REAL8 eta)
+{
+  return -3./eta;
+}
+
+static REAL8 UNUSED XLALSimInspiralEnergy_4PNSelfSSCoeff(REAL8 m1Bym2)
+{
+  return (1. + 1./m1Bym2) * (1. + 1./m1Bym2) / 2.;
+}
+
+static REAL8 UNUSED XLALSimInspiralEnergy_4PNSelfSSOCoeff(REAL8 m1Bym2)
+{
+  return -3. * (1. + 1./m1Bym2) * (1. + 1./m1Bym2) / 2.;
+}
+
+static REAL8 UNUSED XLALSimInspiralEnergy_5PNSOCoeffs1(REAL8 eta, REAL8 m1Bym2)
+{
+  return 8. - 31. / 9. * eta + (3. - 10. / 3. * eta) / m1Bym2;
+}
+
+static REAL8 UNUSED XLALSimInspiralEnergy_6PNCoeff(REAL8 eta)
+{
+  return -(67.5/6.4 - (344.45/5.76 - 20.5/9.6 * LAL_PI*LAL_PI) * eta + 15.5/9.6 * eta*eta + 3.5/518.4 * eta*eta*eta);
+}
 
 /**
  * Computes the PN Coefficients for using in the TaylorT1 flux equation.
@@ -478,6 +502,130 @@ XLALSimInspiralTaylorT4AngularAccel_7PNCoeff(
 	return -(4.415/4.032 - 358.675/6.048 * eta - 91.495/1.512 * eta*eta) * LAL_PI;
 }
 
+static REAL8 UNUSED 
+XLALSimInspiralTaylorT4Phasing_0PNCoeff(REAL8 eta)
+{
+  return 96. / 5. * eta;
+}
+
+static REAL8 UNUSED
+XLALSimInspiralTaylorT4Phasing_2PNCoeff(REAL8 eta)
+{
+  return ( -(1.0/336.0) * (743.0 + 924.0*eta) );
+}
+
+static REAL8 UNUSED
+XLALSimInspiralTaylorT4Phasing_3PNCoeff(REAL8 UNUSED eta)
+{
+return 4.0 * LAL_PI;
+}
+
+static REAL8 UNUSED
+XLALSimInspiralTaylorT4Phasing_3PNSOCoeff(REAL8 m1Bym2)
+{
+  return -(113.0 + 75.0 / m1Bym2 ) / 12.0;
+}
+
+static REAL8 UNUSED
+XLALSimInspiralTaylorT4Phasing_4PNCoeff(REAL8 eta)
+{
+  return (34103. + 122949.*eta + 59472.*eta*eta)/18144.;
+}
+
+static REAL8 UNUSED
+XLALSimInspiralTaylorT4Phasing_4PNSSCoeff(REAL8 eta)
+{
+  return - 247. / 48. / eta;
+}
+
+static REAL8 UNUSED XLALSimInspiralTaylorT4Phasing_4PNSSOCoeff(REAL8 eta)
+{
+  return  721. / 48. / eta;
+}
+
+static REAL8 UNUSED
+XLALSimInspiralTaylorT4Phasing_4PNSelfSSCoeff(REAL8 UNUSED eta)
+{
+  return -23.3/9.6;
+}
+
+static REAL8 UNUSED
+XLALSimInspiralTaylorT4Phasing_4PNSelfSSOCoeff(REAL8 UNUSED eta)
+{
+return 71.9/9.6;
+}
+
+static REAL8 UNUSED
+XLALSimInspiralTaylorT4Phasing_5PNCoeff(REAL8 eta)
+{
+  return ( -(1.0/672.0) * LAL_PI * (4159.0 + 15876.0*eta) );
+  /* coefficient 15876 corrected (from 14532) according
+     to 2005 erratas for L. Blanchet, Phys. Rev. D 54, 1417 (1996)
+     (see Phys. Rev. D 71 129904 (E) (2005)) and L. Blanchet,
+     B. R. Iyer, and B. Joguet, Phys. Rev. D 65, 064005 (2002)
+     (see Phys. Rev. D 71 129903 (E) (2005)).
+     See errata for Arun et al., Phys. Rev. D 71, 084008
+     (2005) (see  Phys. Rev. D 72 069903 (E) (2005))
+     for corrected coefficients
+  */
+}
+
+static REAL8 UNUSED 
+XLALSimInspiralTaylorT4Phasing_5PNSLCoeff(REAL8 eta, REAL8 m1BYm2)
+{
+  return -31319. / 1008. + 1159. / 24. * eta + (-809. / 84. + 281. / 8. * eta) / m1BYm2;
+}
+
+static REAL8 UNUSED 
+XLALSimInspiralTaylorT4Phasing_6PNCoeff(REAL8 eta)
+{
+  return ( 16447322263./139708800. - 1712./105. 
+    * LAL_GAMMA - 56198689./217728. * eta + LAL_PI * LAL_PI 
+    * (16./3. + 451./48. * eta) + 541./896. * eta * eta 
+    - 5605./2592. * eta * eta * eta - 856./105. * log(16.) );
+}
+
+static REAL8 UNUSED 
+XLALSimInspiralTaylorT4Phasing_6PNLogCoeff(
+					   REAL8 UNUSED eta)
+{
+  return -(1712.0/315.0);
+}
+
+static REAL8 UNUSED
+XLALSimInspiralTaylorT4Phasing_6PNSLCoeff(
+					  REAL8 mCompOverMtot)
+{
+  return -LAL_PI/3. * ( 188. - 151./2./mCompOverMtot);
+}
+
+static REAL8 UNUSED
+XLALSimInspiralTaylorT4Phasing_7PNCoeff(REAL8 eta)
+{
+  return (LAL_PI/12096.0) * (-13245.0 + 717350.0*eta + 731960.0*eta*eta);
+  /* coefficients 717350 and 731960 corrected (from 661775 and 599156) according
+     to 2005 erratas for L. Blanchet, Phys. Rev. D 54, 1417 (1996)
+     (see Phys. Rev. D 71 129904 (E) (2005)) and L. Blanchet,
+     B. R. Iyer, and B. Joguet, Phys. Rev. D 65, 064005 (2002)
+     (see Phys. Rev. D 71 129903 (E) (2005)).
+     See errata for Arun et al., Phys. Rev. D 71, 084008
+     (2005) (see  Phys. Rev. D 72 069903 (E) (2005))
+     for corrected coefficients
+  */
+}
+
+static REAL8 UNUSED
+XLALSimInspiralSpinDot_3PNCoeff(REAL8 eta, REAL8 m1Bym2)
+{
+  return (4.0 + 3.0 / m1Bym2) / 2.0 * eta;
+}
+
+static REAL8 UNUSED
+XLALSimInspiralSpinDot_5PNCoeff(REAL8 eta, REAL8 m1Mm2BYM)
+{
+  return 0.5625 + 1.25 * eta - eta * eta / 24. + m1Mm2BYM * (-0.5625 + 0.625 * eta);
+}
+
 
 /**
  * Computes the PN Coefficients for using in the TaylorEt v(zeta) equation,
@@ -618,4 +766,3 @@ XLALSimInspiralTaylorEtZeta_7PNCoeff(
 {
 	return (129.817/2.304 - 320.7739/4.8384 * eta + 61.3373/1.2096 * eta*eta) * LAL_PI;
 }
-

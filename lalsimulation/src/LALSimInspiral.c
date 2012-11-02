@@ -193,6 +193,65 @@ static int checkTidesZero(REAL8 lambda1, REAL8 lambda2)
 	} while (0)
 
 /**
+ * Initialise to 0 all entries of the XLALSimInspiralSpinTaylorT4Coeffs *coeff) 
+ * structure.
+ */
+
+int XLALInitialiseSpinTaylorT4Coeffs(LALSimInspiralSpinTaylorT4Coeffs *coeff)
+{
+  int i;
+  for (i=0;i<LAL_MAX_PN_ORDER;i++) coeff->wdotcoeff[i]=0.;
+  for (i=0;i<LAL_MAX_PN_ORDER;i++) coeff->Ecoeff[i] =0.;
+  coeff->wdotnewt    = 0.;
+  coeff->wdotlogcoeff= 0.;
+  coeff->wdotSO15s1  = 0.;
+  coeff->wdotSO15s2  = 0.;
+  coeff->S1dot15     = 0.;
+  coeff->S2dot15     = 0.;
+  coeff->LNhatSO15s1 = 0.;
+  coeff->LNhatSO15s2 = 0.;
+  coeff->wdotSS2     = 0.;
+  coeff->wdotSSO2    = 0.;
+  coeff->wdotSelfSS2 = 0.;
+  coeff->wdotSelfSS2 = 0.;
+  coeff->wdotSelfSSO2= 0.;
+  coeff->Enewt       = 0.;
+  coeff->ESO15s1     = 0.;
+  coeff->ESO15s2     = 0.;
+  coeff->ESS2        = 0.;
+  coeff->ESSO2       = 0.;
+  coeff->ESelfSS2s1  = 0.;
+  coeff->ESelfSS2s2  = 0.;
+  coeff->ESelfSSO2s1 = 0.;
+  coeff->ESelfSSO2s2 = 0.;
+  coeff->EQM2        = 0.;
+  coeff->LNhatSS2    = 0.;
+  coeff->wdotSO25s1  = 0.;
+  coeff->wdotSO25s2  = 0.;
+  coeff->ESO25s1     = 0.;
+  coeff->ESO25s2     = 0.;
+  coeff->S1dot25     = 0.;
+  coeff->S2dot25     = 0.;
+  coeff->wdotSO3s1   = 0.;
+  coeff->wdotSO3s2   = 0.;
+  coeff->M           = 0.;
+  coeff->eta         = 0.;
+  coeff->m1Bym2      = 0.;
+  coeff->m1ByM       = 0.;
+  coeff->m2ByM       = 0.;
+  coeff->dmByM       = 0.;
+  coeff->wdotQM2     = 0.;
+  coeff->wdottidal5pn= 0.;
+  coeff->wdottidal6pn= 0.;
+  coeff->Etidal5pn   = 0.;
+  coeff->Etidal6pn   = 0.;
+  coeff->fStart      = 0.;
+  coeff->fEnd        = 0.;
+  coeff->dt          = 0.;
+  return XLAL_SUCCESS;
+}
+
+/**
  * Multiplies a mode h(l,m) by a spin-2 weighted spherical harmonic
  * to obtain hplus - i hcross, which is added to the time series.
  *
@@ -665,7 +724,7 @@ int XLALSimInspiralPNPolarizationWaveforms(
 }
 
 /**
- * Computes polarizations h+ and hx for a spinning, precessing binary
+ * Computes polarizations l=2,m=2 h+ and hx for a spinning, precessing binary
  * when provided time series of all the dynamical quantities.
  * Amplitude can be chosen between 1.5PN and Newtonian orders (inclusive).
  *
@@ -682,6 +741,8 @@ int XLALSimInspiralPNPolarizationWaveforms(
  *
  * NOTE: The vectors MUST be given in the so-called radiation frame where
  * Z is the direction of propagation, X is the principal '+' axis and Y = Z x X
+ * For different convention (Z is the direction of initial total angular
+ * momentum, useful for GRB and comparison to NR, see XLALSimInspiralPhenSpin())
  */
 int XLALSimInspiralPrecessingPolarizationWaveforms(
 	REAL8TimeSeries **hplus,  /**< +-polarization waveform [returned] */
@@ -892,7 +953,7 @@ int XLALSimInspiralPrecessingPolarizationWaveforms(
                         + 13*(nx2 - ny2) - 2*lz2*(nx2 - ny2) - 32*lx*lz*nx*nz 
                         + 32*ly*lz*ny*nz - 14*lx2*nz2 + 14*ly2*nz2 
                         + 10*(nx2 - ny2)*nz2)/6. + (eta*(lx2 - 18*lx2*lz2 
-                        + 96*lx*lz*nx*nz - 96*ly*lz*ny*nz + 42*lx2*nz2 
+			+ 96*lx*lz*nx*nz - 96*ly*lz*ny*nz + 42*lx2*nz2 
                         + ly2*(-1 + 18*lz2 - 42*nz2) + (nx2 - ny2) 
                         * (-1 + 6*lz2 - 30*nz2)))/6.;
                 hcross1 = (eta*(lx*ly - nx*ny - 6*(lz2*(3*lx*ly - nx*ny) 
@@ -1280,6 +1341,72 @@ int XLALSimInspiralTransformPrecessingInitialConditions(
 }
 
 /**
+ * Function to change the vector coordinates for a precessing binaries when
+ * initial spins are given wrt the Newtonian angular momentum L.
+ *
+ * Input:
+ *     The magnitude of the initial Newtonian angular momentum L_N and
+ *     the spin components wrt to L_N. Beware of passing spins and L_N
+ *     in the same units.
+ *
+ * Output:
+ *     x, y, z components S1 and S2
+ *     x, y, z components of the initial Newtonian angular momentum
+ *
+ * NOTE: Here the \"total\" angular momentum is computed as
+ * J = L_N + S1 + S2
+ * The outputs give J=(0,0,|J|).
+ */
+int XLALSimInspiralTransformInitialConditionsLtoJ(
+		REAL8 *S1x,	/**< S1 x component (returned) */
+		REAL8 *S1y,	/**< S1 y component (returned) */
+		REAL8 *S1z,	/**< S1 z component (returned) */
+		REAL8 *S2x,	/**< S2 x component (returned) */
+		REAL8 *S2y,	/**< S2 y component (returned) */
+		REAL8 *S2z,	/**< S2 z component (returned) */
+		REAL8 *LNhx,	/**< hat Newtonian L x component (returned) */
+		REAL8 *LNhy,    /**< hat Newtonian L y component (returned) */
+		REAL8 *LNhz,    /**< hat Newtonian L z component (returned) */
+		REAL8 S1xIn,	/**< input S1 x component */
+		REAL8 S1yIn,	/**< input S1 y component */
+		REAL8 S1zIn,	/**< input S1 z component */
+		REAL8 S2xIn,	/**< input S2 x component */
+		REAL8 S2yIn,	/**< input S2 y component */
+		REAL8 S2zIn,	/**< input S2 z component */
+		REAL8 LNmag  	/**< modulus of the Newtonian angular momentum */						  )
+{
+  REAL8 phiJ=0.;
+  REAL8 thetaJ=0.;
+  REAL8 iLNx=0.;
+  REAL8 iLNy=0.;
+  REAL8 iLNz=1.;
+  REAL8 iJx = S1xIn + S2xIn;
+  REAL8 iJy = S1yIn + S2yIn;
+  REAL8 iJz = S1zIn + S2zIn + LNmag;
+  REAL8 iJmag = sqrt(iJx*iJx + iJy*iJy + iJz*iJz);
+  if (iJx) phiJ = atan2(iJy, iJx);
+  thetaJ = acos(iJz/iJmag);
+  REAL8 tmp1,tmp2;
+  ROTATEZ(phiJ,iLNx,iLNy,iLNz);
+  ROTATEY(thetaJ,iLNx,iLNy,iLNz);
+  ROTATEZ(phiJ,S1xIn,S1yIn,S1zIn);
+  ROTATEY(thetaJ,S1xIn,iS1yIn,S1zIn);
+  ROTATEZ(phiJ,S2xIn,S2yIn,S2zIn);
+  ROTATEY(thetaJ,S2xIn,S2yIn,S2zIn);
+  *S1x=S1xIn;
+  *S1y=S1yIn;
+  *S1z=S1zIn;
+  *S2x=S2xIn;
+  *S2y=S2yIn;
+  *S2z=S2zIn;
+  *LNhx=iLNx;
+  *LNhy=iLNy;
+  *LNhz=iLNz;
+
+  return XLAL_SUCCESS;
+}
+
+/**
  * DEPRECATED: USE XLALSimInspiralChooseTDWaveform() INSTEAD
  *
  * Chooses between different approximants when requesting a waveform to be generated
@@ -1328,6 +1455,7 @@ int XLALSimInspiralChooseWaveform(
  *
  * The parameters passed must be in SI units.
  */
+
 int XLALSimInspiralChooseTDWaveform(
     REAL8TimeSeries **hplus,                    /**< +-polarization waveform */
     REAL8TimeSeries **hcross,                   /**< x-polarization waveform */
@@ -1347,7 +1475,7 @@ int XLALSimInspiralChooseTDWaveform(
     REAL8 i,                                    /**< inclination of source (rad) */
     REAL8 lambda1,                              /**< (tidal deformability of mass 1) / (total mass)^5 (dimensionless) */
     REAL8 lambda2,                              /**< (tidal deformability of mass 2) / (total mass)^5 (dimensionless) */
-    LALSimInspiralWaveformFlags *waveFlags,     /**< Set of flags to control special behavior of some waveform families. Pass in NULL (or None in python) for default flags */
+    LALSimInspiralWaveformFlags *waveFlags,     /**< Structure containing flags to control special behavior of some waveform families. Pass in NULL (or None in python) for default flags */
     LALSimInspiralTestGRParam *nonGRparams, 	/**< Linked list of non-GR parameters. Pass in NULL (or None in python) for standard GR waveforms */
     int amplitudeO,                             /**< twice post-Newtonian amplitude order */
     int phaseO,                                 /**< twice post-Newtonian order */
@@ -1359,11 +1487,8 @@ int XLALSimInspiralChooseTDWaveform(
     REAL8 v0 = 1.;
 
     /* General sanity checks that will abort */
-    /*
-     * If non-GR approximants are added, change the below to
-     * if( nonGRparams && approximant != nonGR1 && approximant != nonGR2 )
-     */
-    if( nonGRparams )
+
+    if( nonGRparams && approximant != PhenSpinTaylor && approximant != PhenSpinTaylorRD )
     {
         XLALPrintError("XLAL Error - %s: Passed in non-NULL pointer to LALSimInspiralTestGRParam for an approximant that does not use LALSimInspiralTestGRParam\n", __func__);
         XLAL_ERROR(XLAL_EINVAL);
@@ -1550,15 +1675,24 @@ int XLALSimInspiralChooseTDWaveform(
                     f_min, 0., r, i);
             break;
 
-        case PhenSpinTaylorRD:
+        case PhenSpinTaylor:
             /* Waveform-specific sanity checks */
-            // FIXME: need to create a function to take in different modes or produce an error if all modes not given
             if( !checkTidesZero(lambda1, lambda2) )
                 ABORT_NONZERO_TIDES(waveFlags);
             /* Call the waveform driver routine */
-            ret = XLALSimIMRPSpinInspiralRDGenerator(hplus, hcross, phi0,
-                    deltaT, m1, m2, f_min, r, i, S1x, S1y, S1z, S2x, S2y, S2z,
-                    phaseO, XLALSimInspiralGetFrameAxis(waveFlags), 0);
+            ret = XLALSimSpinInspiralGenerator(hplus, hcross, phi0,
+					       deltaT, m1, m2, f_min, f_ref, r, i, S1x, S1y, S1z, S2x, S2y, S2z,
+					       phaseO, amplitudeO, waveFlags, nonGRparams);
+            break;
+
+        case PhenSpinTaylorRD:
+            /* Waveform-specific sanity checks */
+            if( !checkTidesZero(lambda1, lambda2) )
+                ABORT_NONZERO_TIDES(waveFlags);
+            /* Call the waveform driver routine */
+            ret = XLALSimIMRPhenSpinInspiralRDGenerator(hplus, hcross, phi0,
+							deltaT, m1, m2, f_min, f_ref, r, i, S1x, S1y, S1z, S2x, S2y, S2z,
+							phaseO, amplitudeO,  waveFlags, nonGRparams);
             break;
 
         case SEOBNRv1:
@@ -1753,6 +1887,7 @@ int XLALSimInspiralImplementedTDApproximants(
         case EOBNRv2HM:
         case SpinTaylorT4:
         case IMRPhenomB:
+        case PhenSpinTaylor:
         case PhenSpinTaylorRD:
         case SEOBNRv1:
             return 1;
@@ -1808,13 +1943,13 @@ int XLALGetApproximantFromString(const CHAR *inString)
   {
     return TaylorF2;
   }
-  else if ( strstr(inString, "PhenSpinTaylorRDF" ) )
-  {
-    return PhenSpinTaylorRDF;
-  }
   else if ( strstr(inString, "PhenSpinTaylorRD" ) )
   {
     return PhenSpinTaylorRD;
+  }
+  else if ( strstr(inString, "PhenSpinTaylor" ) )
+  {
+    return PhenSpinTaylor;
   }
   else if ( strstr(inString, "SpinTaylorT4" ) )
   {
@@ -1977,8 +2112,8 @@ char* XLALGetStringFromApproximant(Approximant approximant)
       return strdup("TaylorF2RedSpin");
     case TaylorF2:
       return strdup("TaylorF2");
-    case PhenSpinTaylorRDF:
-      return strdup("PhenSpinTaylorRDF");
+    case PhenSpinTaylor:
+      return strdup("PhenSpinTaylor");
     case PhenSpinTaylorRD:
       return strdup("PhenSpinTaylorRD");
     case SpinTaylorT4:
@@ -2191,30 +2326,53 @@ int XLALGetFrameAxisFromString(const CHAR *inString)
     return LAL_SIM_INSPIRAL_FRAME_AXIS_VIEW;
 }
 
-/** 
- * XLAL function to determine adaptive integration flag from a string.  Returns
- * 1 if string contains 'fixedStep', otherwise returns 0 to signal 
- * adaptive integration should be used.
- */
-int XLALGetAdaptiveIntFromString(const CHAR *inString) 
+int XLALGetHigherModesFromString(const CHAR *inString) 
 {
-  if (strstr(inString, "fixedStep"))
-    return 1;
-  else 
-    return 0;
-}
-
-/** 
- * XLAL function to determine inspiral-only flag from a string.  Returns
- * 1 if string contains 'inspiralOnly', otherwise returns 0 to signal 
- * full inspiral-merger-ringdown waveform should be generated.
- */
-int XLALGetInspiralOnlyFromString(const CHAR *inString)
-{
-  if (strstr(inString, "inspiralOnly"))
-    return 1;
+  if (strstr(inString, "L3"))
+    return  LAL_SIM_INSPIRAL_MODES_CHOICE_3L;
+  else if (strstr(inString, "L4"))
+    return  LAL_SIM_INSPIRAL_MODES_CHOICE_3L;
+  else if (strstr(inString, "L23"))
+    return  LAL_SIM_INSPIRAL_MODES_CHOICE_2AND3L;
+  else if (strstr(inString, "L24"))
+    return  LAL_SIM_INSPIRAL_MODES_CHOICE_2AND4L;
+  else if (strstr(inString, "L34"))
+    return  LAL_SIM_INSPIRAL_MODES_CHOICE_3AND4L;
+  else if (strstr(inString, "L234"))
+    return  LAL_SIM_INSPIRAL_MODES_CHOICE_2AND3AND4L;
+  else if (strstr(inString, "ALL_MODES"))
+    return  LAL_SIM_INSPIRAL_MODES_CHOICE_ALL;
   else
-    return 0;
+    return LAL_SIM_INSPIRAL_MODES_CHOICE_DEFAULT;
+};
+
+/** Appends the start and end time series together, skipping the redundant first
+ * sample of end.  Frees end before returning a pointer to the result, which is
+ * the resized start series.  
+ **/
+
+int XLALAppendTS(REAL8TimeSeries *start, REAL8TimeSeries *end, REAL8TimeSeries *out) 
+{
+  if (out) {
+    XLALPrintError("*** XLALAppendTS ERROR: non-null out time series passed\n");
+#if 1
+    fprintf(stderr,"*** XLALAppendTS ERROR: non-null out time series passed\n");
+#endif
+    return XLAL_EFAULT;
+  }
+  else {
+    unsigned int origlen = start->data->length;
+    out = XLALCreateREAL8TimeSeries( start->name, &(start->epoch), 0., start->deltaT , &(start->sampleUnits), origlen+end->data->length-1);
+    memcpy(out->data->data,           start->data->data, (start->data->length)*sizeof(REAL8));
+    memcpy(out->data->data + origlen, end->data->data+1, (end->data->length-1)*sizeof(REAL8));
+    XLALGPSAdd(&(out->epoch), -end->deltaT*(end->data->length - 1));
+    return XLAL_SUCCESS;
+  }
 }
 
-
+int XLALAppendTSandFree(REAL8TimeSeries *start, REAL8TimeSeries *end, REAL8TimeSeries *out) {
+  XLALAppendTS(start,end,out);
+  XLALDestroyREAL8TimeSeries(start);
+  XLALDestroyREAL8TimeSeries(end);
+  return XLAL_SUCCESS;
+}

@@ -42,8 +42,6 @@
 #define LALSIMINSPIRAL_ST4_TEST_FREQBOUND 		1029
 #define LALSIMINSPIRAL_ST4_DERIVATIVE_OMEGANONPOS 	1030
 
-/* (2x) Highest available PN order - UPDATE IF NEW ORDERS ADDED!!*/
-#define LAL_MAX_PN_ORDER 8
 /* Number of variables used for precessing waveforms */
 #define LAL_NUM_ST4_VARIABLES 14
 /* absolute and relative tolerance for adaptive Runge-Kutta ODE integrator */
@@ -54,45 +52,12 @@
 #define LAL_ST4_ABSOLUTE_TOLERANCE 1.e-12
 #define LAL_ST4_RELATIVE_TOLERANCE 1.e-12
 
-/**
- * Struct containing all of the non-dynamical coefficients needed
- * to evolve a spinning, precessing binary and produce a waveform.
- * This struct is passed to the 2 static functions below
- */
-typedef struct tagXLALSimInspiralSpinTaylorT4Coeffs
-{
-	REAL8 M; 			// total mass in seconds
-	REAL8 eta; 			// symmetric mass ratio
-	REAL8 wdotnewt; //leading order coefficient of wdot = \f$\dot{\omega}\f$
-	REAL8 wdotcoeff[LAL_MAX_PN_ORDER]; // coeffs. of PN corrections to wdot
-	REAL8 wdotlogcoeff; 		// coefficient of log term in wdot
-	REAL8 Ecoeff[LAL_MAX_PN_ORDER]; // coeffs. of PN corrections to energy
-	REAL8 wdotSO15s1, wdotSO15s2; 	// non-dynamical 1.5PN SO corrections
-	REAL8 wdotSS2; 			// non-dynamical 2PN SS correction
-	REAL8 wdotSelfSS2; 	// non-dynamical 2PN self-spin correction
-	REAL8 wdotQM2; 	// non-dynamical 2PN quadrupole-monopole correction
-	REAL8 wdotSO25s1, wdotSO25s2; 	// non-dynamical 2.5PN SO corrections
-	REAL8 ESO15s1, ESO15s2; 	// non-dynamical 1.5PN SO corrections
-	REAL8 ESS2; 			// non-dynamical 2PN SS correction
-	REAL8 ESelfSS2; 	// non-dynamical 2PN self-spin correction
-	REAL8 EQM2; 	// non-dynamical 2PN quadrupole-monopole correction
-	REAL8 ESO25s1, ESO25s2; 	// non-dynamical 2.5PN SO corrections 
-	REAL8 LNhatSO15s1, LNhatSO15s2; // non-dynamical 1.5PN SO corrections
-	REAL8 LNhatSS2; 		// non-dynamical 2PN SS correction 
-	REAL8 wdottidal5pn;		// leading order tidal correction 
-	REAL8 wdottidal6pn;	// next to leading order tidal correction
-	REAL8 Etidal5pn;	// leading order tidal correction to energy
-	REAL8 Etidal6pn; // next to leading order tidal correction to energy
-	REAL8 fStart; 			// starting GW frequency of integration
-	REAL8 fEnd; 			// ending GW frequency of integration
-} XLALSimInspiralSpinTaylorT4Coeffs;
 
 /* Declarations of static functions - defined below */
 static int XLALSimInspiralSpinTaylorT4StoppingTest(double t, 
 	const double values[], double dvalues[], void *mparams);
 static int XLALSimInspiralSpinTaylorT4Derivatives(double t, 
 	const double values[], double dvalues[], void *mparams);
-
 
 
 /**
@@ -157,7 +122,7 @@ int XLALSimInspiralPNEvolveOrbitSpinTaylorT4(
 	)
 {
     INT4 intreturn;
-    XLALSimInspiralSpinTaylorT4Coeffs params;/* Frequently used coefficients */
+    LALSimInspiralSpinTaylorT4Coeffs params;/* Frequently used coefficients */
     ark4GSLIntegrator *integrator = NULL;     /* GSL integrator object */
     REAL8 yinit[LAL_NUM_ST4_VARIABLES];       /* initial values of parameters */
     REAL8Array *yout;	 /* time series of variables returned from integrator */
@@ -203,7 +168,7 @@ int XLALSimInspiralPNEvolveOrbitSpinTaylorT4(
     }
 
     /* Zero the coefficients */
-    memset(&params, 0, sizeof(XLALSimInspiralSpinTaylorT4Coeffs));
+    memset(&params, 0, sizeof(LALSimInspiralSpinTaylorT4Coeffs));
 
     /* Define mass variables and other coefficients */
     m1m2 = m1 / m2;
@@ -295,23 +260,7 @@ int XLALSimInspiralPNEvolveOrbitSpinTaylorT4(
      * to the evolution equations for omega, L, S1 and S2 and binary energy E.
      * Flags control which spin corrections are included
      */
-    params.LNhatSO15s1 	= 0.;
-    params.LNhatSO15s2 	= 0.;
-    params.wdotSO15s1 	= 0.;
-    params.wdotSO15s2 	= 0.;
-    params.ESO15s1 	= 0.;
-    params.ESO15s2 	= 0.;
-    params.LNhatSS2 	= 0.;
-    params.wdotSS2 	= 0.;
-    params.ESS2 	= 0.;
-    params.wdotSelfSS2 	= 0.;
-    params.ESelfSS2 	= 0.;
-    params.wdotQM2 	= 0.;
-    params.EQM2 	= 0.;
-    params.wdotSO25s1 	= 0.;
-    params.wdotSO25s2 	= 0.;
-    params.ESO25s1 	= 0.;
-    params.ESO25s2 	= 0.;
+    XLALInitialiseSpinTaylorT4Coeffs(&params);
     if( (interactionFlags & LAL_SIM_INSPIRAL_INTERACTION_SPIN_ORBIT_15PN) == LAL_SIM_INSPIRAL_INTERACTION_SPIN_ORBIT_15PN )
     {
         params.LNhatSO15s1 	= 2. + 3./2. * m2m1;
@@ -330,7 +279,8 @@ int XLALSimInspiralPNEvolveOrbitSpinTaylorT4(
     if( (interactionFlags & LAL_SIM_INSPIRAL_INTERACTION_SPIN_SPIN_SELF_2PN) == LAL_SIM_INSPIRAL_INTERACTION_SPIN_SPIN_SELF_2PN ) /* ADD ME!! */
     {
         params.wdotSelfSS2 	= 0.;
-        params.ESelfSS2 	= 0.;
+        params.ESelfSS2s1 	= 0.;
+        params.ESelfSS2s2 	= 0.;
     }
     if( (interactionFlags & LAL_SIM_INSPIRAL_INTERACTION_QUAD_MONO_2PN) == LAL_SIM_INSPIRAL_INTERACTION_QUAD_MONO_2PN ) /* ADD ME!! */
     {
@@ -561,8 +511,8 @@ static int XLALSimInspiralSpinTaylorT4StoppingTest(
 	)
 {
     REAL8 omega, v, test, omegaStart, omegaEnd;
-    XLALSimInspiralSpinTaylorT4Coeffs *params 
-            = (XLALSimInspiralSpinTaylorT4Coeffs*) mparams;
+    LALSimInspiralSpinTaylorT4Coeffs *params 
+            = (LALSimInspiralSpinTaylorT4Coeffs*) mparams;
     /* Spin-corrections to energy (including dynamical terms) */
     REAL8 Espin15 = 0., Espin2 = 0., Espin25 = 0.;
 
@@ -601,7 +551,12 @@ static int XLALSimInspiralSpinTaylorT4StoppingTest(
             Espin2 += params->ESS2  * (S1dotS2 - 3. * LNdotS1 * LNdotS2);
         }
 
-        if( params->ESelfSS2 != 0. )
+        if( params->ESelfSS2s1 != 0. )
+        {   /* Compute 2PN self-spin correction to energy */
+            Espin2 += 0.; /* ADD ME!! */
+        }
+
+        if( params->ESelfSS2s2 != 0. )
         {   /* Compute 2PN self-spin correction to energy */
             Espin2 += 0.; /* ADD ME!! */
         }
@@ -673,8 +628,8 @@ static int XLALSimInspiralSpinTaylorT4Derivatives(
     REAL8 OmegaEx, OmegaEy, OmegaEz, OmegaSx, OmegaSy, OmegaSz;
     REAL8 wspin15 = 0., wspin2 = 0., wspin25 = 0.;
 
-    XLALSimInspiralSpinTaylorT4Coeffs *params 
-            = (XLALSimInspiralSpinTaylorT4Coeffs*) mparams;
+    LALSimInspiralSpinTaylorT4Coeffs *params 
+            = (LALSimInspiralSpinTaylorT4Coeffs*) mparams;
 
     UNUSED(t);
 
@@ -853,7 +808,6 @@ static REAL8TimeSeries *appendTSandFree(REAL8TimeSeries *start,
 
     return start;        
 }
-
 
 /**
  * Driver routine to compute a precessing post-Newtonian inspiral waveform

@@ -22,8 +22,8 @@
 
 #include <lal/LALDatatypes.h>
 #include <lal/LALSimIMR.h>
-#include  <lal/LALSimInspiralWaveformFlags.h>
-#include  <lal/LALSimInspiralTestGRParams.h>
+#include <lal/LALSimInspiralWaveformFlags.h>
+#include <lal/LALSimInspiralTestGRParams.h>
 
 #if defined(__cplusplus)
 extern "C" {
@@ -32,6 +32,9 @@ extern "C" {
 #endif
 
 #define LAL_PN_MODE_L_MAX 3
+
+/* (2x) Highest available PN order - UPDATE IF NEW ORDERS ADDED!!*/
+#define LAL_MAX_PN_ORDER 8
 
 /** Enum that specifies the PN approximant to be used in computing the waveform.
 */
@@ -62,8 +65,8 @@ typedef enum {
    SpinTaylorT4,	/**< Spinning case T4 models (lalsimulation's equivalent of SpinTaylorFrameless) */
    SpinTaylorFrameless,	/**< Spinning case PN models (replace SpinTaylor by removing the coordinate singularity) */
    SpinTaylor,		/**< Spinning case PN models (should replace SpinTaylorT3 in the future) */
+   PhenSpinTaylor,      /**< Inspiral part of the PhenSpinTaylorRD. */
    PhenSpinTaylorRD,	/**< Phenomenological waveforms, interpolating between a T4 spin-inspiral and the ringdown. */
-   PhenSpinTaylorRDF,	/**< UNDOCUMENTED */
    SpinQuadTaylor,	/**< Spinning case PN models with quadrupole-monopole and self-spin interaction. */
    FindChirpSP,		/**< The stationary phase templates implemented by FindChirpSPTemplate in the findchirp package (equivalent to TaylorF2 at twoPN order). */
    FindChirpPTF,	/**< UNDOCUMENTED */
@@ -473,19 +476,10 @@ int XLALGetInteractionFromString(const CHAR *inString);
 int XLALGetFrameAxisFromString(const CHAR *inString);
 
 /** 
- * XLAL function to determine adaptive integration flag from a string.  Returns
- * 1 if string contains 'fixedStep', otherwise returns 0 to signal 
- * adaptive integration should be used.
+ * XLAL function to determine adaptive integration flag from a string.  
+ * Returns one of enum values as name matches case of enum.
  */
-int XLALGetAdaptiveIntFromString(const CHAR *inString);
-
-/** 
- * XLAL function to determine inspiral-only flag from a string.  Returns
- * 1 if string contains 'inspiralOnly', otherwise returns 0 to signal 
- * full inspiral-merger-ringdown waveform should be generated.
- */
-int XLALGetInspiralOnlyFromString(const CHAR *inString);
-
+int XLALGetHigherModesFromString(const CHAR *inString);
 
 /**
  * DEPRECATED: USE XLALSimInspiralChooseTDWaveform() INSTEAD
@@ -1412,6 +1406,72 @@ int XLALSimInspiralTaylorF2RedSpinComputeNoiseMoments(
     REAL8 fLow,             /**< low frequency cutoff (Hz) */
     REAL8 df
 );
+
+/**
+ * Struct containing all of the non-dynamical coefficients needed
+ * to evolve a spinning, precessing binary and produce a waveform.
+ */
+typedef struct tagLALSimInspiralSpinTaylorT4Coeffs
+{
+	REAL8 M; 			   // total mass in seconds
+	REAL8 eta; 			   // symmetric mass ratio
+        REAL8 m1Bym2;                      // ratio m1/m2
+        REAL8 m1ByM;                       // ratio m1/M
+        REAL8 m2ByM;                       // ratio m2/M
+        REAL8 dmByM;                       // ratio dm/M
+	REAL8 wdotnewt;                    //leading order coefficient of wdot = \f$\dot{\omega}\f$
+	REAL8 wdotcoeff[LAL_MAX_PN_ORDER]; // coeffs. of PN corrections to wdot
+	REAL8 wdotlogcoeff; 		   // coefficient of log term in wdot
+	REAL8 wdotSO15s1, wdotSO15s2; 	   // non-dynamical 1.5PN SO corrections
+        REAL8 wdotSS2,wdotSSO2; 	   // non-dynamical 2PN SS correction
+        REAL8 wdotSelfSS2,wdotSelfSSO2;    // non-dynamical 2PN self-spin correction
+	REAL8 wdotQM2; 	                   // non-dynamical 2PN quadrupole-monopole correction
+	REAL8 wdotSO25s1,wdotSO25s2; 	   // non-dynamical 2.5PN SO corrections
+	REAL8 wdotSO3s1,wdotSO3s2; 	   // non-dynamical 2.5PN SO corrections
+	REAL8 Enewt;                       // coeffs. of PN corrections to energy
+	REAL8 Ecoeff[LAL_MAX_PN_ORDER];    // coeffs. of PN corrections to energy
+	REAL8 ESO15s1, ESO15s2; 	   // non-dynamical 1.5PN SO corrections
+        REAL8 ESS2,ESSO2; 		   // non-dynamical 2PN SS correction
+        REAL8 ESelfSSO2s1,ESelfSSO2s2; 	   // non-dynamical 2PN self-spin correction
+        REAL8 ESelfSS2s1,ESelfSS2s2; 	           // non-dynamical 2PN self-spin correction
+	REAL8 EQM2; 	                   // non-dynamical 2PN quadrupole-monopole correction
+	REAL8 ESO25s1, ESO25s2; 	   // non-dynamical 2.5PN SO corrections 
+	REAL8 LNhatSO15s1, LNhatSO15s2;    // non-dynamical 1.5PN SO corrections
+	REAL8 LNhatSS2; 		   // non-dynamical 2PN SS correction
+        REAL8 S1dot15,S2dot15;             // non-dynamical leading SO term in S1,2dot
+        REAL8 S1dot25,S2dot25;             // non-dynamical Next to leading SO correction to S1,2dot
+	REAL8 wdottidal5pn;		   // leading order tidal correction 
+	REAL8 wdottidal6pn;	           // next to leading order tidal correction
+	REAL8 Etidal5pn;	           // leading order tidal correction to energy
+	REAL8 Etidal6pn;                   // next to leading order tidal correction to energy
+	REAL8 fStart; 			   // starting GW frequency of integration
+	REAL8 fEnd; 			   // ending GW frequency of integration
+        REAL8 dt;                          // sampling in seconds
+} LALSimInspiralSpinTaylorT4Coeffs;
+
+int XLALInitialiseSpinTaylorT4Coeffs(LALSimInspiralSpinTaylorT4Coeffs *coeff);
+
+int XLALSimInspiralTransformInitialConditionsLtoJ(
+		REAL8 *S1x,	/**< S1 x component (returned) */
+		REAL8 *S1y,	/**< S1 y component (returned) */
+		REAL8 *S1z,	/**< S1 z component (returned) */
+		REAL8 *S2x,	/**< S2 x component (returned) */
+		REAL8 *S2y,	/**< S2 y component (returned) */
+		REAL8 *S2z,	/**< S2 z component (returned) */
+		REAL8 *LNhx,	/**< hat Newtonian L x component (returned) */
+		REAL8 *LNhy,    /**< hat Newtonian L y component (returned) */
+		REAL8 *LNhz,    /**< hat Newtonian L z component (returned) */
+		REAL8 S1xIn,	/**< input S1 x component */
+		REAL8 S1yIn,	/**< input S1 y component */
+		REAL8 S1zIn,	/**< input S1 z component */
+		REAL8 S2xIn,	/**< input S2 x component */
+		REAL8 S2yIn,	/**< input S2 y component */
+		REAL8 S2zIn,	/**< input S2 z component */
+		REAL8 LNmag  	/**< modulus of the Newtonian angular momentum */);
+
+int XLALAppendTS(REAL8TimeSeries *start, REAL8TimeSeries *end, REAL8TimeSeries *out);
+
+int XLALAppendTSandFree(REAL8TimeSeries *start, REAL8TimeSeries *end, REAL8TimeSeries *out);
 
 #if 0
 { /* so that editors will match succeeding brace */

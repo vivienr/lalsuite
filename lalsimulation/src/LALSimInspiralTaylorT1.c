@@ -161,10 +161,10 @@ XLALSimInspiralTaylorT1Setup(
     ak->av = pow(LAL_C_SI, 3.0)/(LAL_G_SI*ak->m);
 
     /* Taylor co-efficients for E(v). */
-    ak->akdEF.ETaN = XLALSimInspiralPNEnergy_0PNCoeff(ak->nu);
-    ak->akdEF.ETa1 = XLALSimInspiralPNEnergy_2PNCoeff(ak->nu);
-    ak->akdEF.ETa2 = XLALSimInspiralPNEnergy_4PNCoeff(ak->nu);
-    ak->akdEF.ETa3 = XLALSimInspiralPNEnergy_6PNCoeff(ak->nu);
+    ak->akdEF.ETaN = XLALSimInspiralEnergy_0PNCoeff(ak->nu);
+    ak->akdEF.ETa1 = XLALSimInspiralEnergy_2PNCoeff(ak->nu);
+    ak->akdEF.ETa2 = XLALSimInspiralEnergy_4PNCoeff(ak->nu);
+    ak->akdEF.ETa3 = XLALSimInspiralEnergy_6PNCoeff(ak->nu);
 
     /* Taylor co-efficients for dE(v)/dv. */
     ak->akdEF.dETaN = 2.0 * ak->akdEF.ETaN;

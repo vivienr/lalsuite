@@ -20,6 +20,7 @@ lalsimulationinclude_HEADERS = \
 	LALSimulation.h \
 	LALSimNoise.h \
 	LALSimSGWB.h \
+	LALSimIMRPSpinInspiralRD.h \
 	LALSimulationConfig.h \
 	LALSimulationLibVCSInfo.h \
 	LALSimulationVCSInfo.h
@@ -30,7 +31,6 @@ noinst_HEADERS = \
 	LALSimIMREOBNQCCorrection.c \
 	LALSimIMREOBNRv2.h \
 	LALSimIMREOBNewtonianMultipole.c \
-	LALSimInspiralPNCoefficients.c \
 	LALSimInspiraldEnergyFlux.c \
 	LALSimIMRSpinEOBHamiltonian.c \
 	LALSimIMRSpinEOBHcapNumericalDerivative.c \
@@ -54,6 +54,7 @@ liblalsimulation_la_SOURCES = \
 	LALSimInspiralWaveformFlags.c \
 	LALSimInspiralTestGRParams.c \
 	LALSimInspiral.c \
+	LALSimInspiralPNCoefficients.c \
 	LALSimInspiralPNMode.c \
 	LALSimInspiralSpinTaylorT4.c \
 	LALSimInspiralTaylorEt.c \

@@ -1933,6 +1933,10 @@ void XLALSimInjectNinjaSignals(
         SimInspiralTable* events
 );
 
+int XLALGetAdaptiveIntFromString(const CHAR *inString);
+
+int XLALGetInspiralOnlyFromString(const CHAR *inString);
+
 /*---------------------------------------------------------------- */
 
 #ifdef  __cplusplus

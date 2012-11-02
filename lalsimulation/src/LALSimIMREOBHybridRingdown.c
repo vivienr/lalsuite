@@ -73,12 +73,12 @@ static INT4 XLALFinalMassSpin(
 static INT4 XLALSimIMREOBHybridRingdownWave(
     REAL8Vector			*rdwave1,   /**<< Real part of ringdown */
     REAL8Vector			*rdwave2,   /**<< Imaginary part of ringdown */
-    const REAL8         dt,         /**<< Sampling interval */
-	const REAL8         mass1,      /**<< First component mass (in Solar masses) */
-    const REAL8         mass2,      /**<< Second component mass (in Solar masses) */
+    const REAL8                 dt,         /**<< Sampling interval */
+    const REAL8                 mass1,      /**<< First component mass (in Solar masses) */
+    const REAL8                 mass2,      /**<< Second component mass (in Solar masses) */
     REAL8VectorSequence		*inspwave1, /**<< Values and derivatives of real part of inspiral waveform */
     REAL8VectorSequence		*inspwave2, /**<< Values and derivatives of Imaginary part of inspiral waveform */
-    COMPLEX16Vector			*modefreqs, /**<< Complex frequencies of ringdown (scaled by total mass) */
+    COMPLEX16Vector		*modefreqs, /**<< Complex frequencies of ringdown (scaled by total mass) */
     REAL8Vector			*matchrange /**<< Times which determine the comb size for ringdown attachment */
 	)
 {
