@@ -1417,22 +1417,22 @@ int XLALSimInspiralTransformInitialConditionsLtoJ(
 int XLALSimInspiralChooseWaveform(
     REAL8TimeSeries **hplus,                    /**< +-polarization waveform */
     REAL8TimeSeries **hcross,                   /**< x-polarization waveform */
-    REAL8 phi0,                                 /**< peak phase */
-    REAL8 deltaT,                               /**< sampling interval */
-    REAL8 m1,                                   /**< mass of companion 1 */
-    REAL8 m2,                                   /**< mass of companion 2 */
+    REAL8 phiRef,                               /**< reference orbital phase (rad) */
+    REAL8 deltaT,                               /**< sampling interval (s) */
+    REAL8 m1,                                   /**< mass of companion 1 (kg) */
+    REAL8 m2,                                   /**< mass of companion 2 (kg) */
     REAL8 S1x,                                  /**< x-component of the dimensionless spin of object 1 */
     REAL8 S1y,                                  /**< y-component of the dimensionless spin of object 1 */
     REAL8 S1z,                                  /**< z-component of the dimensionless spin of object 1 */
     REAL8 S2x,                                  /**< x-component of the dimensionless spin of object 2 */
     REAL8 S2y,                                  /**< y-component of the dimensionless spin of object 2 */
     REAL8 S2z,                                  /**< z-component of the dimensionless spin of object 2 */
-    REAL8 f_min,                                /**< start frequency (Hz) */
-    REAL8 f_ref,                                /**< reference frequency (Hz) */
-    REAL8 r,                                    /**< distance of source */
+    REAL8 f_min,                                /**< starting GW frequency (Hz) */
+    REAL8 f_ref,                                /**< reference GW frequency (Hz) */
+    REAL8 r,                                    /**< distance of source (m) */
     REAL8 i,                                    /**< inclination of source (rad) */
-    REAL8 lambda1,                              /**< (tidal deformability of mass 1) / (total mass)^5 (dimensionless) */
-    REAL8 lambda2,                              /**< (tidal deformability of mass 2) / (total mass)^5 (dimensionless) */
+    REAL8 lambda1,                              /**< (tidal deformability of mass 1) / m1^5 (dimensionless) */
+    REAL8 lambda2,                              /**< (tidal deformability of mass 2) / m2^5 (dimensionless) */
     LALSimInspiralWaveformFlags *waveFlags,     /**< Set of flags to control special behavior of some waveform families. Pass in NULL (or None in python) for default flags */
     LALSimInspiralTestGRParam *nonGRparams, 	/**< Linked list of non-GR parameters. Pass in NULL (or None in python) for standard GR waveforms */
     int amplitudeO,                             /**< twice post-Newtonian amplitude order */
@@ -1443,7 +1443,7 @@ int XLALSimInspiralChooseWaveform(
     XLALPrintDeprecationWarning("XLALSimInspiralChooseWaveform", 
             "XLALSimInspiralChooseTDWaveform");
 
-    return XLALSimInspiralChooseTDWaveform(hplus, hcross, phi0, deltaT, m1, m2,
+    return XLALSimInspiralChooseTDWaveform(hplus, hcross, phiRef, deltaT, m1, m2,
             S1x, S1y, S1z, S2x, S2y, S2z, f_min, f_ref, r, i, lambda1, lambda2,
             waveFlags, nonGRparams, amplitudeO, phaseO, approximant);
 }
@@ -1459,23 +1459,23 @@ int XLALSimInspiralChooseWaveform(
 int XLALSimInspiralChooseTDWaveform(
     REAL8TimeSeries **hplus,                    /**< +-polarization waveform */
     REAL8TimeSeries **hcross,                   /**< x-polarization waveform */
-    REAL8 phi0,                                 /**< peak phase */
-    REAL8 deltaT,                               /**< sampling interval */
-    REAL8 m1,                                   /**< mass of companion 1 */
-    REAL8 m2,                                   /**< mass of companion 2 */
+    REAL8 phiRef,                               /**< reference orbital phase (rad) */
+    REAL8 deltaT,                               /**< sampling interval (s) */
+    REAL8 m1,                                   /**< mass of companion 1 (kg) */
+    REAL8 m2,                                   /**< mass of companion 2 (kg) */
     REAL8 S1x,                                  /**< x-component of the dimensionless spin of object 1 */
     REAL8 S1y,                                  /**< y-component of the dimensionless spin of object 1 */
     REAL8 S1z,                                  /**< z-component of the dimensionless spin of object 1 */
     REAL8 S2x,                                  /**< x-component of the dimensionless spin of object 2 */
     REAL8 S2y,                                  /**< y-component of the dimensionless spin of object 2 */
     REAL8 S2z,                                  /**< z-component of the dimensionless spin of object 2 */
-    REAL8 f_min,                                /**< start frequency (Hz) */
-    REAL8 f_ref,                                /**< reference frequency (Hz) */
-    REAL8 r,                                    /**< distance of source */
+    REAL8 f_min,                                /**< starting GW frequency (Hz) */
+    REAL8 f_ref,                                /**< reference GW frequency (Hz) */
+    REAL8 r,                                    /**< distance of source (m) */
     REAL8 i,                                    /**< inclination of source (rad) */
-    REAL8 lambda1,                              /**< (tidal deformability of mass 1) / (total mass)^5 (dimensionless) */
-    REAL8 lambda2,                              /**< (tidal deformability of mass 2) / (total mass)^5 (dimensionless) */
-    LALSimInspiralWaveformFlags *waveFlags,     /**< Structure containing flags to control special behavior of some waveform families. Pass in NULL (or None in python) for default flags */
+    REAL8 lambda1,                              /**< (tidal deformability of mass 1) / m1^5 (dimensionless) */
+    REAL8 lambda2,                              /**< (tidal deformability of mass 2) / m2^5 (dimensionless) */
+    LALSimInspiralWaveformFlags *waveFlags,     /**< Set of flags to control special behavior of some waveform families. Pass in NULL (or None in python) for default flags */
     LALSimInspiralTestGRParam *nonGRparams, 	/**< Linked list of non-GR parameters. Pass in NULL (or None in python) for standard GR waveforms */
     int amplitudeO,                             /**< twice post-Newtonian amplitude order */
     int phaseO,                                 /**< twice post-Newtonian order */
@@ -1526,7 +1526,7 @@ int XLALSimInspiralChooseTDWaveform(
             if( !checkTidesZero(lambda1, lambda2) )
                 ABORT_NONZERO_TIDES(waveFlags);
             /* Call the waveform driver routine */
-            ret = XLALSimInspiralTaylorEtPNGenerator(hplus, hcross, phi0, v0,
+            ret = XLALSimInspiralTaylorEtPNGenerator(hplus, hcross, phiRef, v0,
                     deltaT, m1, m2, f_min, r, i, amplitudeO, phaseO);
             break;
 
@@ -1539,8 +1539,8 @@ int XLALSimInspiralChooseTDWaveform(
             if( !checkTidesZero(lambda1, lambda2) )
                 ABORT_NONZERO_TIDES(waveFlags);
             /* Call the waveform driver routine */
-            ret = XLALSimInspiralTaylorT1PNGenerator(hplus, hcross, phi0, v0,
-                    deltaT, m1, m2, f_min, r, i, amplitudeO, phaseO);
+            ret = XLALSimInspiralTaylorT1PNGenerator(hplus, hcross, phiRef, v0,
+                    deltaT, m1, m2, f_min, f_ref, r, i, amplitudeO, phaseO);
             break;
 
         case TaylorT2:
@@ -1552,8 +1552,8 @@ int XLALSimInspiralChooseTDWaveform(
             if( !checkTidesZero(lambda1, lambda2) )
                 ABORT_NONZERO_TIDES(waveFlags);
             /* Call the waveform driver routine */
-            ret = XLALSimInspiralTaylorT2PNGenerator(hplus, hcross, phi0, v0,
-                    deltaT, m1, m2, f_min, r, i, amplitudeO, phaseO);
+            ret = XLALSimInspiralTaylorT2PNGenerator(hplus, hcross, phiRef, v0,
+                    deltaT, m1, m2, f_min, f_ref, r, i, amplitudeO, phaseO);
             break;
 
         case TaylorT3:
@@ -1565,8 +1565,8 @@ int XLALSimInspiralChooseTDWaveform(
             if( !checkTidesZero(lambda1, lambda2) )
                 ABORT_NONZERO_TIDES(waveFlags);
             /* Call the waveform driver routine */
-            ret = XLALSimInspiralTaylorT3PNGenerator(hplus, hcross, phi0, v0,
-                    deltaT, m1, m2, f_min, r, i, amplitudeO, phaseO);
+            ret = XLALSimInspiralTaylorT3PNGenerator(hplus, hcross, phiRef, v0,
+                    deltaT, m1, m2, f_min, f_ref, r, i, amplitudeO, phaseO);
             break;
 
         case TaylorT4:
@@ -1578,8 +1578,8 @@ int XLALSimInspiralChooseTDWaveform(
             if( !checkTidesZero(lambda1, lambda2) )
                 ABORT_NONZERO_TIDES(waveFlags);
             /* Call the waveform driver routine */
-            ret = XLALSimInspiralTaylorT4PNGenerator(hplus, hcross, phi0, v0,
-                    deltaT, m1, m2, f_min, r, i, amplitudeO, phaseO);
+            ret = XLALSimInspiralTaylorT4PNGenerator(hplus, hcross, phiRef, v0,
+                    deltaT, m1, m2, f_min, f_ref, r, i, amplitudeO, phaseO);
             break;
 
         /* non-spinning inspiral-merger-ringdown models */
@@ -1593,7 +1593,7 @@ int XLALSimInspiralChooseTDWaveform(
                 ABORT_NONZERO_TIDES(waveFlags);
             /* Call the waveform driver routine */
             // NB: f_max = 0 will generate up to the ringdown cut-off frequency
-            ret = XLALSimIMRPhenomAGenerateTD(hplus, hcross, phi0, deltaT,
+            ret = XLALSimIMRPhenomAGenerateTD(hplus, hcross, phiRef, deltaT,
                     m1, m2, f_min, 0., r, i);
             break;
 
@@ -1607,7 +1607,7 @@ int XLALSimInspiralChooseTDWaveform(
                 ABORT_NONZERO_TIDES(waveFlags);
             /* Call the waveform driver routine */
             // FIXME: need to create a function to take in different modes or produce an error if all modes not given
-            ret = XLALSimIMREOBNRv2AllModes(hplus, hcross, phi0, deltaT,
+            ret = XLALSimIMREOBNRv2AllModes(hplus, hcross, phiRef, deltaT,
                     m1, m2, f_min, r, i);
             break;
 
@@ -1620,7 +1620,7 @@ int XLALSimInspiralChooseTDWaveform(
             if( !checkTidesZero(lambda1, lambda2) )
                 ABORT_NONZERO_TIDES(waveFlags);
             /* Call the waveform driver routine */
-            ret = XLALSimIMREOBNRv2DominantMode(hplus, hcross, phi0, deltaT,
+            ret = XLALSimIMREOBNRv2DominantMode(hplus, hcross, phiRef, deltaT,
                     m1, m2, f_min, r, i);
             break;
 
@@ -1652,7 +1652,7 @@ int XLALSimInspiralChooseTDWaveform(
             amplitudeO = amplitudeO <= MAX_PRECESSING_AMP_PN_ORDER ? 
                     amplitudeO : MAX_PRECESSING_AMP_PN_ORDER;
             /* Call the waveform driver routine */
-            ret = XLALSimInspiralSpinTaylorT4(hplus, hcross, phi0, v0, deltaT,
+            ret = XLALSimInspiralSpinTaylorT4(hplus, hcross, phiRef, v0, deltaT,
                     m1, m2, f_min, f_ref, r, S1x, S1y, S1z, S2x, S2y, S2z,
                     LNhatx, LNhaty, LNhatz, E1x, E1y, E1z, lambda1, lambda2,
                     XLALSimInspiralGetInteraction(waveFlags),
@@ -1670,7 +1670,7 @@ int XLALSimInspiralChooseTDWaveform(
                 ABORT_NONZERO_TIDES(waveFlags);
             /* Call the waveform driver routine */
             // NB: f_max = 0 will generate up to the ringdown cut-off frequency
-            ret = XLALSimIMRPhenomBGenerateTD(hplus, hcross, phi0, deltaT,
+            ret = XLALSimIMRPhenomBGenerateTD(hplus, hcross, phiRef, deltaT,
                     m1, m2, XLALSimIMRPhenomBComputeChi(m1, m2, S1z, S2z),
                     f_min, 0., r, i);
             break;
@@ -1704,8 +1704,8 @@ int XLALSimInspiralChooseTDWaveform(
             if( !checkTidesZero(lambda1, lambda2) )
                 ABORT_NONZERO_TIDES(waveFlags);
             /* Call the waveform driver routine */
-            ret = XLALSimIMRSpinAlignedEOBWaveform(hplus, hcross, phi0, deltaT,
-                    m1, m2, f_min, r, i, S1z, S2z);
+            ret = XLALSimIMRSpinAlignedEOBWaveform(hplus, hcross, phiRef, 
+                    deltaT, m1, m2, f_min, r, i, S1z, S2z);
             break;
 
         default:
@@ -1726,22 +1726,22 @@ int XLALSimInspiralChooseTDWaveform(
  */
 int XLALSimInspiralChooseFDWaveform(
     COMPLEX16FrequencySeries **htilde,          /**< FD waveform */
-    REAL8 phi0,                                 /**< peak phase */
-    REAL8 deltaF,                               /**< sampling interval */
-    REAL8 m1,                                   /**< mass of companion 1 */
-    REAL8 m2,                                   /**< mass of companion 2 */
+    REAL8 phiRef,                               /**< reference orbital phase (rad) */
+    REAL8 deltaF,                               /**< sampling interval (Hz) */
+    REAL8 m1,                                   /**< mass of companion 1 (kg) */
+    REAL8 m2,                                   /**< mass of companion 2 (kg) */
     UNUSED REAL8 S1x,                           /**< x-component of the dimensionless spin of object 1 */
     UNUSED REAL8 S1y,                           /**< y-component of the dimensionless spin of object 1 */
     REAL8 S1z,                                  /**< z-component of the dimensionless spin of object 1 */
     UNUSED REAL8 S2x,                           /**< x-component of the dimensionless spin of object 2 */
     UNUSED REAL8 S2y,                           /**< y-component of the dimensionless spin of object 2 */
     REAL8 S2z,                                  /**< z-component of the dimensionless spin of object 2 */
-    REAL8 f_min,                                /**< start frequency */
-    REAL8 f_max,                                /**< end frequency */
-    REAL8 r,                                    /**< distance of source */
+    REAL8 f_min,                                /**< starting GW frequency (Hz) */
+    REAL8 f_max,                                /**< ending GW frequency (Hz) */
+    REAL8 r,                                    /**< distance of source (m) */
     UNUSED REAL8 i,                             /**< inclination of source (rad) */
-    REAL8 lambda1,                              /**< (tidal deformability of mass 1) / (total mass)^5 (dimensionless) */
-    REAL8 lambda2,                              /**< (tidal deformability of mass 2) / (total mass)^5 (dimensionless) */
+    REAL8 lambda1,                              /**< (tidal deformability of mass 1) / m1^5 (dimensionless) */
+    REAL8 lambda2,                              /**< (tidal deformability of mass 2) / m2^5 (dimensionless) */
     LALSimInspiralWaveformFlags *waveFlags,     /**< Set of flags to control special behavior of some waveform families. Pass in NULL (or None in python) for default flags */
     LALSimInspiralTestGRParam *nonGRparams, 	/**< Linked list of non-GR parameters. Pass in NULL (or None in python) for standard GR waveforms */
     int amplitudeO,                             /**< twice post-Newtonian amplitude order */
@@ -1794,7 +1794,7 @@ int XLALSimInspiralChooseFDWaveform(
             if( !checkTidesZero(lambda1, lambda2) )
                 ABORT_NONZERO_TIDES(waveFlags);
             /* Call the waveform driver routine */
-            ret = XLALSimInspiralTaylorF2(htilde, phi0, deltaF, m1, m2, f_min,
+            ret = XLALSimInspiralTaylorF2(htilde, phiRef, deltaF, m1, m2, f_min,
                     r, phaseO, amplitudeO);
             break;
 
@@ -1808,7 +1808,7 @@ int XLALSimInspiralChooseFDWaveform(
             if( !checkTidesZero(lambda1, lambda2) )
                 ABORT_NONZERO_TIDES(waveFlags);
             /* Call the waveform driver routine */
-            ret = XLALSimIMRPhenomAGenerateFD(htilde, phi0, deltaF, m1, m2,
+            ret = XLALSimIMRPhenomAGenerateFD(htilde, phiRef, deltaF, m1, m2,
                     f_min, f_max, r);
             break;
 
@@ -1822,7 +1822,7 @@ int XLALSimInspiralChooseFDWaveform(
             if( !checkTidesZero(lambda1, lambda2) )
                 ABORT_NONZERO_TIDES(waveFlags);
             /* Call the waveform driver routine */
-            ret = XLALSimInspiralTaylorF2ReducedSpin(htilde, phi0, deltaF,
+            ret = XLALSimInspiralTaylorF2ReducedSpin(htilde, phiRef, deltaF,
                     m1, m2, XLALSimIMRPhenomBComputeChi(m1, m2, S1z, S2z),
                     f_min, r, phaseO, amplitudeO);
             break;
@@ -1834,7 +1834,7 @@ int XLALSimInspiralChooseFDWaveform(
             if( !checkTransverseSpinsZero(S1x, S1y, S2x, S2y) )
                 ABORT_NONZERO_TRANSVERSE_SPINS(waveFlags);
             /* Call the waveform driver routine */
-            ret = XLALSimInspiralTaylorF2ReducedSpinTidal(htilde, phi0, deltaF,
+            ret = XLALSimInspiralTaylorF2ReducedSpinTidal(htilde, phiRef, deltaF,
                     m1, m2, XLALSimIMRPhenomBComputeChi(m1, m2, S1z, S2z),
                     lambda1, lambda2, f_min, r, phaseO, amplitudeO);
             break;
@@ -1849,7 +1849,7 @@ int XLALSimInspiralChooseFDWaveform(
             if( !checkTidesZero(lambda1, lambda2) )
                 ABORT_NONZERO_TIDES(waveFlags);
             /* Call the waveform driver routine */
-            ret = XLALSimIMRPhenomBGenerateFD(htilde, phi0, deltaF, m1, m2,
+            ret = XLALSimIMRPhenomBGenerateFD(htilde, phiRef, deltaF, m1, m2,
                     XLALSimIMRPhenomBComputeChi(m1, m2, S1z, S2z),
                     f_min, f_max, r);
             break;

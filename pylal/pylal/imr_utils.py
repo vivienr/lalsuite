@@ -135,13 +135,13 @@ def get_instruments_from_coinc_event_table(connection):
 	return instruments
 
 
-def get_segments(connection, xmldoc, table_name, live_time_program, veto_segments_name = None):
+def get_segments(connection, xmldoc, table_name, live_time_program, veto_segments_name = None, data_segments_name = "datasegments"):
 	segs = segments.segmentlistdict()
 
 	if table_name == dbtables.lsctables.CoincInspiralTable.tableName:
 		if live_time_program == "gstlal_inspiral":
-			segs = ligolw_segments.segmenttable_get_by_name(xmldoc, "datasegments").coalesce()
-			#segs = llwapp.segmentlistdict_fromsearchsummary(xmldoc, live_time_program).coalesce()
+			segs = ligolw_segments.segmenttable_get_by_name(xmldoc, data_segments_name).coalesce()
+			segs &= llwapp.segmentlistdict_fromsearchsummary(xmldoc, live_time_program).coalesce()
 		elif live_time_program == "thinca":
 			segs = db_thinca_rings.get_thinca_zero_lag_segments(connection, program_name = live_time_program).coalesce()
 		else:
@@ -215,8 +215,13 @@ def compute_search_efficiency_in_bins(found, total, ndbins, sim_to_bins_function
 	input.regularize()
 
 	# pull out the efficiency array, it is the ratio
-	return input.ratio()
+	eff = rate.BinnedArray(rate.NDBins(ndbins), array = input.ratio())
 
+        # compute binomial uncertainties in each bin
+        err_arr = numpy.sqrt(eff.array * (1-eff.array)/input.denominator.array)
+	err = rate.BinnedArray(rate.NDBins(ndbins), array = err_arr)
+
+	return eff, err
 
 
 def compute_search_volume_in_bins(found, total, ndbins, sim_to_bins_function):
@@ -227,16 +232,22 @@ def compute_search_volume_in_bins(found, total, ndbins, sim_to_bins_function):
 	to index the ndbins.
 	"""
 
-	efficiency_array = compute_search_efficiency_in_bins(found, total, ndbins, sim_to_bins_function)
+	eff, err = compute_search_efficiency_in_bins(found, total, ndbins, sim_to_bins_function)
 	dx = ndbins[0].upper() - ndbins[0].lower()
-	r = input.bins()[0].centres()
+	r = ndbins[0].centres()
 
 	# we have one less dimension on the output
-	output = rate.BinnedArray(rate.NDBins(ndbins[1:]))
+	vol = rate.BinnedArray(rate.NDBins(ndbins[1:]))
+	errors = rate.BinnedArray(rate.NDBins(ndbins[1:]))
 
-	output.array = (efficiency_array.T * 4. * numpy.pi * r**2 * dx).sum(-1)
+	# integrate efficiency to obtain volume
+	vol.array = (eff.array.T * 4. * numpy.pi * r**2 * dx).sum(-1)
 
-	return output
+	# propagate errors in eff to errors in V
+        errors.array = numpy.sqrt(( (4*numpy.pi *r**2 *err.array.T *dx)**2 ).sum(-1))
+
+	return vol, errors
+
 
 def guess_nd_bins(sims, bin_dict = {"distance": (200, rate.LogarithmicBins)}):
 	"""
@@ -262,12 +273,33 @@ def guess_distance_spin1z_spin2z_bins_from_sims(sims, spin1bins = 11, spin2bins 
 	return guess_nd_bins(sims, bin_dict = {"distance": (distbins, rate.LogarithmicBins), "spin1z": (spin1bins, rate.LinearBins), "spin2z": (spin2bins, rate.LinearBins)})
 
 
+def guess_distance_total_mass_bins_from_sims(sims, nbins = 11, distbins = 200):
+       """
+       Given a list of the injections, guess at the mass1, mass2 and distance
+       bins. Floor and ceil will be used to round down to the nearest integers.
+       """
+
+       total_lo = numpy.floor(min([sim.mass1 + sim.mass2 for sim in sims]))
+       total_hi = numpy.ceil(max([sim.mass1 + sim.mass2 for sim in sims]))
+       mindist = numpy.floor(min([sim.distance for sim in sims]))
+       maxdist = numpy.ceil(max([sim.distance for sim in sims]))
+
+       return rate.NDBins((rate.LogarithmicBins(mindist, maxdist, distbins), rate.LinearBins(total_lo, total_hi, nbins)))
+
+
 def sim_to_distance_mass1_mass2_bins_function(sim):
 	"""
 	create a function to map a sim to a distance, mass1, mass2 NDBins based object
 	"""
 
 	return (sim.distance, sim.mass1, sim.mass2)
+
+
+def sim_to_distance_total_mass_bins_function(sim):
+       """
+       create a function to map a sim to a distance, total mass NDBins based object
+       """
+       return (sim.distance, sim.mass1 + sim.mass2)
 
 
 def sim_to_distance_spin1z_spin2z_bins_function(sim):
@@ -295,7 +327,7 @@ class DataBaseSummary(object):
 	This class stores summary information gathered across the databases
 	"""
 
-	def __init__(self, filelist, live_time_program = None, veto_segments_name = "vetoes", tmp_path = None, verbose = False):
+	def __init__(self, filelist, live_time_program = None, veto_segments_name = "vetoes", data_segments_name = "datasegments", tmp_path = None, verbose = False):
 
 		self.segments = segments.segmentlistdict()
 		self.instruments = set()
@@ -339,7 +371,7 @@ class DataBaseSummary(object):
 				self.numslides.add(connection.cursor().execute('SELECT count(DISTINCT(time_slide_id)) FROM time_slide').fetchone()[0])
 				[self.instruments.add(ifos) for ifos in get_instruments_from_coinc_event_table(connection)]
 				# save a reference to the segments for this file, needed to figure out the missed and found injections
-				self.this_segments = get_segments(connection, xmldoc, self.table_name, live_time_program, veto_segments_name)
+				self.this_segments = get_segments(connection, xmldoc, self.table_name, live_time_program, veto_segments_name, data_segments_name = data_segments_name)
 				# FIXME we don't really have any reason to use playground segments, but I put this here as a reminder
 				# self.this_playground_segments = segmentsUtils.S2playground(self.this_segments.extent_all())
 				self.segments += self.this_segments
@@ -353,7 +385,7 @@ class DataBaseSummary(object):
 			# get the injections
 			else:
 				# We need to know the segments in this file to determine which injections are found
-				self.this_injection_segments = get_segments(connection, xmldoc, self.table_name, live_time_program, veto_segments_name)
+				self.this_injection_segments = get_segments(connection, xmldoc, self.table_name, live_time_program, veto_segments_name, data_segments_name = data_segments_name)
 				self.this_injection_instruments = []
 				distinct_instruments = connection.cursor().execute('SELECT DISTINCT(instruments) FROM coinc_event WHERE instruments!=""').fetchall()
 				for instruments, in distinct_instruments:

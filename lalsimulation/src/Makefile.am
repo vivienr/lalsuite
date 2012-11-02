@@ -1,4 +1,4 @@
-INCLUDES = -I$(top_builddir)/include
+AM_CPPFLAGS = -I$(top_builddir)/include
 LDADD = liblalsimulation.la
 
 bin_PROGRAMS = \
@@ -13,6 +13,7 @@ lalsimulationincludedir = $(includedir)/lal
 lalsimulationinclude_HEADERS = \
 	LALSimBlackHoleRingdown.h \
 	LALSimBurst.h \
+	LALSimInspiralPrecess.h \
 	LALSimInspiralWaveformFlags.h \
 	LALSimInspiralTestGRParams.h \
 	LALSimIMR.h \
@@ -53,6 +54,7 @@ liblalsimulation_la_SOURCES = \
 	LALSimIMRPSpinInspiralRD.c \
 	LALSimInspiralWaveformFlags.c \
 	LALSimInspiralTestGRParams.c \
+	LALSimInspiralPrecess.c \
 	LALSimInspiral.c \
 	LALSimInspiralPNCoefficients.c \
 	LALSimInspiralPNMode.c \
