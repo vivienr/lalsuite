@@ -1517,24 +1517,6 @@ typedef struct tagLALSimInspiralSpinTaylorT4Coeffs
   REAL8 dt;                          // sampling in seconds
 } LALSimInspiralSpinTaylorT4Coeffs;
 
-int XLALSimInspiralTransformInitialConditionsLtoJ(
-		REAL8 *S1x,	/**< S1 x component (returned) */
-		REAL8 *S1y,	/**< S1 y component (returned) */
-		REAL8 *S1z,	/**< S1 z component (returned) */
-		REAL8 *S2x,	/**< S2 x component (returned) */
-		REAL8 *S2y,	/**< S2 y component (returned) */
-		REAL8 *S2z,	/**< S2 z component (returned) */
-		REAL8 *LNhx,	/**< hat Newtonian L x component (returned) */
-		REAL8 *LNhy,    /**< hat Newtonian L y component (returned) */
-		REAL8 *LNhz,    /**< hat Newtonian L z component (returned) */
-		REAL8 S1xIn,	/**< input S1 x component */
-		REAL8 S1yIn,	/**< input S1 y component */
-		REAL8 S1zIn,	/**< input S1 z component */
-		REAL8 S2xIn,	/**< input S2 x component */
-		REAL8 S2yIn,	/**< input S2 y component */
-		REAL8 S2zIn,	/**< input S2 z component */
-		REAL8 LNmag  	/**< modulus of the Newtonian angular momentum */);
-
 int XLALAppendTS(REAL8TimeSeries *start, REAL8TimeSeries *end, REAL8TimeSeries *out);
 
 int XLALAppendTSandFree(REAL8TimeSeries *start, REAL8TimeSeries *end, REAL8TimeSeries *out);
