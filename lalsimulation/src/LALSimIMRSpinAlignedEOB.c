@@ -759,6 +759,8 @@ int XLALSimIMRSpinAlignedEOBWaveform(
   rdMatchPoint->data[1] = timePeak - timeshiftPeak;
   rdMatchPoint->data[2] = dynamicsHi->data[finalIdx];
 
+  printf("match %12.4e  %12.4e\n",rdMatchPoint->data[0],rdMatchPoint->data[1]);
+
   if ( XLALSimIMREOBHybridAttachRingdown( sigReHi, sigImHi, 2, 2,
               deltaTHigh, m1, m2, spin1[0], spin1[1], spin1[2], spin2[0], spin2[1], spin2[2],
               &timeHi, rdMatchPoint, SEOBNRv1)

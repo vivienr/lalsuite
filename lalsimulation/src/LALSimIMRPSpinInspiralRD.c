@@ -42,6 +42,7 @@
 #define minIntLen    16
 /* For turning on debugging messages*/
 #define DEBUG_LEVEL  1
+#define DEBUG_RD  1
 
 #define nModes 8
 #define RD_EFOLDS 10
@@ -114,9 +115,12 @@ static int XLALSimIMRPhenSpinParamsSetup(LALSimInspiralSpinTaylorT4Coeffs  *para
   params->M     *= LAL_MTSUN_SI;
   REAL8 unitHz   = params->M *((REAL8) LAL_PI);
 
-  params->fEnd   = fEnd*unitHz;
-  params->fStart = fStart*unitHz;
-  params->dt     = dt;
+  params->fEnd   = fEnd*unitHz;    /*On the left side there is actually an omega*/
+  params->fStart = fStart*unitHz;  /*On the left side there is actually an omega*/
+  if (fEnd>0.)
+    params->dt     = dt*(fEnd-fStart)/fabs(fEnd-fStart);
+  else
+    params->dt     = dt;
 
   REAL8 phi1 = XLALSimInspiralTestGRParamExists(testGR,"phi1") ? XLALSimInspiralGetTestGRParam(testGR,"phi1") : 0.;
   REAL8 phi2 = XLALSimInspiralTestGRParamExists(testGR,"phi2") ? XLALSimInspiralGetTestGRParam(testGR,"phi2") : 0.;
@@ -251,9 +255,6 @@ static int XLALSpinInspiralDerivatives(UNUSED double t,
 
   energyold = values[11];
 
-  /*  int i;
-      for (i=0;i<12;i++) printf(" val %d %12.6e\n",i,values[i]);*/
-
   v = cbrt(omega);
   v2 = v * v;
   v4 = omega * v;
@@ -272,24 +273,9 @@ static int XLALSpinInspiralDerivatives(UNUSED double t,
                                              + v * (params->wdotcoeff[6] + params->wdotlogcoeff * log(omega)
                                                     + v * params->wdotcoeff[7]))))));
 
-  /*  printf(" domega %12.4e v %12.6e\n",domega,v);
-  printf("params->wdotcoeff0 %12.6e\n",params->wdotcoeff[0]);
-  printf("params->wdotcoeff1 %12.6e\n",params->wdotcoeff[1]);
-  printf("params->wdotcoeff2 %12.6e\n",params->wdotcoeff[2]);
-  printf("params->wdotcoeff3 %12.6e\n",params->wdotcoeff[3]);
-  printf("params->wdotcoeff4 %12.6e\n",params->wdotcoeff[4]);
-  printf("params->wdotcoeff5 %12.6e\n",params->wdotcoeff[5]);
-  printf("params->wdotcoeff6 %12.6e\n",params->wdotcoeff[6]);
-  printf("params->wdotcoeff7 %12.6e\n",params->wdotcoeff[7]);
-  printf("params->wdotcoeffL %12.6e\n",params->wdotlogcoeff);*/
-
   energy = (params->Ecoeff[0] + v2 * (params->Ecoeff[2] +
 				      v2 * (params->Ecoeff[4] +
 					    v2 * params->Ecoeff[6])));
-
-  /*printf("params->ecoeff2 %12.6e\n",params->Ecoeff[2]);
-  printf("params->ecoeff4 %12.6e\n",params->Ecoeff[4]);
-  printf("params->ecoeff6 %12.6e\n",params->Ecoeff[6]);*/
 
   // Adding spin effects
   // L dot S1,2
@@ -298,8 +284,6 @@ static int XLALSpinInspiralDerivatives(UNUSED double t,
 
   // wdotSO15si = -1/12 (...)
   domega += omega * (params->wdotSO15s1 * LNhS1 + params->wdotSO15s2 * LNhS2); // see e.g. Buonanno et al. gr-qc/0211087
-
-  //printf("params->wdotSO15 %12.6e %12.6e\n",params->wdotSO15s1,params->wdotSO15s2);
 
   energy += omega * (params->ESO15s1 * LNhS1 + params->ESO15s2 * LNhS2);  // see e.g. Blanchet et al. gr-qc/0605140
 
@@ -310,7 +294,6 @@ static int XLALSpinInspiralDerivatives(UNUSED double t,
   domega += v4 * ( params->wdotSS2 * S1S2 + params->wdotSSO2 * LNhS1 * LNhS2);	// see e.g. Buonanno et al. arXiv:0810.5336
   domega += v4 * ( params->wdotSelfSSO2 * (LNhS1 * LNhS1 + LNhS2 * LNhS2) + params->wdotSelfSS2 * (S1S1 + S2S2));
   // see Racine et al. arXiv:0812.4413
-  //printf("params->wdotSS2 %12.6e %12.6e %12.6e %12.6e\n",params->wdotSS2,params->wdotSSO2,params->wdotSelfSSO2,params->wdotSelfSS2);
 
   energy += v4 * (params->ESS2 * S1S2 + params->ESSO2 * LNhS1 * LNhS2);    // see e.g. Buonanno et al. as above
   energy += v4 * (params->ESelfSS2s1 * S1S1 + params->ESelfSS2s2 * S2S2 + params->ESelfSSO2s1 * LNhS1 * LNhS1 + params->ESelfSSO2s2 * LNhS2 * LNhS2);	// see Racine et al. as above
@@ -318,17 +301,12 @@ static int XLALSpinInspiralDerivatives(UNUSED double t,
   // wdotspin25SiLNh = see below
   domega += v5 * (params->wdotSO25s1 * LNhS1 + params->wdotSO25s2 * LNhS2);	//see (8.3) of Blanchet et al.
   energy += v5 * (params->ESO25s1 * LNhS1 + params->ESO25s2 * LNhS2);    //see (7.9) of Blanchet et al.
-  //printf("params->ESO %12.6e %12.6e\n",params->ESO25s1,params->ESO25s2);
 
   domega += omega*omega * (params->wdotSO3s1 * LNhS1 + params->wdotSO3s2 * LNhS2); // see (6.5) of arXiv:1104.5659
-  //printf("params->wdotSO3 %12.6e %12.6e\n",params->wdotSO3s1,params->wdotSO3s2);
 
   // Setting the right pre-factor
   domega *= params->wdotnewt * v5 * v6;
-  //printf("params->wdotnewt %12.6e\n",params->wdotnewt);
-
   energy *= params->Enewt * v2;
-  //printf("params->Enewt %12.6e\n",params->Enewt);
 
   /*Derivative of the angular momentum and spins */
 
@@ -341,8 +319,6 @@ static int XLALSpinInspiralDerivatives(UNUSED double t,
   dS1x = params->S1dot15 * v5 * cross1x;
   dS1y = params->S1dot15 * v5 * cross1y;
   dS1z = params->S1dot15 * v5 * cross1z;
-
-  //printf("params->S1dot15 %12.6e\n",params->S1dot15);
 
   /* dS1, 2PN */
   /* Sdot20= 0.5 */
@@ -358,7 +334,6 @@ static int XLALSpinInspiralDerivatives(UNUSED double t,
   dS1x -= 1.5 * v6 * LNhS1 * cross1x * (1. + 1./params->m1Bym2) * params->m1ByM;
   dS1y -= 1.5 * v6 * LNhS1 * cross1y * (1. + 1./params->m1Bym2) * params->m1ByM;
   dS1z -= 1.5 * v6 * LNhS1 * cross1z * (1. + 1./params->m1Bym2) * params->m1ByM;
-  //printf("params->m1/m2 %12.6e\n",params->m1Bym2);
 
   // dS1, 2.5PN, eq. 7.8 of Blanchet et al. gr-qc/0605140
   // S1dot25= 9/8-eta/2.+eta+mparams->eta*29./24.+mparams->m1m2*(-9./8.+5./4.*mparams->eta)
@@ -375,8 +350,6 @@ static int XLALSpinInspiralDerivatives(UNUSED double t,
   dS2y = params->S2dot15 * v5 * cross2y;
   dS2z = params->S2dot15 * v5 * cross2z;
 
-  //printf("params->S2dot15 %12.6e\n",params->S2dot15);
-
   /* dS2, 2PN */
   dS2x += 0.5 * v6 * (-tmpx - 3.0 * LNhS1 * cross2x);
   dS2y += 0.5 * v6 * (-tmpy - 3.0 * LNhS1 * cross2y);
@@ -391,8 +364,6 @@ static int XLALSpinInspiralDerivatives(UNUSED double t,
   dS2y += params->S2dot25 * v7 * cross2y;
   dS2z += params->S2dot25 * v7 * cross2z;
 
-  //printf("params->S2dot25 %12.6e\n",params->S2dot25);
-
   dLNhx = -(dS1x + dS2x) * v / params->eta;
   dLNhy = -(dS1y + dS2y) * v / params->eta;
   dLNhz = -(dS1z + dS2z) * v / params->eta;
@@ -404,7 +375,7 @@ static int XLALSpinInspiralDerivatives(UNUSED double t,
     alphadotcosi = LNhz * (LNhx * dLNhy - LNhy * dLNhx) / LNhxy;
   else
   {
-    //XLALPrintWarning("*** LALPSpinInspiralRD WARNING ***: alphadot set to 0, LNh:(%12.4e %12.4e %12.4e)\n",LNhx,LNhy,LNhz);
+    XLALPrintWarning("*** LALPSpinInspiralRD WARNING ***: alphadot set to 0, LNh:(%12.4e %12.4e %12.4e)\n",LNhx,LNhy,LNhz);
     alphadotcosi = 0.;
   }
 
@@ -426,8 +397,6 @@ static int XLALSpinInspiralDerivatives(UNUSED double t,
   dvalues[10] = dS2z;
 
   dvalues[11] = (energy-energyold)/params->dt*params->M;
-
-  //printf(" e %12.5e  eO %12.5e  dt %12.5e  M %12.5e\n",energy,energyold,params->dt,params->M);
 
   return GSL_SUCCESS;
 } /* end of XLALSpinInspiralDerivatives */
@@ -525,12 +494,10 @@ static int XLALSimSpinInspiralTest(UNUSED double t, const double values[], doubl
   REAL8 energy  =  values[11];
   REAL8 denergy = dvalues[11];
 
-  if ( (energy > 0.0) || (( denergy > - 0.01*energy/params->dt*params->M )&&(energy<0.) ) ) {
-    /*energy increase by more than 1%*/
-#if DEEBUG_LEVEL
-    fprintf(stderr,"** LALSimIMRPSpinInspiralRD WARNING **: Energy increases dE %12.6e E %12.6e  M: %12.4e, eta: %12.4e  om %12.6e \n",denergy, energy, params->M, params->eta, omega);
-#endif
-    XLALPrintWarning("** LALSimIMRPSpinInspiralRD WARNING **: Energy increases dE %12.6e E %12.6e  M: %12.4e, eta: %12.4e  om %12.6e \n",denergy, energy, params->M, params->eta, omega);
+  if ( (energy > 0.0) || (( denergy*params->dt/params->M > - 0.001*energy )&&(energy<0.) ) ) {
+    if (energy>0.) XLALPrintWarning("*** Test: LALSimIMRPSpinInspiralRD WARNING **: Bounding energy >ve!\n");
+    else 
+      XLALPrintWarning("*** Test: LALSimIMRPSpinInspiralRD WARNING **:  Energy increases dE %12.6e dE*dt %12.6e 1pMEn %12.4e M: %12.4e, eta: %12.4e  om %12.6e \n", denergy, denergy*params->dt/params->M, - 0.001*energy, params->M/LAL_MTSUN_SI, params->eta, omega);
     return LALSIMINSPIRAL_PHENSPIN_TEST_ENERGY;
   }
   else if (omega < 0.0) {
@@ -574,9 +541,10 @@ static int XLALSimIMRPhenSpinTest(UNUSED double t, const double values[], double
 	
   REAL8 omegaMatch=OmMatch(LNhS1,LNhS2,S1sq,S1S2,S2sq)+0.006;
 
-  if ( (energy > 0.0) || (( denergy > - 0.01*energy/params->dt*params->M )&&(energy<0.) ) ) {
-    /*energy increase by more than 1%*/
-    XLALPrintWarning("** LALSimIMRPSpinInspiralRD WARNING **: Energy increases dE %12.6e E %12.6e  M: %12.4e, eta: %12.4e  om %12.6e \n",denergy, energy, params->M, params->eta, omega);
+  if ( (energy > 0.0) || (( denergy*params->dt/params->M > - 0.001*energy )&&(energy<0.) ) ) {
+    if (energy>0.) XLALPrintWarning("*** Test: LALSimIMRPSpinInspiralRD WARNING **: Bounding energy >ve!\n");
+    else 
+      XLALPrintWarning("*** Test: LALSimIMRPSpinInspiralRD WARNING **:  Energy increases dE %12.6e dE*dt %12.6e 1pMEn %12.4e M: %12.4e, eta: %12.4e  om %12.6e \n", denergy, denergy*params->dt/params->M, - 0.001*energy, params->M/LAL_MTSUN_SI, params->eta, omega);
     return LALSIMINSPIRAL_PHENSPIN_TEST_ENERGY;
   }
   else if (omega < 0.0) {
@@ -779,10 +747,8 @@ static int XLALSimInspiralSpinTaylorT4Engine(REAL8TimeSeries **omega,      /**< 
 					     REAL8TimeSeries **S2y,	   /**< "    "    "  y component [returned]*/
 					     REAL8TimeSeries **S2z,	   /**< "    "    "  z component [returned]*/
 					     REAL8TimeSeries **Energy,     /**< Energy                   [returned]*/
-					     const INT4  sign,             /** sign >(<)0 for forward (backward) integration */
-					     const UINT4 lengthH,
-					     const UINT4 offset,
 					     const REAL8 yinit[],
+					     const INT4  lengthH,
 					     const Approximant approx,     /** Allow to choose w/o ringdown */
 					     LALSimInspiralSpinTaylorT4Coeffs *params
 					     )
@@ -805,7 +771,7 @@ static int XLALSimInspiralSpinTaylorT4Engine(REAL8TimeSeries **omega,      /**< 
 
   if (!integrator) {
 #if DEBUG_LEVEL
-    fprintf(stderr,"**** LALSimIMRPSpinInspiralRD ERROR ****: Cannot allocate adaptive integrator.\n");
+    printf("**** LALSimIMRPSpinInspiralRD ERROR ****: Cannot allocate adaptive integrator.\n");
 #endif
     XLALPrintError("XLAL Error - %s: Cannot allocate integrator\n", __func__);
     XLAL_ERROR(XLAL_EFUNC);
@@ -823,15 +789,16 @@ static int XLALSimInspiralSpinTaylorT4Engine(REAL8TimeSeries **omega,      /**< 
   S2y0=yinit[9];
   S2z0=yinit[10];
 
-  REAL8 length=((REAL8)lengthH)*params->dt/params->M;
-
+  REAL8 length=((REAL8)lengthH)*fabs(params->dt)/params->M;
+  REAL8 dtInt=1./params->fStart/50.*fabs(params->dt)/params->dt;
+  printf("dtInt %12.4e  dT %12.4e\n",dtInt,params->dt/params->M);
   intLen    = XLALAdaptiveRungeKutta4Hermite(integrator,(void *)params,yin,0.0,length,params->dt/params->M,&yout);
   intReturn = integrator->returncode;
   XLALAdaptiveRungeKutta4Free(integrator);
 
   if (intReturn == XLAL_FAILURE) {
 #if DEBUG_LEVEL
-    fprintf(stderr,"** LALSimIMRPSpinInspiralRD Error **: Adaptive Integrator\n");
+    printf("** LALSimIMRPSpinInspiralRD Error **: Adaptive Integrator\n");
 #endif
     XLALPrintError("** LALSimIMRPSpinInspiralRD Error **: Adaptive Integrator\n");
     XLAL_ERROR(XLAL_EFUNC);
@@ -841,32 +808,15 @@ static int XLALSimInspiralSpinTaylorT4Engine(REAL8TimeSeries **omega,      /**< 
   /* Start of the integration checks*/
   if (intLen<minIntLen) {
 #if DEBUG_LEVEL
-    fprintf(stderr,"** LALSimIMRPSpinInspiralRD ERROR **: integration too short! intReturnCode %d, integration length %d\n",intReturn,intLen);
+    printf("** LALSimIMRPSpinInspiralRD ERROR **: integration too short! intReturnCode %d, integration length %d, at least %d required\n",intReturn,intLen,minIntLen);
 #endif
-    XLALPrintError("** LALSimIMRPSpinInspiralRD ERROR **: integration too short! intReturnCode %d, integration length %d\n",intReturn,intLen);
+    XLALPrintError("** LALSimIMRPSpinInspiralRD ERROR **: integration too short! intReturnCode %d, integration length %d, at least %d required\n",intReturn,intLen,minIntLen);
     if (XLALClearErrno() == XLAL_ENOMEM) {
       XLAL_ERROR(  XLAL_ENOMEM);
     } else {
       XLAL_ERROR( XLAL_EFAILED);
     }
   }
-
-  /* if we have enough space, store variables; otherwise abort */
-  UINT4 totLen=intLen+offset;
-  if ( totLen >= lengthH ) {
-#if DEBUG_LEVEL
-    fprintf(stderr,"**** LALPSpinInspiralRD ERROR ****: no space to write in waveforms: %d vs. %d\n",totLen,lengthH);
-    fprintf(stderr,"                     m:           : %12.5f  %12.5f\n",params->m1ByM*params->M,params->m2ByM*params->M);
-    fprintf(stderr,"              S1:                 : %12.5f  %12.5f  %12.5f\n",S1x0,S1y0,S1z0);
-    fprintf(stderr,"              S2:                 : %12.5f  %12.5f  %12.5f\n",S2x0,S2y0,S2z0);
-#endif
-    XLALPrintError("**** LALPSpinInspiralRD ERROR ****: no space to write in waveforms: %d vs. %d\n",totLen,lengthH);
-    XLALPrintError("                     m:           : %12.5f  %12.5f\n",params->m1ByM*params->M,params->m2ByM*params->M);
-    XLALPrintError("              S1:                 : %12.5f  %12.5f  %12.5f\n",S1x0,S1y0,S1z0);
-    XLALPrintError("              S2:                 : %12.5f  %12.5f  %12.5f\n",S2x0,S2y0,S2z0);
-    XLAL_ERROR(XLAL_ESIZE);
-  }
-  /* End of integration checks*/
 
   const LIGOTimeGPS tStart=LIGOTIMEGPSZERO;
   *omega  = XLALCreateREAL8TimeSeries( "OMEGA", &tStart, 0., params->dt, &lalDimensionlessUnit, intLen);
@@ -883,7 +833,7 @@ static int XLALSimInspiralSpinTaylorT4Engine(REAL8TimeSeries **omega,      /**< 
   *Energy = XLALCreateREAL8TimeSeries( "LNHAT_Z_COMPONENT", &tStart, 0., params->dt, &lalDimensionlessUnit, intLen);
   if ( !omega || !Phi || !S1x || !S1y || !S1z || !S2x || !S2y || !S2z || !LNhatx || !LNhaty || !LNhatz || !Energy ) {
 #if DEBUG_LEVEL
-    fprintf(stderr,"*** LALSimIMRPSpinInspiralRD ***: Error in allocating memory for dynamical variables\n");
+    printf("*** LALSimIMRPSpinInspiralRD ***: Error in allocating memory for dynamical variables\n");
 #endif
     XLALDestroyREAL8Array(yout);
     XLAL_ERROR(XLAL_EFUNC);
@@ -892,26 +842,24 @@ static int XLALSimInspiralSpinTaylorT4Engine(REAL8TimeSeries **omega,      /**< 
   /* Copy dynamical variables from yout array to output time series.
    * Note the first 'len' members of yout are the time steps. 
    */
+  int sign=params->dt > 0. ? 1 : -1;
+  jdx= (intLen-1)*(-sign+1)/2;
 
-  jdx = (intLen-1)*(-sign+1)/2;
-  int jEnd = intLen*(sign+1)/2;
-
-  do {
-    (*Phi)->data->data[jdx+offset]  = yout->data[intLen+jdx];
-    (*omega)->data->data[jdx+offset]  = yout->data[2*intLen+jdx];
-    (*LNhatx)->data->data[jdx+offset] = yout->data[3*intLen+jdx];
-    (*LNhaty)->data->data[jdx+offset] = yout->data[4*intLen+jdx];
-    (*LNhatz)->data->data[jdx+offset] = yout->data[5*intLen+jdx];
-    (*S1x)->data->data[jdx+offset]    = yout->data[6*intLen+jdx];
-    (*S1y)->data->data[jdx+offset]    = yout->data[7*intLen+jdx];
-    (*S1z)->data->data[jdx+offset]    = yout->data[8*intLen+jdx];
-    (*S2x)->data->data[jdx+offset]    = yout->data[9*intLen+jdx];
-    (*S2y)->data->data[jdx+offset]    = yout->data[10*intLen+jdx];
-    (*S2z)->data->data[jdx+offset]    = yout->data[11*intLen+jdx];
-    (*Energy)->data->data[jdx+offset] = yout->data[12*intLen+jdx];
+  for (idx=0;idx<intLen;idx++) {
+    (*Phi)->data->data[idx]    = yout->data[intLen+jdx];
+    (*omega)->data->data[idx]  = yout->data[2*intLen+jdx];
+    (*LNhatx)->data->data[idx] = yout->data[3*intLen+jdx];
+    (*LNhaty)->data->data[idx] = yout->data[4*intLen+jdx];
+    (*LNhatz)->data->data[idx] = yout->data[5*intLen+jdx];
+    (*S1x)->data->data[idx]    = yout->data[6*intLen+jdx];
+    (*S1y)->data->data[idx]    = yout->data[7*intLen+jdx];
+    (*S1z)->data->data[idx]    = yout->data[8*intLen+jdx];
+    (*S2x)->data->data[idx]    = yout->data[9*intLen+jdx];
+    (*S2y)->data->data[idx]    = yout->data[10*intLen+jdx];
+    (*S2z)->data->data[idx]    = yout->data[11*intLen+jdx];
+    (*Energy)->data->data[idx] = yout->data[12*intLen+jdx];
     jdx+=sign;
   }
-  while (jdx!=jEnd);
 
   XLALDestroyREAL8Array(yout);
   return intReturn;
@@ -952,7 +900,7 @@ int XLALSimInspiralComputeInclAngle(REAL8 ciota, LALSimInspiralInclAngle *angle)
  * safely set to zero, as it is.
  **/
  
-static int XLALSimInspiralComputeAlpha(REAL8 mass1, REAL8 mass2, REAL8 LNhx, REAL8 LNhy, REAL8 S1x, REAL8 S1y, REAL8 S2x, REAL8 S2y,REAL8 *alpha){
+static int XLALSimInspiralComputeAlpha(LALSimInspiralSpinTaylorT4Coeffs params, REAL8 LNhx, REAL8 LNhy, REAL8 S1x, REAL8 S1y, REAL8 S2x, REAL8 S2y,REAL8 *alpha){
   if ((LNhy*LNhy+LNhx*LNhx)==0.) {
     REAL8 S1xy=S1x*S1x+S1y*S1y;
     REAL8 S2xy=S2x*S2x+S2y*S2y;
@@ -960,11 +908,13 @@ static int XLALSimInspiralComputeAlpha(REAL8 mass1, REAL8 mass2, REAL8 LNhx, REA
       *alpha=0.;
     }
     else {
-      REAL8 Mass=mass1+mass2;
-      REAL8 c1=(2.5*mass1*mass2+1.5*mass2*mass2)/Mass/Mass;
-      REAL8 c2=(2.5*mass1*mass2+1.5*mass1*mass1)/Mass/Mass; /* Dq qui*/
+      REAL8 c1=0.75+params.eta/2-0.75*params.dmByM;
+      REAL8 c2=0.75+params.eta/2+0.75*params.dmByM;
       *alpha=atan2(-c1*S1x-c2*S2x,c1*S1y+c2*S2y);
     }
+  }
+  else {
+    *alpha=atan2(LNhy,LNhx);
   }
   return XLAL_SUCCESS;
 } /*End of XLALSimInspiralComputeAlpha*/
@@ -1166,26 +1116,22 @@ static int XLALSimIMRPhenSpinInspiralSetAxis(REAL8 mass1, /* in MSun units */
  * PhenSpin Initialization
  **/
 
-static int XLALSimIMRPhenSpinInitialize(REAL8TimeSeries **hPlus,
-					REAL8TimeSeries **hCross,
-					REAL8 mass1,                              /* in Msun units */
+static int XLALSimIMRPhenSpinInitialize(REAL8 mass1,                              /* in Msun units */
 					REAL8 mass2,                              /* in Msun units */
 					REAL8 *yinit,
-					REAL8 fMin,
-					REAL8 fRef,
+					REAL8 fStart,                             /* in Hz*/
+					REAL8 fEnd,                               /* in Hz*/
 					REAL8 deltaT,
-					REAL8 iota,
 					int phaseO,
 					LALSimInspiralSpinTaylorT4Coeffs *params,
 					LALSimInspiralWaveformFlags      *waveFlags,
-					LALSimInspiralTestGRParam        *testGRparams,
-					UINT4 *lengthH)
+					LALSimInspiralTestGRParam        *testGRparams)
 {
-  if (fMin<=0.) {
+  if (fStart<=0.) {
 #if DEBUG_LEVEL
-    fprintf(stderr,"** LALSimIMRPSpinInspiralRD error *** non >ve value of fMin %12.4e\n",fMin);
+    printf("** LALSimIMRPSpinInspiralRD error *** non >ve value of fMin %12.4e\n",fStart);
 #endif
-    XLALPrintError("** LALSimIMRPSpinInspiralRD error *** non >ve value of fMin %12.4e\n",fMin);
+    XLALPrintError("** LALSimIMRPSpinInspiralRD error *** non >ve value of fMin %12.4e\n",fStart);
     XLAL_ERROR(XLAL_EDOM);
   }
 
@@ -1202,7 +1148,7 @@ static int XLALSimIMRPhenSpinInitialize(REAL8TimeSeries **hPlus,
   REAL8 S1S2  = S1x*S2x + S1y*S2y + S1z*S2z;
   REAL8 S2S2  = S2x*S2x + S2y*S2y + S2z*S2z;
   REAL8 unitHz     = (mass1+mass2)*LAL_MTSUN_SI; /* convert m from msun to seconds */
-  REAL8 initOmega  = fMin*unitHz * (REAL8) LAL_PI;
+  REAL8 initOmega  = fStart*unitHz * (REAL8) LAL_PI;
   REAL8 omegaMatch = OmMatch(LNhS1,LNhS2,S1S1,S1S2,S2S2);
 
   if ( initOmega > omegaMatch ) {
@@ -1210,46 +1156,43 @@ static int XLALSimIMRPhenSpinInitialize(REAL8TimeSeries **hPlus,
       initOmega = 0.95*omegaMatch;
       yinit[1]=initOmega;
 #if DEBUG_LEVEL
-      fprintf(stdout,"*** LALPSpinInspiralRD WARNING ***: Initial frequency reset from %12.6e to %12.6e Hz, m:(%12.4e,%12.4e)\n",fMin,initOmega/unitHz/LAL_PI,mass1,mass2);
+      fprintf(stdout,"*** LALPSpinInspiralRD WARNING ***: Initial frequency reset from %12.6e to %12.6e Hz, m:(%12.4e,%12.4e)\n",fStart,initOmega/unitHz/LAL_PI,mass1,mass2);
 #endif
-      XLALPrintWarning("*** LALPSpinInspiralRD WARNING ***: Initial frequency reset from %12.6e to %12.6e Hz, m:(%12.4e,%12.4e)\n",fMin,initOmega/unitHz/LAL_PI,mass1,mass2);
+      XLALPrintWarning("*** LALPSpinInspiralRD WARNING ***: Initial frequency reset from %12.6e to %12.6e Hz, m:(%12.4e,%12.4e)\n",fStart,initOmega/unitHz/LAL_PI,mass1,mass2);
     }
     else {
-#if DEBUG_LEVEL
-      fprintf(stdout,"*** LALPSpinInspiralRD ERROR ***: Initial frequency %12.6e Hz too high, as fMatch estimated %12.6e Hz, m:(%12.4e,%12.4e)\n",fMin,omegaMatch/unitHz/LAL_PI,mass1,mass2);
-#endif
-      XLALPrintError("*** LALPSpinInspiralRD ERROR ***: Initial frequency %12.6e Hz too high, as fMatch estimated %12.6e Hz, m:(%12.4e,%12.4e)\n",fMin,omegaMatch/unitHz/LAL_PI,mass1,mass2);
+      XLALPrintError("*** LALPSpinInspiralRD ERROR ***: Initial frequency %12.6e Hz too high, as fMatch estimated %12.6e Hz, m:(%12.4e,%12.4e)\n",fStart,omegaMatch/unitHz/LAL_PI,mass1,mass2);
       XLAL_ERROR(XLAL_EFAILED);
     }
   }
   yinit[1]=initOmega;
 
-  if ((*hPlus != NULL) && (*hCross != NULL)) {
-    int lenPlus =(*hPlus)->data->length;
-    int lenCross=(*hCross)->data->length;
-    if ((lenPlus!=lenCross)||(lenPlus==0) ) {
-#if DEBUG_LEVEL
-      fprintf(stderr,"*** LALSimIMRPSpinInspiralRD ERROR: hPlus and hCross passed with different lengths %d %d\n",lenPlus,lenCross);
-#endif      
-      XLALPrintError("*** LALSimIMRPSpinInspiralRD ERROR: hPlus and hCross passed with different lengths %d %d\n",lenPlus,lenCross);
-      XLAL_ERROR(XLAL_ENOMEM);
-    }
-    else
-      *lengthH=lenPlus;
-  }
-
   /* setup coefficients for PN equations */
-  if(XLALSimIMRPhenSpinParamsSetup(params,deltaT,fMin,fRef,mass1,mass2,XLALSimInspiralGetInteraction(waveFlags),testGRparams,phaseO)) {
-    XLAL_ERROR(XLAL_ENOMEM);
-  }
-
-  if(XLALSimIMRPhenSpinInspiralSetAxis(mass1,mass2,&iota,yinit,XLALSimInspiralGetFrameAxis(waveFlags))) {
+  if(XLALSimIMRPhenSpinParamsSetup(params,deltaT,fStart,fEnd,mass1,mass2,XLALSimInspiralGetInteraction(waveFlags),testGRparams,phaseO)) {
     XLAL_ERROR(XLAL_ENOMEM);
   }
 
   return XLAL_SUCCESS;
 
 } /* End of XLALSimIMRPhenSpinInitialize*/
+
+/* Appends the start and end time series together, skipping the redundant last
+ * sample of begin.  Frees end before returning a pointer to the result, which is
+ * the resized start series.  */
+static REAL8TimeSeries *appendTSandFree(REAL8TimeSeries *start, REAL8TimeSeries *end) {
+    unsigned int origlen = start->data->length;
+    start = XLALResizeREAL8TimeSeries(start, 0, 
+            start->data->length + end->data->length - 1);
+    
+    memcpy(start->data->data + origlen -2, end->data->data, 
+            (end->data->length)*sizeof(REAL8));
+
+    XLALGPSAdd(&(start->epoch), -end->deltaT*(end->data->length - 1));
+
+    XLALDestroyREAL8TimeSeries(end);
+
+    return start;        
+}
 
 /**
  * Driver routine to compute the PhenSpin Inspiral waveform
@@ -1263,7 +1206,7 @@ int XLALSimSpinInspiralGenerator(REAL8TimeSeries **hPlus,	        /**< +-polariz
 				 REAL8 deltaT,                          /**< sampling interval */
 				 REAL8 m1,                              /**< mass of companion 1 */
 				 REAL8 m2,                              /**< mass of companion 2 */
-				 REAL8 f_min,                           /**< start frequency */
+				 REAL8 f_start,                         /**< start frequency */
 				 REAL8 f_ref,                           /**< reference frequency */
 				 REAL8 r,                               /**< distance of source */
 				 REAL8 iota,                            /**< incination of source (rad) */
@@ -1282,10 +1225,10 @@ int XLALSimSpinInspiralGenerator(REAL8TimeSeries **hPlus,	        /**< +-polariz
 
   int errcode=0;
   int errcodeInt=0;
-  uint lengthH=0;     /* Length of hPlus and hCross passed, 0 if NULL*/
   int intLen;         /* Length of arrays after integration*/
+  int lengthH;
   int idx,kdx;
-  LALSimInspiralSpinTaylorT4Coeffs *params=NULL;
+  LALSimInspiralSpinTaylorT4Coeffs params;
   REAL8 mass1=m1/LAL_MSUN_SI;
   REAL8 mass2=m2/LAL_MSUN_SI;
 
@@ -1303,49 +1246,57 @@ int XLALSimSpinInspiralGenerator(REAL8TimeSeries **hPlus,	        /**< +-polariz
   yinit[10]= s2z;
   yinit[11]= 0.;
 
-  REAL8TimeSeries **omega =NULL;
-  REAL8TimeSeries **Phi   =NULL;
-  REAL8TimeSeries **LNhatx=NULL;
-  REAL8TimeSeries **LNhaty=NULL;
-  REAL8TimeSeries **LNhatz=NULL;
-  REAL8TimeSeries **S1x   =NULL;
-  REAL8TimeSeries **S1y   =NULL;
-  REAL8TimeSeries **S1z   =NULL;
-  REAL8TimeSeries **S2x   =NULL;
-  REAL8TimeSeries **S2y   =NULL;
-  REAL8TimeSeries **S2z   =NULL;
-  REAL8TimeSeries **Energy=NULL;
-  if (f_ref<=f_min) {
-    errcode=XLALSimIMRPhenSpinInitialize(hPlus,hCross,mass1,mass2,yinit,f_min,-1.,deltaT,iota,phaseO,params,waveFlags,testGRparams,&lengthH);
+  REAL8 tn = XLALSimInspiralTaylorLength(deltaT, m1, m2, f_start, phaseO);
+  REAL8 x  = 1.1 * (tn + 1. ) / deltaT;
+  int length = ceil(log10(x)/log10(2.));
+  lengthH    = pow(2, length);
+  REAL8TimeSeries *omega=NULL;
+  REAL8TimeSeries *Phi=NULL;
+  REAL8TimeSeries *LNhatx=NULL;
+  REAL8TimeSeries *LNhaty=NULL;
+  REAL8TimeSeries *LNhatz=NULL;
+  REAL8TimeSeries *S1x=NULL;
+  REAL8TimeSeries *S1y=NULL;
+  REAL8TimeSeries *S1z=NULL;
+  REAL8TimeSeries *S2x=NULL;
+  REAL8TimeSeries *S2y=NULL;
+  REAL8TimeSeries *S2z=NULL;
+  REAL8TimeSeries *Energy=NULL;
+
+  if (f_ref<=f_start) {
+    errcode=XLALSimIMRPhenSpinInitialize(mass1,mass2,yinit,f_start,-1.,deltaT,phaseO,&params,waveFlags,testGRparams);
     if(errcode) XLAL_ERROR(XLAL_EFUNC);
-    if (lengthH==0) {
-      REAL8 tn = XLALSimInspiralTaylorLength(deltaT, m1, m2, f_ref, phaseO);
-      REAL8 x  = 1.1 * (tn + 1. ) / deltaT;
-      int length = ceil(log10(x)/log10(2.));
-      lengthH    = pow(2, length);
+    if(XLALSimIMRPhenSpinInspiralSetAxis(mass1,mass2,&iota,yinit,XLALSimInspiralGetFrameAxis(waveFlags))) {
+      XLAL_ERROR(XLAL_EFUNC);
     }
-    errcodeInt=XLALSimInspiralSpinTaylorT4Engine(omega,Phi,LNhatx,LNhaty,LNhatz,S1x,S1y,S1z,S2x,S2y,S2z,Energy,1,lengthH,0,yinit,PhenSpinTaylor,params);
-    intLen=(*Phi)->data->length;
+    errcodeInt=XLALSimInspiralSpinTaylorT4Engine(&omega,&Phi,&LNhatx,&LNhaty,&LNhatz,&S1x,&S1y,&S1z,&S2x,&S2y,&S2z,&Energy,yinit,lengthH,PhenSpinTaylor,&params);
+    intLen=Phi->data->length;
   }
   else {
-    REAL8TimeSeries **Phi1=NULL,**omega1=NULL,**LNhatx1=NULL,**LNhaty1=NULL,**LNhatz1=NULL,**S1x1=NULL,**S1y1=NULL,**S1z1=NULL,**S2x1=NULL,**S2y1=NULL,**S2z1=NULL,**Energy1=NULL;
-    errcode=XLALSimIMRPhenSpinInitialize(hPlus,hCross,m1,m2,yinit,f_min,f_ref,deltaT,iota,phaseO,params,waveFlags,testGRparams,&lengthH);
+    REAL8TimeSeries *Phi1,*omega1,*LNhatx1,*LNhaty1,*LNhatz1,*S1x1,*S1y1,*S1z1,*S2x1,*S2y1,*S2z1,*Energy1;
+    errcode=XLALSimIMRPhenSpinInitialize(mass1,mass2,yinit,f_ref,f_start,deltaT,phaseO,&params,waveFlags,testGRparams);
     if(errcode) XLAL_ERROR(XLAL_EFUNC);
-    if (lengthH==0) {
-      REAL8 tn = XLALSimInspiralTaylorLength(deltaT, m1, m2, f_min, phaseO);
-      REAL8 x  = 1.1 * (tn + 1. ) / deltaT;
-      int length = ceil(log10(x)/log10(2.));
-      lengthH    = pow(2, length);
+    if(XLALSimIMRPhenSpinInspiralSetAxis(mass1,mass2,&iota,yinit,XLALSimInspiralGetFrameAxis(waveFlags))) {
+      XLAL_ERROR(XLAL_EFUNC);
     }
-    errcodeInt=XLALSimInspiralSpinTaylorT4Engine(omega1,Phi1,LNhatx1,LNhaty1,LNhatz1,S1x1,S1y1,S1z1,S2x1,S2y1,S2z1,Energy1,-1,lengthH,0,yinit,PhenSpinTaylor,params);
+
+    REAL8 dyTmp[LAL_NUM_PST4_VARIABLES];
+    REAL8 energy;
+    XLALSpinInspiralDerivatives(0., yinit,dyTmp,&params);
+    energy=dyTmp[11]*params.dt/params.M+yinit[11];
+    yinit[11]=energy;
+
+    errcodeInt=XLALSimInspiralSpinTaylorT4Engine(&omega1,&Phi1,&LNhatx1,&LNhaty1,&LNhatz1,&S1x1,&S1y1,&S1z1,&S2x1,&S2y1,&S2z1,&Energy1,yinit,lengthH,PhenSpinTaylor,&params);
+
+    int intLen1=Phi1->data->length;
     /* report on abnormal termination*/
     if ( (errcodeInt != LALSIMINSPIRAL_PHENSPIN_TEST_FREQBOUND) ) {
 #if DEBUG_LEVEL
-      fprintf(stderr,"** LALPSpinInspiralRD WARNING **: integration terminated with code %d.\n",errcode);
-      fprintf(stderr,"   1025: Energy increases\n  1026: Omegadot -ve\n  1027: Freqbound\n 1028: Omega NAN\n  1031: Omega -ve\n");
-      fprintf(stderr,"   Waveform parameters were m1 = %14.6e, m2 = %14.6e, inc = %10.6f,  fRef %10.4f Hz\n", m1, m2, iota, f_ref);
-      fprintf(stderr,"                           S1 = (%10.6f,%10.6f,%10.6f)\n", s1x, s1y, s1z);
-      fprintf(stderr,"                           S2 = (%10.6f,%10.6f,%10.6f)\n", s2x, s2y, s2z);
+      printf("** LALPSpinInspiralRD WARNING **: integration terminated with code %d.\n",errcode);
+      printf("   1025: Energy increases\n  1026: Omegadot -ve\n  1027: Freqbound\n 1028: Omega NAN\n  1031: Omega -ve\n");
+      printf("   Waveform parameters were m1 = %14.6e, m2 = %14.6e, inc = %10.6f,  fRef %10.4f Hz\n", m1, m2, iota, f_ref);
+      printf("                           S1 = (%10.6f,%10.6f,%10.6f)\n", s1x, s1y, s1z);
+      printf("                           S2 = (%10.6f,%10.6f,%10.6f)\n", s2x, s2y, s2z);
 #endif
       XLALPrintError("** LALPSpinInspiralRD WARNING **: integration terminated with code %d.\n",errcode);
       XLALPrintError("   1025: Energy increases\n  1026: Omegadot -ve\n  1027: Freqbound\n 1028: Omega NAN\n  1031: Omega -ve\n");
@@ -1354,39 +1305,52 @@ int XLALSimSpinInspiralGenerator(REAL8TimeSeries **hPlus,	        /**< +-polariz
       XLALPrintError("                           S2 = (%10.6f,%10.6f,%10.6f)\n", s2x, s2y, s2z);
     }
 
-    REAL8TimeSeries **omega2=NULL,**Phi2=NULL,**LNhatx2=NULL,**LNhaty2=NULL,**LNhatz2=NULL,**S1x2=NULL,**S1y2=NULL,**S1z2=NULL,**S2x2=NULL,**S2y2=NULL,**S2z2=NULL,**Energy2=NULL;
-    errcode=XLALSimIMRPhenSpinInitialize(hPlus,hCross,m1,m2,yinit,f_ref,-1.,deltaT,iota,phaseO,params,waveFlags,testGRparams,&lengthH);
-    if(errcode) XLAL_ERROR(XLAL_EFUNC);
+    yinit[0] = Phi1->data->data[intLen1-1];
+    yinit[1] = omega1->data->data[intLen1-1];
+    yinit[2] = LNhatx1->data->data[intLen1-1];
+    yinit[3] = LNhaty1->data->data[intLen1-1];
+    yinit[4] = LNhatz1->data->data[intLen1-1];
+    yinit[5] = S1x1->data->data[intLen1-1];
+    yinit[6] = S1y1->data->data[intLen1-1];
+    yinit[7] = S1z1->data->data[intLen1-1];
+    yinit[8] = S2x1->data->data[intLen1-1];
+    yinit[9] = S2y1->data->data[intLen1-1];
+    yinit[10]= S2z1->data->data[intLen1-1];
+    yinit[11]= Energy1->data->data[intLen1-1];
 
-    errcodeInt=XLALSimInspiralSpinTaylorT4Engine(omega2,Phi2,LNhatx2,LNhaty2,LNhatz2,S1x2,S1y2,S1z2,S2x2,S2y2,S2z2,Energy2,LAL_NUM_PST4_VARIABLES,phaseO,f_ref,yinit,PhenSpinTaylor,params);
+    REAL8TimeSeries *omega2,*Phi2,*LNhatx2,*LNhaty2,*LNhatz2,*S1x2,*S1y2,*S1z2,*S2x2,*S2y2,*S2z2,*Energy2;
 
-    REAL8 phiRef=(*Phi1)->data->data[(*omega1)->data->length-1];
+    params.fEnd=-1.;
+    params.dt*=-1.;
+    errcodeInt=XLALSimInspiralSpinTaylorT4Engine(&omega2,&Phi2,&LNhatx2,&LNhaty2,&LNhatz2,&S1x2,&S1y2,&S1z2,&S2x2,&S2y2,&S2z2,&Energy2,yinit,lengthH,PhenSpinTaylor,&params);
 
-    errcode =XLALAppendTSandFree(*omega1,*omega2,*omega);
-    errcode+=XLALAppendTSandFree(*Phi1,*Phi2,*Phi);
-    errcode+=XLALAppendTSandFree(*LNhatx1,*LNhatx2,*LNhatx);
-    errcode+=XLALAppendTSandFree(*LNhaty1,*LNhaty2,*LNhaty);
-    errcode+=XLALAppendTSandFree(*LNhatz1,*LNhatz2,*LNhatz);
-    errcode+=XLALAppendTSandFree(*S1x1,*S1x2,*S1x);
-    errcode+=XLALAppendTSandFree(*S1y1,*S1y2,*S1y);
-    errcode+=XLALAppendTSandFree(*S1z1,*S1z2,*S1z);
-    errcode+=XLALAppendTSandFree(*S2x1,*S2x2,*S2x);
-    errcode+=XLALAppendTSandFree(*S2y1,*S2y2,*S2y);
-    errcode+=XLALAppendTSandFree(*S2z1,*S2z2,*S2z);
+    REAL8 phiRef=Phi1->data->data[Phi1->data->length-1];
 
-    intLen=(*Phi)->data->length;
-    for (idx=0;idx<intLen;idx++) (*Phi)->data->data[idx]-=phiRef;
+    omega =appendTSandFree(omega1,omega2);
+    Phi   =appendTSandFree(Phi1,Phi2);
+    LNhatx=appendTSandFree(LNhatx1,LNhatx2);
+    LNhaty=appendTSandFree(LNhaty1,LNhaty2);
+    LNhatz=appendTSandFree(LNhatz1,LNhatz2);
+    S1x   =appendTSandFree(S1x1,S1x2);
+    S1y   =appendTSandFree(S1y1,S1y2);
+    S1z   =appendTSandFree(S1z1,S1z2);
+    S2x   =appendTSandFree(S2x1,S2x2);
+    S2y   =appendTSandFree(S2y1,S2y2);
+    S2z   =appendTSandFree(S2z1,S2z2);
+    Energy=appendTSandFree(Energy1,Energy2);
+    intLen=Phi->data->length;
+    for (idx=0;idx<intLen;idx++) Phi->data->data[idx]-=phiRef;
 
   }
 
   /* report on abnormal termination*/
   if ( (errcodeInt !=  LALSIMINSPIRAL_PHENSPIN_TEST_ENERGY) ) {
 #if DEBUG_LEVEL
-    fprintf(stderr,"** LALPSpinInspiralRD WARNING **: integration terminated with code %d.\n",errcode);
-    fprintf(stderr,"   1025: Energy increases\n  1026: Omegadot -ve\n  1028: Omega NAN\n  1031: Omega -ve\n");
-    fprintf(stderr,"   Waveform parameters were m1 = %14.6e, m2 = %14.6e, inc = %10.6f,\n", m1, m2, iota);
-    fprintf(stderr,"                           S1 = (%10.6f,%10.6f,%10.6f)\n", s1x, s1y, s1z);
-    fprintf(stderr,"                           S2 = (%10.6f,%10.6f,%10.6f)\n", s2x, s2y, s2z);
+    printf("** LALPSpinInspiralRD WARNING **: integration terminated with code %d.\n",errcodeInt);
+    printf("   1025: Energy increases\n  1026: Omegadot -ve\n  1028: Omega NAN\n  1031: Omega -ve\n");
+    printf("   Waveform parameters were m1 = %14.6e, m2 = %14.6e, inc = %10.6f,\n", m1, m2, iota);
+    printf("                           S1 = (%10.6f,%10.6f,%10.6f)\n", s1x, s1y, s1z);
+    printf("                           S2 = (%10.6f,%10.6f,%10.6f)\n", s2x, s2y, s2z);
 #endif
     XLALPrintWarning("** LALPSpinInspiralRD WARNING **: integration terminated with code %d.\n",errcode);
     XLALPrintWarning("  Waveform parameters were m1 = %14.6e, m2 = %14.6e, inc = %10.6f,\n", m1, m2, iota);
@@ -1394,13 +1358,26 @@ int XLALSimSpinInspiralGenerator(REAL8TimeSeries **hPlus,	        /**< +-polariz
     XLALPrintWarning("                           S2 = (%10.6f,%10.6f,%10.6f)\n", s2x, s2y, s2z);
   }
 
-  const LIGOTimeGPS tStart=LIGOTIMEGPSZERO;
-  COMPLEX16TimeSeries* hL2=XLALCreateCOMPLEX16TimeSeries( "hL2", &tStart, 0., deltaT, &lalDimensionlessUnit, 5*intLen);
-  COMPLEX16TimeSeries* hL3=XLALCreateCOMPLEX16TimeSeries( "hL3", &tStart, 0., deltaT, &lalDimensionlessUnit, 7*intLen);
-  COMPLEX16TimeSeries* hL4=XLALCreateCOMPLEX16TimeSeries( "hL4", &tStart, 0., deltaT, &lalDimensionlessUnit, 9*intLen);
+  LIGOTimeGPS tStart=LIGOTIMEGPSZERO;
   COMPLEX16Vector* hL2tmp=XLALCreateCOMPLEX16Vector(5);
   COMPLEX16Vector* hL3tmp=XLALCreateCOMPLEX16Vector(7);
   COMPLEX16Vector* hL4tmp=XLALCreateCOMPLEX16Vector(9);
+  COMPLEX16TimeSeries* hL2=XLALCreateCOMPLEX16TimeSeries( "hL2", &tStart, 0., deltaT, &lalDimensionlessUnit, 5*intLen);
+  COMPLEX16TimeSeries* hL3=XLALCreateCOMPLEX16TimeSeries( "hL3", &tStart, 0., deltaT, &lalDimensionlessUnit, 7*intLen);
+  COMPLEX16TimeSeries* hL4=XLALCreateCOMPLEX16TimeSeries( "hL4", &tStart, 0., deltaT, &lalDimensionlessUnit, 9*intLen);
+  for (idx=0;idx<(int)hL2->data->length;idx++) hL2->data->data[idx]=0.;
+  for (idx=0;idx<(int)hL3->data->length;idx++) hL3->data->data[idx]=0.;
+  for (idx=0;idx<(int)hL4->data->length;idx++) hL4->data->data[idx]=0.;
+
+  REAL8TimeSeries *hPtmp=XLALCreateREAL8TimeSeries( "hPtmp", &tStart, 0., deltaT, &lalDimensionlessUnit, intLen);
+  REAL8TimeSeries *hCtmp=XLALCreateREAL8TimeSeries( "hCtmp", &tStart, 0., deltaT, &lalDimensionlessUnit, intLen);
+  COMPLEX16TimeSeries *hLMtmp=XLALCreateCOMPLEX16TimeSeries( "hLMtmp", &tStart, 0., deltaT, &lalDimensionlessUnit, intLen);
+  for (idx=0;idx<(int)hPtmp->data->length;idx++) {
+    hPtmp->data->data[idx]=0.;
+    hCtmp->data->data[idx]=0.;
+    hLMtmp->data->data[idx]=0.;
+  }
+
   LALSimInspiralInclAngle trigAngle;
 
   REAL8 amp22ini = -2.0 * m1*m2/(m1+m2) * LAL_G_SI/pow(LAL_C_SI,3.) / r * sqrt(16. * LAL_PI / 5.);
@@ -1410,13 +1387,20 @@ int XLALSimSpinInspiralGenerator(REAL8TimeSeries **hPlus,	        /**< +-polariz
   REAL8 eta=mass1*mass2/(mass1+mass2)/(mass1+mass2);
   REAL8 dm=(mass1-mass2)/(mass1+mass2);
 
-  for (idx=0;idx<intLen;intLen++) {
-    om=(*omega)->data->data[idx];
+  printf(" IntLen %d\n",intLen);
+  
+  for (idx=0;idx<intLen;idx++) {
+    om=omega->data->data[idx];
     v=cbrt(om);
     v2=v*v;
-    Psi=(*Phi)->data->data[idx] -2.*om*(1.-eta*v2)*log(om);
-    errcode =XLALSimInspiralComputeAlpha(mass1,mass2,(*LNhatx)->data->data[idx],(*LNhaty)->data->data[idx],(*S1x)->data->data[idx],(*S1y)->data->data[idx],(*S2x)->data->data[idx],(*S2y)->data->data[idx],&alpha);
-    errcode+=XLALSimInspiralComputeInclAngle((*LNhatz)->data->data[idx],&trigAngle);
+    Psi=Phi->data->data[idx] -2.*om*(1.-eta*v2)*log(om);
+    errcode =XLALSimInspiralComputeAlpha(params,LNhatx->data->data[idx],LNhaty->data->data[idx],S1x->data->data[idx],S1y->data->data[idx],S2x->data->data[idx],S2y->data->data[idx],&alpha);
+
+    if ( ((idx>114842)&&(idx<114846)) || ((idx>119569)&&(idx<119574)) ) {
+      printf("idx %d alpha %12.4e, T %12.4e\n",idx,alpha,idx*params.dt);
+    }
+
+    errcode+=XLALSimInspiralComputeInclAngle(LNhatz->data->data[idx],&trigAngle);
     errcode+=XLALSimSpinInspiralFillL2Modes(hL2tmp,v,eta,dm,Psi,alpha,&trigAngle);
     for (kdx=0;kdx<5;kdx++) hL2->data->data[5*idx+kdx]=hL2tmp->data[kdx]*amp22ini*v2;
     errcode+=XLALSimSpinInspiralFillL3Modes(hL3tmp,v,eta,dm,Psi,alpha,&trigAngle);
@@ -1428,9 +1412,6 @@ int XLALSimSpinInspiralGenerator(REAL8TimeSeries **hPlus,	        /**< +-polariz
   XLALDestroyCOMPLEX16Vector(hL3tmp);
   XLALDestroyCOMPLEX16Vector(hL4tmp);
   int m;
-  REAL8TimeSeries *hPtmp=XLALCreateREAL8TimeSeries( "hPtmp", &tStart, 0., deltaT, &lalDimensionlessUnit, intLen);
-  REAL8TimeSeries *hCtmp=XLALCreateREAL8TimeSeries( "hCtmp", &tStart, 0., deltaT, &lalDimensionlessUnit, intLen);
-  COMPLEX16TimeSeries* hLMtmp=XLALCreateCOMPLEX16TimeSeries( "hLMtmp", &tStart, 0., deltaT, &lalDimensionlessUnit, intLen);
   int l=2;
   for (m=-l;m<=l;m++) {
     for (idx=0;idx<intLen;idx++) hLMtmp->data->data[idx]=hL2->data->data[(m+l)+idx*(2*l+1)];
@@ -1453,29 +1434,45 @@ int XLALSimSpinInspiralGenerator(REAL8TimeSeries **hPlus,	        /**< +-polariz
   XLALDestroyCOMPLEX16TimeSeries(hL4);
   XLALDestroyCOMPLEX16TimeSeries(hLMtmp);
 
-  if ((hPlus) && (hCross)) {
-    if ((*hPlus)->data->length>(uint)intLen) {
+  REAL8 tPeak=intLen*deltaT;
+  if ((*hPlus) && (*hCross)) {
+    if ((*hPlus)->data->length!=(*hCross)->data->length) {
 #if DEBUG_LEVEL
-      fprintf(stderr,"*** LALSimIMRPSpinInspiralRD ERROR: h+ and hx too short: %d vs. %d\n",(*hPlus)->data->length,intLen);
+      printf("*** LALSimIMRPSpinInspiralRD ERROR: h+ and hx differ in length: %d vs. %d\n",(*hPlus)->data->length,(*hCross)->data->length);
 #endif
-      XLALPrintError("*** LALSimIMRPSpinInspiralRD ERROR: h+ and hx too short: %d vs. %d\n",(*hPlus)->data->length,intLen);
+      XLALPrintError("*** LALSimIMRPSpinInspiralRD ERROR: h+ and hx differ in length: %d vs. %d\n",(*hPlus)->data->length,(*hCross)->data->length);
       XLAL_ERROR(XLAL_EFAILED);
     }
-    else { 
-      for (idx=0;idx<(int)intLen;idx++) {
-	(*hPlus)->data->data[idx] =hPtmp->data->data[idx];
-	(*hCross)->data->data[idx]=hCtmp->data->data[idx];
+    else {
+      if ((int)(*hPlus)->data->length<intLen) {
+#if DEBUG_LEVEL
+	printf("*** LALSimIMRPSpinInspiralRD ERROR: h+ and hx too short: %d vs. %d\n",(*hPlus)->data->length,intLen);
+#endif
+	XLALPrintError("*** LALSimIMRPSpinInspiralRD ERROR: h+ and hx too short: %d vs. %d\n",(*hPlus)->data->length,intLen);
+	XLAL_ERROR(XLAL_EFAILED);
       }
-      for (idx=intLen;idx<(int)(*hPlus)->data->length;idx++) {
-	(*hPlus)->data->data[idx] = (*hCross)->data->data[idx]= 0.;
+      else {
+	XLALGPSAdd(&((*hPlus)->epoch),-tPeak);
+	XLALGPSAdd(&((*hCross)->epoch),-tPeak);
       }
-      XLALDestroyREAL8TimeSeries(hCtmp);
-      XLALDestroyREAL8TimeSeries(hPtmp);
     }
   }
   else {
-    (*hPlus)=hPtmp;
-    (*hCross)=hCtmp;
+    XLALGPSAdd(&tStart,-tPeak);
+    *hPlus  = XLALCreateREAL8TimeSeries("H+", &tStart, 0.0, deltaT, &lalDimensionlessUnit, intLen);
+    *hCross = XLALCreateREAL8TimeSeries("Hx", &tStart, 0.0, deltaT, &lalDimensionlessUnit, intLen);
+    if(*hPlus == NULL || *hCross == NULL)
+      XLAL_ERROR(XLAL_ENOMEM);
+  }
+
+  int minLen=hPtmp->data->length < (*hPlus)->data->length ? hPtmp->data->length : (*hPlus)->data->length;
+  for (idx=0;idx<minLen;idx++) {
+    (*hPlus)->data->data[idx] =hPtmp->data->data[idx];
+    (*hCross)->data->data[idx]=hCtmp->data->data[idx];
+  }
+  for (idx=minLen;idx<(int)(*hPlus)->data->length;idx++) {
+    (*hPlus)->data->data[idx] =0.;
+    (*hCross)->data->data[idx]=0.;
   }
 
   return errcode;
@@ -1538,7 +1535,7 @@ int XLALSimIMRPhenSpinFinalMassSpin(REAL8 *finalMass,
   /* Check value of finalMass */
   if (*finalMass < 0.) {
 #if DEBUG_LEVEL
-    fprintf(stderr,"*** LALSimIMRPSpinInspiralRD ERROR: Estimated final mass <0 : %12.6f\n ",*finalMass);
+    printf("*** LALSimIMRPSpinInspiralRD ERROR: Estimated final mass <0 : %12.6f\n ",*finalMass);
 #endif
     XLAL_ERROR( XLAL_ERANGE);
   }
@@ -1547,8 +1544,8 @@ int XLALSimIMRPhenSpinFinalMassSpin(REAL8 *finalMass,
   if ((*finalSpin > 1.)||(*finalSpin < 0.)) {
     if ((*finalSpin>=1.)&&(*finalSpin<1.01)) {
 #if DEBUG_LEVEL
-      fprintf(stderr,"*** LALSimIMRPSpinInspiralRD WARNING: Estimated final Spin slightly >1 : %11.3e\n ",*finalSpin);
-      fprintf(stderr,"      (m1=%8.3f  m2=%8.3f  s1sq=%8.3f  s2sq=%8.3f  s1L=%8.3f  s2L=%8.3f  s1s2=%8.3f ) final spin set to 1 and code goes on\n",mass1,mass2,s1s1,s2s2,s1L,s2L,s1s2);
+      printf("*** LALSimIMRPSpinInspiralRD WARNING: Estimated final Spin slightly >1 : %11.3e\n ",*finalSpin);
+      printf("      (m1=%8.3f  m2=%8.3f  s1sq=%8.3f  s2sq=%8.3f  s1L=%8.3f  s2L=%8.3f  s1s2=%8.3f ) final spin set to 1 and code goes on\n",mass1,mass2,s1s1,s2s2,s1L,s2L,s1s2);
 #endif
       XLALPrintWarning("*** LALSimIMRPSpinInspiralRD WARNING: Estimated final Spin slightly >1 : %11.3e\n ",*finalSpin);
       XLALPrintWarning("    (m1=%8.3f  m2=%8.3f  s1sq=%8.3f  s2sq=%8.3f  s1L=%8.3f  s2L=%8.3f  s1s2=%8.3f ) final spin set to 1 and code goes on\n",mass1,mass2,s1s1,s2s2,s1L,s2L,s1s2);
@@ -1556,9 +1553,9 @@ int XLALSimIMRPhenSpinFinalMassSpin(REAL8 *finalMass,
     }
     else {
 #if DEBUG_LEVEL
-      fprintf(stderr,"*** LALSimIMRPSpinInspiralRD ERROR: Unphysical estimation of final Spin : %11.3e\n ",*finalSpin);
-      fprintf(stderr,"      (m1=%8.3f  m2=%8.3f  s1sq=%8.3f  s2sq=%8.3f  s1L=%8.3f  s2L=%8.3f  s1s2=%8.3f )\n",mass1,mass2,s1s1,s2s2,s1L,s2L,s1s2);
-      fprintf(stderr,"***                                    Code aborts\n");
+      printf("*** LALSimIMRPSpinInspiralRD ERROR: Unphysical estimation of final Spin : %11.3e\n ",*finalSpin);
+      printf("      (m1=%8.3f  m2=%8.3f  s1sq=%8.3f  s2sq=%8.3f  s1L=%8.3f  s2L=%8.3f  s1s2=%8.3f )\n",mass1,mass2,s1s1,s2s2,s1L,s2L,s1s2);
+      printf("***                                    Code aborts\n");
 #endif
       XLALPrintError("*** LALSimIMRPSpinInspiralRD ERROR: Unphysical estimation of final Spin : %11.3e\n ",*finalSpin);
       XLALPrintWarning("    (m1=%8.3f  m2=%8.3f  s1sq=%8.3f  s2sq=%8.3f  s1L=%8.3f  s2L=%8.3f  s1s2=%8.3f )\n",mass1,mass2,s1s1,s2s2,s1L,s2L,s1s2);
@@ -1603,6 +1600,7 @@ static INT4 XLALSimIMRHybridRingdownWave(
   REAL8 m;
 
   /* mass in geometric units */
+  printf("m-RD: %12.4e  %12.4e  MR: %12.4e  %12.4e\n",mass1,mass2,matchrange->data[0],matchrange->data[1]);
   m  = (mass1 + mass2) * LAL_MTSUN_SI;
   t5 = (matchrange->data[0] - matchrange->data[1]) * m;
   rt = -t5 / 5.;
@@ -1639,6 +1637,7 @@ static INT4 XLALSimIMRHybridRingdownWave(
   /* Define the linear system Ax=y */
   /* Matrix A (2*n by 2*n) has block symmetry. Define half of A here as "coef" */
   /* Define y here as "hderivs" */
+  printf(" t1 %12.4e, t2/t1 %12.4e, t3/t1 %12.4e  t4/t1 %12.4e  t5/t1 %12.4e\n",t1,t2/t1,t3/t1,t4/t1,t5/t1);
   for (i = 0; i < nmodes; ++i)
   {
 	gsl_matrix_set(coef, 0, i, 1);
@@ -1688,21 +1687,13 @@ static INT4 XLALSimIMRHybridRingdownWave(
 	}
   }
 
-  #if 0
-  /* print ringdown-matching linear system: coefficient matrix and RHS vector */
+  #if DEBUG_RD
   printf("\nRingdown matching matrix:\n");
-  for (i = 0; i < 16; ++i)
-  {
-    for (j = 0; j < 16; ++j)
-    {
-      printf("%.12e ",gsl_matrix_get(coef,i,j));
+  for (i = 0; i < 16; ++i) {
+    for (j = 0; j < 16; ++j) {
+      printf("%8.1e ",gsl_matrix_get(coef,i,j));
     }
-    printf("\n");
-  }
-  printf("RHS:  ");
-  for (i = 0; i < 16; ++i)
-  {
-    printf("%.12e   ",gsl_vector_get(hderivs,i));
+    printf(" | %8.1e\n",gsl_vector_get(hderivs,i));
   }
   printf("\n");
   #endif
@@ -1738,6 +1729,10 @@ static INT4 XLALSimIMRHybridRingdownWave(
   {
 	modeamps->data[i] = gsl_vector_get(x, i);
 	modeamps->data[i + nmodes] = gsl_vector_get(x, i + nmodes);
+  }
+
+  for (int idx=0;idx<(int)nmodes;idx++) {
+    printf("%d  A %12.4e  B %12.4e\n",idx,modeamps->data[idx],modeamps->data[idx+nmodes]);
   }
 
   /* Free all gsl linear algebra objects */
@@ -1780,7 +1775,7 @@ int XLALSimIMRPhenSpinInspiralRDGenerator(REAL8TimeSeries **hPlus,	         /**<
 					  REAL8 deltaT,                          /**< sampling interval */
 					  REAL8 m1,                              /**< mass of companion 1 in SI units */
 					  REAL8 m2,                              /**< mass of companion 2 in SI units */
-					  REAL8 f_min,                           /**< start frequency */
+					  REAL8 f_start,                           /**< start frequency */
 					  REAL8 f_ref,                           /**< reference frequency */
 					  REAL8 r,                               /**< distance of source */
 					  REAL8 iota,                            /**< inclination of source (rad) */
@@ -1826,37 +1821,48 @@ int XLALSimIMRPhenSpinInspiralRDGenerator(REAL8TimeSeries **hPlus,	         /**<
   REAL8TimeSeries *omega, *Phi, *LNhatx, *LNhaty, *LNhatz;
   REAL8TimeSeries *S1x, *S1y, *S1z, *S2x, *S2y, *S2z, *Energy;
 
-  if (lengthH==0) {
-    REAL8 tn = XLALSimInspiralTaylorLength(deltaT, m1, m2, f_min, phaseO);
-    REAL8 x  = 1.1 * (tn + 1. ) / deltaT;
-    int length = ceil(log10(x)/log10(2.));
-    lengthH    = pow(2, length);
-  }
+  REAL8 tn = XLALSimInspiralTaylorLength(deltaT, m1, m2, f_start, phaseO);
+  REAL8 x  = 1.1 * (tn + 1. ) / deltaT;
+  int length = ceil(log10(x)/log10(2.));
+  lengthH    = pow(2, length);
+
 #if DEBUG_LEVEL
   printf("  Estimated Length %d\n",lengthH);
 #endif
 
-  if (f_ref<=f_min) {
-    errcode=XLALSimIMRPhenSpinInitialize(hPlus,hCross,mass1,mass2,yinit,f_min,-1.,deltaT,iota,phaseO,&params,waveFlags,testGRparams,&lengthH);
+  if (f_ref<=f_start) {
+    errcode=XLALSimIMRPhenSpinInitialize(mass1,mass2,yinit,f_start,-1.,deltaT,phaseO,&params,waveFlags,testGRparams);
     if(errcode) XLAL_ERROR(XLAL_EFUNC);
-    errcodeInt=XLALSimInspiralSpinTaylorT4Engine(&omega,&Phi,&LNhatx,&LNhaty,&LNhatz,&S1x,&S1y,&S1z,&S2x,&S2y,&S2z,&Energy,1,lengthH,0,yinit,PhenSpinTaylorRD,&params);
+    if(XLALSimIMRPhenSpinInspiralSetAxis(mass1,mass2,&iota,yinit,XLALSimInspiralGetFrameAxis(waveFlags))) {
+      XLAL_ERROR(XLAL_EFUNC);
+    }
+    errcodeInt=XLALSimInspiralSpinTaylorT4Engine(&omega,&Phi,&LNhatx,&LNhaty,&LNhatz,&S1x,&S1y,&S1z,&S2x,&S2y,&S2z,&Energy,yinit,lengthH,PhenSpinTaylorRD,&params);
     intLen=Phi->data->length;
   }
   else {
     REAL8TimeSeries *Phi1, *omega1, *LNhatx1, *LNhaty1, *LNhatz1;
     REAL8TimeSeries *S1x1, *S1y1, *S1z1, *S2x1, *S2y1, *S2z1, *Energy1;
-    errcode=XLALSimIMRPhenSpinInitialize(hPlus,hCross,m1,m2,yinit,f_min,f_ref,deltaT,iota,phaseO,&params,waveFlags,testGRparams,&lengthH);
+    errcode=XLALSimIMRPhenSpinInitialize(mass1,mass2,yinit,f_ref,f_start,deltaT,phaseO,&params,waveFlags,testGRparams);
     if(errcode) XLAL_ERROR(XLAL_EFUNC);
+    if(XLALSimIMRPhenSpinInspiralSetAxis(mass1,mass2,&iota,yinit,XLALSimInspiralGetFrameAxis(waveFlags))) {
+      XLAL_ERROR(XLAL_EFUNC);
+    }
 
-    errcode=XLALSimInspiralSpinTaylorT4Engine(&omega1,&Phi1,&LNhatx1,&LNhaty1,&LNhatz1,&S1x1,&S1y1,&S1z1,&S2x1,&S2y1,&S2z1,&Energy1,-1,lengthH,0,yinit,PhenSpinTaylorRD,&params);
+    REAL8 dyTmp[LAL_NUM_PST4_VARIABLES];
+    REAL8 energy;
+    XLALSpinInspiralDerivatives(0., yinit,dyTmp,&params);
+    energy=dyTmp[11]*params.dt/params.M+yinit[11];
+    yinit[11]=energy;
+
+    errcode=XLALSimInspiralSpinTaylorT4Engine(&omega1,&Phi1,&LNhatx1,&LNhaty1,&LNhatz1,&S1x1,&S1y1,&S1z1,&S2x1,&S2y1,&S2z1,&Energy1,yinit,lengthH,PhenSpinTaylorRD,&params);
     /* report on abnormal termination*/
     if ( (errcode != LALSIMINSPIRAL_PHENSPIN_TEST_FREQBOUND) ) {
 #if DEBUG_LEVEL
-      fprintf(stderr,"** LALPSpinInspiralRD WARNING **: integration terminated with code %d.\n",errcode);
-      fprintf(stderr,"   1025: Energy increases\n  1026: Omegadot -ve\n 1028: Omega NAN\n 1029: Omega > OmegaMatch\n 1031: Omega -ve\n");
-      fprintf(stderr,"   Waveform parameters were m1 = %14.6e, m2 = %14.6e, inc = %10.6f,  fRef %10.4f Hz\n", m1, m2, iota, f_ref);
-      fprintf(stderr,"                           S1 = (%10.6f,%10.6f,%10.6f)\n", s1x, s1y, s1z);
-      fprintf(stderr,"                           S2 = (%10.6f,%10.6f,%10.6f)\n", s2x, s2y, s2z);
+      printf("** LALPSpinInspiralRD WARNING **: integration terminated with code %d.\n",errcode);
+      printf("   1025: Energy increases\n  1026: Omegadot -ve\n 1028: Omega NAN\n 1029: Omega > OmegaMatch\n 1031: Omega -ve\n");
+      printf("   Waveform parameters were m1 = %14.6e, m2 = %14.6e, inc = %10.6f,  fRef %10.4f Hz\n", m1, m2, iota, f_ref);
+      printf("                           S1 = (%10.6f,%10.6f,%10.6f)\n", s1x, s1y, s1z);
+      printf("                           S2 = (%10.6f,%10.6f,%10.6f)\n", s2x, s2y, s2z);
 #endif
       XLALPrintError("** LALPSpinInspiralRD WARNING **: integration terminated with code %d.\n",errcode);
       XLALPrintError("   1025: Energy increases\n  1026: Omegadot -ve\n 1028: Omega NAN\n 1029: OMega > OmegaMatch\n 1031: Omega -ve\n");
@@ -1865,26 +1871,41 @@ int XLALSimIMRPhenSpinInspiralRDGenerator(REAL8TimeSeries **hPlus,	         /**<
       XLALPrintError("                           S2 = (%10.6f,%10.6f,%10.6f)\n", s2x, s2y, s2z);
     }
 
+    int intLen1=Phi1->data->length;
+
+    yinit[0] = Phi1->data->data[intLen1-1];
+    yinit[1] = omega1->data->data[intLen1-1];
+    yinit[2] = LNhatx1->data->data[intLen1-1];
+    yinit[3] = LNhaty1->data->data[intLen1-1];
+    yinit[4] = LNhatz1->data->data[intLen1-1];
+    yinit[5] = S1x1->data->data[intLen1-1];
+    yinit[6] = S1y1->data->data[intLen1-1];
+    yinit[7] = S1z1->data->data[intLen1-1];
+    yinit[8] = S2x1->data->data[intLen1-1];
+    yinit[9] = S2y1->data->data[intLen1-1];
+    yinit[10]= S2z1->data->data[intLen1-1];
+    yinit[11]= Energy1->data->data[intLen1-1];
+
     REAL8TimeSeries *omega2, *Phi2, *LNhatx2, *LNhaty2, *LNhatz2;
     REAL8TimeSeries *S1x2, *S1y2, *S1z2, *S2x2, *S2y2, *S2z2, *Energy2;
-    errcode=XLALSimIMRPhenSpinInitialize(hPlus,hCross,m1,m2,yinit,f_ref,-1.,deltaT,iota,phaseO,&params,waveFlags,testGRparams,&lengthH);
-    if(errcode) XLAL_ERROR(XLAL_EFUNC);
-    errcodeInt=XLALSimInspiralSpinTaylorT4Engine(&omega2,&Phi2,&LNhatx2,&LNhaty2,&LNhatz2,&S1x2,&S1y2,&S1z2,&S2x2,&S2y2,&S2z2,&Energy2,1,lengthH,0,yinit,PhenSpinTaylorRD,&params);
+
+    params.fEnd=-1.;
+    params.dt*=-1.;
+    errcodeInt=XLALSimInspiralSpinTaylorT4Engine(&omega2,&Phi2,&LNhatx2,&LNhaty2,&LNhatz2,&S1x2,&S1y2,&S1z2,&S2x2,&S2y2,&S2z2,&Energy2,yinit,lengthH,PhenSpinTaylorRD,&params);
 
     REAL8 phiRef=Phi1->data->data[omega1->data->length-1];
-
-    errcode =XLALAppendTSandFree(omega1,omega2,omega);
-    errcode+=XLALAppendTSandFree(Phi1,Phi2,Phi);
-    errcode+=XLALAppendTSandFree(LNhatx1,LNhatx2,LNhatx);
-    errcode+=XLALAppendTSandFree(LNhaty1,LNhaty2,LNhaty);
-    errcode+=XLALAppendTSandFree(LNhatz1,LNhatz2,LNhatz);
-    errcode+=XLALAppendTSandFree(S1x1,S1x2,S1x);
-    errcode+=XLALAppendTSandFree(S1y1,S1y2,S1y);
-    errcode+=XLALAppendTSandFree(S1z1,S1z2,S1z);
-    errcode+=XLALAppendTSandFree(S2x1,S2x2,S2x);
-    errcode+=XLALAppendTSandFree(S2y1,S2y2,S2y);
-    errcode+=XLALAppendTSandFree(S2z1,S2z2,S2z);
-
+    omega =appendTSandFree(omega1,omega2);
+    Phi   =appendTSandFree(Phi1,Phi2);
+    LNhatx=appendTSandFree(LNhatx1,LNhatx2);
+    LNhaty=appendTSandFree(LNhaty1,LNhaty2);
+    LNhatz=appendTSandFree(LNhatz1,LNhatz2);
+    S1x   =appendTSandFree(S1x1,S1x2);
+    S1y   =appendTSandFree(S1y1,S1y2);
+    S1z   =appendTSandFree(S1z1,S1z2);
+    S2x   =appendTSandFree(S2x1,S2x2);
+    S2y   =appendTSandFree(S2y1,S2y2);
+    S2z   =appendTSandFree(S2z1,S2z2);
+    Energy=appendTSandFree(Energy1,Energy2);
     intLen=Phi->data->length;
     for (idx=0;idx<(int)intLen;idx++) Phi->data->data[idx]-=phiRef;
 
@@ -1893,11 +1914,11 @@ int XLALSimIMRPhenSpinInspiralRDGenerator(REAL8TimeSeries **hPlus,	         /**<
   /* report on abnormal termination*/
   if ( (errcodeInt != LALSIMINSPIRAL_PHENSPIN_TEST_OMEGAMATCH) ) {
 #if DEBUG_LEVEL
-      fprintf(stderr,"** LALPSpinInspiralRD WARNING **: integration terminated with code %d.\n",errcode);
-      fprintf(stderr,"   1025: Energy increases\n  1026: Omegadot -ve\n  1027: Freqbound\n 1028: Omega NAN\n  1031: Omega -ve\n");
-      fprintf(stderr,"   Waveform parameters were m1 = %14.6e, m2 = %14.6e, inc = %10.6f,\n", m1, m2, iota);
-      fprintf(stderr,"                           S1 = (%10.6f,%10.6f,%10.6f)\n", s1x, s1y, s1z);
-      fprintf(stderr,"                           S2 = (%10.6f,%10.6f,%10.6f)\n", s2x, s2y, s2z);
+      printf("** LALPSpinInspiralRD WARNING **: integration terminated with code %d.\n",errcode);
+      printf("   1025: Energy increases\n  1026: Omegadot -ve\n  1027: Freqbound\n 1028: Omega NAN\n  1031: Omega -ve\n");
+      printf("   Waveform parameters were m1 = %14.6e, m2 = %14.6e, inc = %10.6f,\n", m1, m2, iota);
+      printf("                           S1 = (%10.6f,%10.6f,%10.6f)\n", s1x, s1y, s1z);
+      printf("                           S2 = (%10.6f,%10.6f,%10.6f)\n", s2x, s2y, s2z);
 #endif
       XLALPrintError("** LALPSpinInspiralRD WARNING **: integration terminated with code %d.\n",errcode);
       XLALPrintError("   1025: Energy increases\n  1026: Omegadot -ve\n  1027: Freqbound\n 1028: Omega NAN\n  1031: Omega -ve\n");
@@ -1928,10 +1949,9 @@ int XLALSimIMRPhenSpinInspiralRDGenerator(REAL8TimeSeries **hPlus,	         /**<
     hLMtmp->data->data[idx]=0.;
   }
 
-
   LALSimInspiralInclAngle trigAngle;
 
-  REAL8 amp22ini = -2.0 * m1*m2/(m1+m2) * LAL_G_SI/pow(LAL_C_SI,3.) / r * sqrt(16. * LAL_PI / 5.);
+  REAL8 amp22ini = -2.0 * m1*m2/(m1+m2) * LAL_G_SI/pow(LAL_C_SI,2.) / r * sqrt(16. * LAL_PI / 5.);
   REAL8 amp33ini = -amp22ini * sqrt(5./42.)/4.;
   REAL8 amp44ini = amp22ini * sqrt(5./7.) * 2./9.;
   REAL8 alpha,v,v2,Psi,om;
@@ -1944,7 +1964,7 @@ int XLALSimIMRPhenSpinInspiralRDGenerator(REAL8TimeSeries **hPlus,	         /**<
     v=cbrt(om);
     v2=v*v;
     Psi=Phi->data->data[idx] -2.*om*(1.-eta*v2)*log(om);
-    errcode =XLALSimInspiralComputeAlpha(mass1,mass2,LNhatx->data->data[idx],LNhaty->data->data[idx],S1x->data->data[idx],S1y->data->data[idx],S2x->data->data[idx],S2y->data->data[idx],&alpha);
+    errcode =XLALSimInspiralComputeAlpha(params,LNhatx->data->data[idx],LNhaty->data->data[idx],S1x->data->data[idx],S1y->data->data[idx],S2x->data->data[idx],S2y->data->data[idx],&alpha);
     errcode+=XLALSimInspiralComputeInclAngle(LNhatz->data->data[idx],&trigAngle);
     errcode+=XLALSimSpinInspiralFillL2Modes(hL2tmp,v,eta,dm,Psi,alpha,&trigAngle);
     for (kdx=0;kdx<5;kdx++) {
@@ -2023,11 +2043,11 @@ int XLALSimIMRPhenSpinInspiralRDGenerator(REAL8TimeSeries **hPlus,	         /**<
     for (idx=0;idx<(int)domega->length;idx++)
     if ( (errcode != 0) || (domega->data[jMatch]<0.) || (ddomega->data[jMatch]<0.) ) {
 #if DEBUG_LEVEL
-      fprintf(stderr,"**** LALSimIMRPhenSpinInspiralRD ERROR ****: error generating derivatives");
-      fprintf(stderr,"                     m:           : %12.5f  %12.5f\n",m1,m2);
-      fprintf(stderr,"              S1:                 : %12.5f  %12.5f  %12.5f\n",s1x,s1y,s1z);
-      fprintf(stderr,"              S2:                 : %12.5f  %12.5f  %12.5f\n",s2x,s2y,s2z);
-      fprintf(stderr,"     omM %12.5f   om[%d] %12.5f\n",omegaMatch,iMatch,omega->data->data[iMatch]);
+      printf("**** LALSimIMRPhenSpinInspiralRD ERROR ****: error generating derivatives");
+      printf("                     m:           : %12.5f  %12.5f\n",m1,m2);
+      printf("              S1:                 : %12.5f  %12.5f  %12.5f\n",s1x,s1y,s1z);
+      printf("              S2:                 : %12.5f  %12.5f  %12.5f\n",s2x,s2y,s2z);
+      printf("     omM %12.5f   om[%d] %12.5f\n",omegaMatch,iMatch,omega->data->data[iMatch]);
 #if DEBUG_LEVEL
 #endif
       XLALPrintError("**** LALSimIMRPhenSpinInspiralRD ERROR ****: error generating derivatives");
@@ -2068,11 +2088,11 @@ int XLALSimIMRPhenSpinInspiralRDGenerator(REAL8TimeSeries **hPlus,	         /**<
 
     if ((tAs < t0) || (om1 < 0.)) {
 #if DEBUG_LEVEL
-      fprintf(stderr,"**** LALSimIMRPhenSpinInspiralRD ERROR ****: Could not attach phen part for:\n");
-      fprintf(stderr," tAs %12.6e  dom %12.6e  ddom %12.6e\n",tAs,domega->data[jMatch],ddomega->data[jMatch]);
-      fprintf(stderr,"   m1 = %14.6e, m2 = %14.6e, inc = %10.6f,\n", mass1, mass2, iota);
-      fprintf(stderr,"   S1 = (%10.6f,%10.6f,%10.6f)\n", s1x, s1y, s1z);
-      fprintf(stderr,"   S2 = (%10.6f,%10.6f,%10.6f)\n", s2x, s2y, s2z);
+      printf("**** LALSimIMRPhenSpinInspiralRD ERROR ****: Could not attach phen part for:\n");
+      printf(" tAs %12.6e  dom %12.6e  ddom %12.6e\n",tAs,domega->data[jMatch],ddomega->data[jMatch]);
+      printf("   m1 = %14.6e, m2 = %14.6e, inc = %10.6f,\n", mass1, mass2, iota);
+      printf("   S1 = (%10.6f,%10.6f,%10.6f)\n", s1x, s1y, s1z);
+      printf("   S2 = (%10.6f,%10.6f,%10.6f)\n", s2x, s2y, s2z);
 #endif
       XLALPrintError("**** LALSimIMRPhenSpinInspiralRD ERROR ****: Could not attach phen part for:\n");
       XLALPrintError(" tAs %12.6e  t0 %12.6e  om1 %12.6e\n",tAs,t0,om1);
@@ -2081,12 +2101,12 @@ int XLALSimIMRPhenSpinInspiralRDGenerator(REAL8TimeSeries **hPlus,	         /**<
       XLALPrintError("   S2 = (%10.6f,%10.6f,%10.6f)\n", s2x, s2y, s2z);
       XLAL_ERROR(XLAL_EFAILED);
     }
-    else /*pippo*/ {
+    else {
       XLALSimInspiralComputeInclAngle(LNhatz->data->data[iMatch],&trigAngle);
       om     = omega->data->data[iMatch];
       Psi    = Phi->data->data[iMatch] - 2. * om * log(om);
       Psi0   = Psi + tAs * (om1/(m1+m2) -dalpha1*trigAngle.ci) * log(1. - t0 / tAs);
-      errcode =XLALSimInspiralComputeAlpha(m1,m2,LNhatx->data->data[iMatch],LNhaty->data->data[iMatch],S1x->data->data[iMatch],S1y->data->data[iMatch],S2x->data->data[iMatch],S2y->data->data[iMatch],&alpha);
+      errcode =XLALSimInspiralComputeAlpha(params,LNhatx->data->data[iMatch],LNhaty->data->data[iMatch],S1x->data->data[iMatch],S1y->data->data[iMatch],S2x->data->data[iMatch],S2y->data->data[iMatch],&alpha);
       alpha0 = alpha + tAs * dalpha1 * log(1. - t0 / tAs);
       energy = Energy->data->data[iMatch];
       count  = intLen-1;
@@ -2100,13 +2120,13 @@ int XLALSimIMRPhenSpinInspiralRDGenerator(REAL8TimeSeries **hPlus,	         /**<
       errcode+=XLALSimIMRPhenSpinGenerateQNMFreq(modefreqs, 2, 2, finalMass, finalSpin, Mass);
       if (errcode) {
 #if DEBUG_LEVEL
-        fprintf(stderr,"**** LALSimIMRPhenSpinInspiralRD ERROR ****: impossible to generate RingDown frequency\n");
-        fprintf(stderr,"   m  (%11.4e  %11.4e)  f0 %11.4e\n",mass1, mass2, f_min);
-        fprintf(stderr,"   S1 (%8.4f  %8.4f  %8.4f)\n", s1x,s1y,s1z);
-	fprintf(stderr,"   S2 (%8.4f  %8.4f  %8.4f)\n", s2x,s2y,s2z);
+        printf("**** LALSimIMRPhenSpinInspiralRD ERROR ****: impossible to generate RingDown frequency\n");
+        printf("   m  (%11.4e  %11.4e)  f0 %11.4e\n",mass1, mass2, f_start);
+        printf("   S1 (%8.4f  %8.4f  %8.4f)\n", s1x,s1y,s1z);
+	printf("   S2 (%8.4f  %8.4f  %8.4f)\n", s2x,s2y,s2z);
 #endif
         XLALPrintError("**** LALSimIMRPhenSpinInspiralRD ERROR ****: impossible to generate RingDown frequency\n");
-        XLALPrintError( "   m  (%11.4e  %11.4e)  f0 %11.4e\n",mass1, mass2, f_min);
+        XLALPrintError( "   m  (%11.4e  %11.4e)  f0 %11.4e\n",mass1, mass2, f_start);
         XLALPrintError( "   S1 (%8.4f  %8.4f  %8.4f)\n", s1x,s1y,s1z);
         XLALPrintError( "   S2 (%8.4f  %8.4f  %8.4f)\n", s2x,s2y,s2z);
         XLALDestroyCOMPLEX16Vector(modefreqs);
@@ -2121,6 +2141,8 @@ int XLALSimIMRPhenSpinInspiralRDGenerator(REAL8TimeSeries **hPlus,	         /**<
       REAL8 amp22 = amp22ini*v2;
       REAL8 amp33,amp44;
       REAL8 v2old;
+
+      printf("cnt %d  %14.8e  %14.8e  diff %12.4e\n",count,tm,count*deltaT,(double)count-tm/deltaT);
 
       do {
 	count++;
@@ -2150,6 +2172,8 @@ int XLALSimIMRPhenSpinInspiralRDGenerator(REAL8TimeSeries **hPlus,	         /**<
 
       tPeak=tm;
 
+      printf("tPeak %15.8e, ct %d  %15.8e\n",tPeak,count,count*params.dt);
+
       /*--------------------------------------------------------------
        * Attach the ringdown waveform to the end of inspiral
        -------------------------------------------------------------*/
@@ -2165,9 +2189,11 @@ int XLALSimIMRPhenSpinInspiralRDGenerator(REAL8TimeSeries **hPlus,	         /**<
       REAL8VectorSequence *inspWaveI = XLALCreateREAL8VectorSequence( 3, nPtsComb );
 
       int nRDWave = (INT4) (RD_EFOLDS / fabs(cimag(modefreqs->data[0])) / deltaT);
+
+      printf("nRDWave %d  tau %12.4e  dT %12.4e  m: %12.4e  %12.4e\n",nRDWave,-1./cimag(modefreqs->data[0]),deltaT,mass1,mass2);
       REAL8Vector *matchrange=XLALCreateREAL8Vector(3);
-      matchrange->data[0]=count*deltaT;
-      matchrange->data[1]=(count-nPtsComb+1)*deltaT;
+      matchrange->data[0]=(count-nPtsComb+1)*deltaT/(mass1 + mass2) / LAL_MTSUN_SI;
+      matchrange->data[1]=count*deltaT/(mass1 + mass2) / LAL_MTSUN_SI;;
       matchrange->data[2]=0.;
 
      /* Check memory was allocated */
@@ -2200,10 +2226,17 @@ int XLALSimIMRPhenSpinInspiralRDGenerator(REAL8TimeSeries **hPlus,	         /**<
 	    waveR->data[idx]=creal(hL2->data->data[5*(startComb+idx)+(m+l)]);
 	    waveI->data[idx]=cimag(hL2->data->data[5*(startComb+idx)+(m+l)]);
 	  }
-	  errcode =XLALGenerateWaveDerivative(waveR,dwaveR,deltaT);
-	  errcode+=XLALGenerateWaveDerivative(dwaveR,ddwaveR,deltaT);
-	  errcode+=XLALGenerateWaveDerivative(waveI,dwaveI,deltaT);
-	  errcode+=XLALGenerateWaveDerivative(dwaveI,ddwaveI,deltaT);
+	  errcode =XLALGenerateWaveDerivative(dwaveR,waveR,deltaT);
+	  errcode+=XLALGenerateWaveDerivative(ddwaveR,dwaveR,deltaT);
+	  errcode+=XLALGenerateWaveDerivative(dwaveI,waveI,deltaT);
+	  errcode+=XLALGenerateWaveDerivative(ddwaveI,dwaveI,deltaT);
+
+	  for (idx=0;idx<(int)waveR->length;idx++) {
+	    printf("l %d m %d idx %d wave R %12.4e  %12.4e  %12.4e\n",l,m,idx,waveR->data[idx],dwaveR->data[idx],ddwaveR->data[idx]);
+	  }
+	  for (idx=0;idx<(int)waveR->length;idx++) {
+	    printf("l %d m %d idx %d wave I %12.4e  %12.4e  %12.4e\n",l,m,idx,waveI->data[idx],dwaveI->data[idx],ddwaveI->data[idx]);
+	  }
 	  for (idx=0;idx<nPtsComb;idx++) {
 	    inspWaveR->data[idx]            =waveR->data[idx+1];
 	    inspWaveR->data[idx+  nPtsComb] =dwaveR->data[idx+1];
@@ -2224,7 +2257,13 @@ int XLALSimIMRPhenSpinInspiralRDGenerator(REAL8TimeSeries **hPlus,	         /**<
 	    fSpin=finalSpin;
 	  }
 	  errcode+=XLALSimIMRPhenSpinGenerateQNMFreq(modefreqs, l, mm, finalMass, fSpin, Mass);
+	  for (idx=0;idx<(int)modefreqs->length;idx++) {
+	    printf("idxMode %d  F %12.4e  %12.4e\n",idx,creal(modefreqs->data[idx]),-cimag(modefreqs->data[idx]));
+	  }
 	  errcode+=XLALSimIMRHybridRingdownWave(rdwave1l2,rdwave2l2,deltaT,mass1,mass2,inspWaveR,inspWaveI,modefreqs,matchrange);
+	  /*	  for (idx=0;idx<(int)rdwave1l2->length;idx++) {
+	    printf("l %d m %d idx %d rdw1 %12.4e, rdw2 %12.4e\n",l,m,idx,rdwave1l2->data[idx],rdwave2l2->data[idx]);
+	    }*/
 	  for (idx=0;idx<count;idx++) {
 	    hLMtmp->data->data[idx]=hL2->data->data[5*idx+(l+m)];
 	  }
@@ -2332,7 +2371,7 @@ int XLALSimIMRPhenSpinInspiralRDGenerator(REAL8TimeSeries **hPlus,	         /**<
   if ((*hPlus) && (*hCross)) {
     if ((*hPlus)->data->length!=(*hCross)->data->length) {
 #if DEBUG_LEVEL
-      fprintf(stderr,"*** LALSimIMRPSpinInspiralRD ERROR: h+ and hx differ in length: %d vs. %d\n",(*hPlus)->data->length,(*hCross)->data->length);
+      printf("*** LALSimIMRPSpinInspiralRD ERROR: h+ and hx differ in length: %d vs. %d\n",(*hPlus)->data->length,(*hCross)->data->length);
 #endif
       XLALPrintError("*** LALSimIMRPSpinInspiralRD ERROR: h+ and hx differ in length: %d vs. %d\n",(*hPlus)->data->length,(*hCross)->data->length);
       XLAL_ERROR(XLAL_EFAILED);
@@ -2340,7 +2379,7 @@ int XLALSimIMRPhenSpinInspiralRDGenerator(REAL8TimeSeries **hPlus,	         /**<
     else {
       if ((int)(*hPlus)->data->length<count) {
 #if DEBUG_LEVEL
-	fprintf(stderr,"*** LALSimIMRPSpinInspiralRD ERROR: h+ and hx too short: %d vs. %d\n",(*hPlus)->data->length,count);
+	printf("*** LALSimIMRPSpinInspiralRD ERROR: h+ and hx too short: %d vs. %d\n",(*hPlus)->data->length,count);
 #endif
 	XLALPrintError("*** LALSimIMRPSpinInspiralRD ERROR: h+ and hx too short: %d vs. %d\n",(*hPlus)->data->length,count);
 	XLAL_ERROR(XLAL_EFAILED);
@@ -2352,7 +2391,7 @@ int XLALSimIMRPhenSpinInspiralRDGenerator(REAL8TimeSeries **hPlus,	         /**<
     }
   }
   else {
-    XLALGPSAdd(&tStart,-tPeak);
+    //XLALGPSAdd(&tStart,-tPeak);
     *hPlus  = XLALCreateREAL8TimeSeries("H+", &tStart, 0.0, deltaT, &lalDimensionlessUnit, count);
     *hCross = XLALCreateREAL8TimeSeries("Hx", &tStart, 0.0, deltaT, &lalDimensionlessUnit, count);
     if(*hPlus == NULL || *hCross == NULL)
@@ -2494,102 +2533,102 @@ int XLALSimIMRPhenSpinGenerateQNMFreq(COMPLEX16Vector *modefreqs,
 { 0.523121, 0.522966, 0.522983, 0.523079, 0.523114, 0.523151, 0.523176, 0.523196, 0.523218, 0.523244, 0.523371, 0.523498, 0.523623, 0.523873, 0.524124, 0.524374, 0.524872, 0.525369, 0.525864, 0.526357, 0.526849, 0.527339, 0.527826, 0.529037, 0.530235, 0.532589, 0.534883, 0.537110, 0.541345, 0.545250, 0.548791, 0.551942, 0.554695, 0.557052, 0.559032, 0.560663, 0.561980, 0.563023, 0.563831, 0.564442, 0.565326, 0.565642, 0.565721, 0.565798, 0.566039, 0.566564, 0.567456, 0.568779, 0.570581, 0.572899, 0.575766, 0.579207, 0.583247, 0.587909, 0.623402, 0.624280, 0.625745, 0.627796, 0.630435, 0.633659, 0.637463, 0.641838, 0.646764, 0.652205, 0.658097, 0.664333, 0.670727, 0.676954, 0.679282, 0.681442, 0.683368, 0.684972, 0.686146, 0.686757, 0.686646, 0.685638, 0.683574, 0.680369, 0.676056, 0.670788, 0.667863, 0.664780, 0.661570, 0.659924, 0.658256, 0.657583, 0.656907, 0.656228, 0.655546, 0.654862, 0.654175, 0.653487, 0.653141, 0.652796, 0.652450, 0.652276, 0.652103, 0.651929, 0.651894, 0.651860, 0.651826, 0.651791, 0.651756, 0.651684, 0.651624, 0.651570, 0.651532},
 { 0.523121, 0.522966, 0.522983, 0.523079, 0.523114, 0.523151, 0.523176, 0.523196, 0.523218, 0.523244, 0.523371, 0.523498, 0.523623, 0.523873, 0.524124, 0.524374, 0.524872, 0.525369, 0.525864, 0.526357, 0.526849, 0.527339, 0.527826, 0.529037, 0.530235, 0.532589, 0.534883, 0.537110, 0.541345, 0.545250, 0.548791, 0.551942, 0.554695, 0.557052, 0.559032, 0.560663, 0.561980, 0.563023, 0.563831, 0.564442, 0.565326, 0.565642, 0.565721, 0.565798, 0.566039, 0.566564, 0.567456, 0.568779, 0.570581, 0.572899, 0.575766, 0.579207, 0.583247, 0.587909, 0.588217, 0.589140, 0.590677, 0.592826, 0.595581, 0.598932, 0.602865, 0.607353, 0.612354, 0.617799, 0.623576, 0.629502, 0.635269, 0.640353, 0.642007, 0.643325, 0.644200, 0.644492, 0.644035, 0.642627, 0.640056, 0.636153, 0.630889, 0.624446, 0.617123, 0.609231, 0.605155, 0.601029, 0.596874, 0.594791, 0.592707, 0.591874, 0.591041, 0.590209, 0.589376, 0.588544, 0.587713, 0.586883, 0.586468, 0.586053, 0.585638, 0.585431, 0.585224, 0.585016, 0.584975, 0.584935, 0.584894, 0.584851, 0.584807, 0.584733, 0.584628, 0.584607, 0.584599}};
 
-  const double imomegaqnm22[8][107] = {{-0.078461,-0.080101,-0.081647,-0.084004,-0.085495,-0.086013,-0.086422,-0.086745,-0.087003,-0.087210,-0.087780,-0.087988,-0.088065,-0.088096,-0.088088,-0.088076,-0.088061,-0.088057,-0.088059,-0.088063,-0.088068,-0.088073,-0.088078,-0.088091,-0.088104,-0.088130,-0.088156,-0.088181,-0.088231,-0.088281,-0.088329,-0.088376,-0.088423,-0.088468,-0.088512,-0.088555,-0.088598,-0.088639,-0.088679,-0.088717,-0.088809,-0.088892,-0.088966,-0.089032,-0.089087,-0.089131,-0.089164,-0.089185,-0.089191,-0.089183,-0.089157,-0.089114,-0.089050,-0.088962,-0.088849,-0.088706,-0.088528,-0.088311,-0.088048,-0.087729,-0.087345,-0.086882,-0.086321,-0.085639,-0.084802,-0.083765,-0.082462,-0.080793,-0.079991,-0.079093,-0.078082,-0.076936,-0.075630,-0.074126,-0.072378,-0.070321,-0.067864,-0.064869,-0.061119,-0.056231,-0.053149,-0.049434,-0.044790,-0.041959,-0.038630,-0.037116,-0.035468,-0.033659,-0.031652,-0.029390,-0.026791,-0.023710,-0.021911,-0.019866,-0.017474,-0.016092,-0.014534,-0.012727,-0.012326,-0.011908,-0.011471,-0.011013,-0.010531,-0.009478,-0.008267,-0.007577,-0.006807},
-{-0.284478,-0.282567,-0.281162,-0.279245,-0.278072,-0.277670,-0.277358,-0.277118,-0.276936,-0.276800,-0.276536,-0.276565,-0.276647,-0.276753,-0.276778,-0.276775,-0.276764,-0.276768,-0.276776,-0.276784,-0.276791,-0.276797,-0.276803,-0.276818,-0.276834,-0.276864,-0.276893,-0.276922,-0.276977,-0.277028,-0.277076,-0.277120,-0.277160,-0.277197,-0.277230,-0.277259,-0.277283,-0.277304,-0.277321,-0.277333,-0.277344,-0.277326,-0.277278,-0.277196,-0.277080,-0.276926,-0.276732,-0.276495,-0.276212,-0.275877,-0.275486,-0.275033,-0.274512,-0.273915,-0.273232,-0.272452,-0.271562,-0.270546,-0.269383,-0.268049,-0.266512,-0.264733,-0.262661,-0.260225,-0.257331,-0.253847,-0.249580,-0.244238,-0.241705,-0.238888,-0.235736,-0.232183,-0.228149,-0.223524,-0.218165,-0.211876,-0.204376,-0.195252,-0.183847,-0.169019,-0.159687,-0.148458,-0.134453,-0.125927,-0.115917,-0.111365,-0.106415,-0.100985,-0.094960,-0.088175,-0.080377,-0.071134,-0.065738,-0.059605,-0.052426,-0.048280,-0.043605,-0.038184,-0.036979,-0.035724,-0.034413,-0.033038,-0.031592,-0.028433,-0.024800,-0.022730,-0.020422},
-{-0.504534,-0.501693,-0.501238,-0.503711,-0.506007,-0.506490,-0.506633,-0.506559,-0.506365,-0.506120,-0.505173,-0.505120,-0.505381,-0.505519,-0.505371,-0.505318,-0.505354,-0.505311,-0.505262,-0.505236,-0.505210,-0.505177,-0.505141,-0.505059,-0.504978,-0.504812,-0.504645,-0.504476,-0.504135,-0.503786,-0.503432,-0.503070,-0.502702,-0.502326,-0.501944,-0.501554,-0.501156,-0.500751,-0.500338,-0.499917,-0.498828,-0.497686,-0.496488,-0.495230,-0.493910,-0.492523,-0.491065,-0.489531,-0.487913,-0.486206,-0.484399,-0.482484,-0.480448,-0.478277,-0.475955,-0.473463,-0.470778,-0.467872,-0.464713,-0.461260,-0.457463,-0.453259,-0.448569,-0.443287,-0.437269,-0.430315,-0.422131,-0.412262,-0.407689,-0.402664,-0.397103,-0.390894,-0.383895,-0.375919,-0.366715,-0.355940,-0.343110,-0.327518,-0.308058,-0.282827,-0.266998,-0.248008,-0.224410,-0.210086,-0.193307,-0.185690,-0.177413,-0.168340,-0.158283,-0.146966,-0.133965,-0.118563,-0.109572,-0.099352,-0.087389,-0.080478,-0.072685,-0.063646,-0.061638,-0.059545,-0.057359,-0.055068,-0.052656,-0.047390,-0.041333,-0.037883,-0.034035},
-{-0.777682,-0.778170,-0.774907,-0.771079,-0.772456,-0.773571,-0.774249,-0.774423,-0.774236,-0.773865,-0.772678,-0.773376,-0.773489,-0.772990,-0.773229,-0.773121,-0.773005,-0.772942,-0.772818,-0.772776,-0.772680,-0.772579,-0.772506,-0.772294,-0.772084,-0.771654,-0.771224,-0.770787,-0.769900,-0.768995,-0.768072,-0.767129,-0.766168,-0.765187,-0.764186,-0.763165,-0.762123,-0.761061,-0.759977,-0.758872,-0.756015,-0.753020,-0.749885,-0.746606,-0.743182,-0.739611,-0.735891,-0.732017,-0.727985,-0.723788,-0.719419,-0.714865,-0.710114,-0.705148,-0.699946,-0.694481,-0.688721,-0.682628,-0.676155,-0.669243,-0.661823,-0.653808,-0.645091,-0.635536,-0.624969,-0.613154,-0.599764,-0.584301,-0.577364,-0.569885,-0.561756,-0.552827,-0.542888,-0.531648,-0.518699,-0.503480,-0.485224,-0.462864,-0.434823,-0.398473,-0.375741,-0.348572,-0.314974,-0.294663,-0.270945,-0.260200,-0.248542,-0.235779,-0.221649,-0.205769,-0.187547,-0.165980,-0.153396,-0.139094,-0.122354,-0.112682,-0.101773,-0.089118,-0.086305,-0.083375,-0.080314,-0.077105,-0.073726,-0.066352,-0.057868,-0.053037,-0.047648},
-{-1.044309,-1.046603,-1.050655,-1.048278,-1.047193,-1.048092,-1.048935,-1.049247,-1.049061,-1.048626,-1.048121,-1.048623,-1.048064,-1.048425,-1.048083,-1.048244,-1.048026,-1.047992,-1.047878,-1.047811,-1.047683,-1.047624,-1.047519,-1.047294,-1.047043,-1.046571,-1.046088,-1.045602,-1.044600,-1.043569,-1.042506,-1.041410,-1.040279,-1.039113,-1.037909,-1.036667,-1.035386,-1.034063,-1.032697,-1.031287,-1.027561,-1.023531,-1.019176,-1.014480,-1.009427,-1.004003,-0.998200,-0.992012,-0.985437,-0.978476,-0.971133,-0.963412,-0.955317,-0.946845,-0.937987,-0.928725,-0.919026,-0.908845,-0.898118,-0.886764,-0.874681,-0.861738,-0.847776,-0.832595,-0.815947,-0.797527,-0.776957,-0.753800,-0.743710,-0.733106,-0.721967,-0.710268,-0.697962,-0.684902,-0.670601,-0.653750,-0.632042,-0.603295,-0.565870,-0.517102,-0.486783,-0.450771,-0.406552,-0.379969,-0.349048,-0.335080,-0.319949,-0.303412,-0.285135,-0.264631,-0.241142,-0.213382,-0.197201,-0.178818,-0.157307,-0.144878,-0.130859,-0.114594,-0.110978,-0.107211,-0.103275,-0.099148,-0.094804,-0.085320,-0.074409,-0.068195,-0.061264},
-{-1.321876,-1.316952,-1.316680,-1.319467,-1.317311,-1.317699,-1.318525,-1.318939,-1.318766,-1.318308,-1.318440,-1.318071,-1.318219,-1.318003,-1.318199,-1.317998,-1.317922,-1.317906,-1.317816,-1.317701,-1.317641,-1.317538,-1.317449,-1.317225,-1.317008,-1.316565,-1.316117,-1.315660,-1.314736,-1.313781,-1.312801,-1.311792,-1.310749,-1.309671,-1.308555,-1.307400,-1.306200,-1.304955,-1.303660,-1.302314,-1.298700,-1.294695,-1.290248,-1.285302,-1.279801,-1.273681,-1.266873,-1.259306,-1.250911,-1.241631,-1.231433,-1.220321,-1.208348,-1.195608,-1.182210,-1.168248,-1.153773,-1.138779,-1.123199,-1.106915,-1.089762,-1.071525,-1.051940,-1.030673,-1.007299,-0.981265,-0.951825,-0.917950,-0.902851,-0.886706,-0.869389,-0.850781,-0.830803,-0.809534,-0.787531,-0.766572,-0.750871,-0.748723,-0.741744,-0.732374,-0.728044,-0.723765,-0.719565,-0.717492,-0.715438,-0.714621,-0.713807,-0.712996,-0.712188,-0.711383,-0.710581,-0.709781,-0.709382,-0.708984,-0.708587,-0.708388,-0.708190,-0.707992,-0.707952,-0.707911,-0.707871,-0.707832,-0.707796,-0.707720,-0.707620,-0.707592,-0.707598},
-{-1.582041,-1.586347,-1.583178,-1.585108,-1.583555,-1.583429,-1.584183,-1.584679,-1.584484,-1.583983,-1.584406,-1.583828,-1.584168,-1.584097,-1.583865,-1.583835,-1.583730,-1.583671,-1.583575,-1.583419,-1.583359,-1.583229,-1.583150,-1.582888,-1.582639,-1.582125,-1.581635,-1.581142,-1.580158,-1.579185,-1.578210,-1.577232,-1.576245,-1.575242,-1.574220,-1.573172,-1.572096,-1.570987,-1.569838,-1.568647,-1.565452,-1.561889,-1.557887,-1.553369,-1.548253,-1.542442,-1.535819,-1.528233,-1.519487,-1.509316,-1.497379,-1.483278,-1.466729,-1.447911,-1.427683,-1.407115,-1.386816,-1.366830,-1.346890,-1.326617,-1.305614,-1.283473,-1.259763,-1.233995,-1.205580,-1.173764,-1.137526,-1.095408,-1.076453,-1.056023,-1.033875,-1.009698,-0.983084,-0.953463,-0.919986,-0.881204,-0.833927,-0.770337,-0.707988,-0.641106,-0.601525,-0.555418,-0.499613,-0.466355,-0.427874,-0.410550,-0.391822,-0.371395,-0.348864,-0.323638,-0.294800,-0.260789,-0.240992,-0.218519,-0.192238,-0.177057,-0.159933,-0.140065,-0.135647,-0.131044,-0.126235,-0.121193,-0.115884,-0.104293,-0.090955,-0.083359,-0.074885},
-{-1.849571,-1.849682,-1.851341,-1.850066,-1.849828,-1.849286,-1.850035,-1.850597,-1.850266,-1.849681,-1.850075,-1.850080,-1.849639,-1.849608,-1.849634,-1.849658,-1.849410,-1.849226,-1.849059,-1.848840,-1.848638,-1.848508,-1.848291,-1.847881,-1.847459,-1.846618,-1.845835,-1.845061,-1.843607,-1.842250,-1.840966,-1.839752,-1.838590,-1.837469,-1.836377,-1.835304,-1.834239,-1.833173,-1.832097,-1.831005,-1.828147,-1.825021,-1.821526,-1.817570,-1.813060,-1.807903,-1.801987,-1.795176,-1.787281,-1.778014,-1.766864,-1.752776,-1.733234,-1.703841,-1.668818,-1.638934,-1.614234,-1.592062,-1.570644,-1.548919,-1.526188,-1.501903,-1.475550,-1.446567,-1.414276,-1.377806,-1.335978,-1.287119,-1.265086,-1.241327,-1.215578,-1.187510,-1.156708,-1.122625,-1.084532,-1.041406,-0.991742,-0.933178,-0.861906,-0.773444,-0.721837,-0.663505,-0.594647,-0.554166,-0.507666,-0.486825,-0.464348,-0.439888,-0.412969,-0.382898,-0.348601,-0.308246,-0.284798,-0.258210,-0.227147,-0.209213,-0.188989,-0.165524,-0.160306,-0.154870,-0.149189,-0.143232,-0.136961,-0.123266,-0.107504,-0.113694,-0.102135}};
-  const double imomegaqnm21[8][107] = {{-0.074312,-0.077266,-0.079182,-0.081281,-0.082265,-0.082556,-0.082768,-0.082926,-0.083045,-0.083135,-0.083360,-0.083430,-0.083456,-0.083471,-0.083481,-0.083492,-0.083519,-0.083551,-0.083583,-0.083616,-0.083648,-0.083680,-0.083713,-0.083792,-0.083870,-0.084024,-0.084174,-0.084319,-0.084599,-0.084865,-0.085117,-0.085356,-0.085583,-0.085799,-0.086003,-0.086198,-0.086383,-0.086558,-0.086725,-0.086884,-0.087247,-0.087566,-0.087846,-0.088091,-0.088302,-0.088484,-0.088637,-0.088763,-0.088862,-0.088935,-0.088983,-0.089004,-0.088997,-0.088962,-0.088897,-0.088798,-0.088664,-0.088489,-0.088268,-0.087995,-0.087662,-0.087257,-0.086767,-0.086173,-0.085450,-0.084564,-0.083466,-0.082085,-0.081430,-0.080703,-0.079893,-0.078983,-0.077955,-0.076785,-0.075439,-0.073874,-0.072027,-0.069804,-0.067061,-0.063549,-0.061372,-0.058791,-0.055644,-0.053776,-0.051643,-0.050698,-0.049691,-0.048614,-0.047457,-0.046208,-0.044856,-0.043388,-0.042607,-0.041794,-0.040950,-0.040517,-0.040078,-0.039632,-0.039542,-0.039452,-0.039362,-0.039271,-0.039180,-0.038997,-0.038811,-0.038714,-0.038609},
-{-0.258785,-0.258526,-0.258215,-0.257703,-0.257385,-0.257284,-0.257210,-0.257158,-0.257123,-0.257101,-0.257089,-0.257133,-0.257178,-0.257248,-0.257304,-0.257357,-0.257465,-0.257574,-0.257683,-0.257791,-0.257898,-0.258005,-0.258112,-0.258376,-0.258637,-0.259149,-0.259649,-0.260137,-0.261076,-0.261967,-0.262812,-0.263613,-0.264372,-0.265089,-0.265768,-0.266410,-0.267016,-0.267589,-0.268130,-0.268640,-0.269792,-0.270782,-0.271629,-0.272346,-0.272945,-0.273434,-0.273821,-0.274112,-0.274309,-0.274415,-0.274430,-0.274354,-0.274183,-0.273915,-0.273543,-0.273058,-0.272452,-0.271711,-0.270819,-0.269754,-0.268489,-0.266992,-0.265218,-0.263108,-0.260587,-0.257547,-0.253838,-0.249238,-0.247078,-0.244692,-0.242045,-0.239089,-0.235766,-0.231999,-0.227686,-0.222686,-0.216800,-0.209731,-0.201006,-0.189803,-0.182820,-0.174484,-0.164205,-0.158029,-0.150891,-0.147700,-0.144280,-0.140606,-0.136657,-0.132444,-0.128112,-0.124511,-0.123925,-0.123321,-0.121670,-0.121162,-0.120732,-0.120140,-0.120048,-0.119951,-0.119844,-0.119734,-0.119631,-0.119429,-0.119227,-0.119127,-0.119027},
-{-0.451082,-0.450126,-0.449946,-0.450393,-0.450836,-0.450954,-0.451016,-0.451037,-0.451032,-0.451015,-0.450927,-0.450953,-0.451028,-0.451151,-0.451242,-0.451336,-0.451538,-0.451736,-0.451932,-0.452129,-0.452326,-0.452521,-0.452716,-0.453201,-0.453683,-0.454634,-0.455570,-0.456489,-0.458275,-0.459989,-0.461626,-0.463185,-0.464665,-0.466067,-0.467390,-0.468636,-0.469808,-0.470906,-0.471935,-0.472897,-0.475022,-0.476783,-0.478216,-0.479352,-0.480220,-0.480840,-0.481231,-0.481407,-0.481377,-0.481149,-0.480726,-0.480109,-0.479294,-0.478277,-0.477047,-0.475592,-0.473893,-0.471929,-0.469669,-0.467076,-0.464104,-0.460691,-0.456761,-0.452210,-0.446903,-0.440653,-0.433196,-0.424144,-0.419951,-0.415358,-0.410300,-0.404693,-0.398434,-0.391383,-0.383355,-0.374094,-0.363227,-0.350188,-0.334044,-0.313093,-0.299808,-0.283583,-0.262719,-0.249472,-0.233119,-0.225306,-0.216483,-0.206365,-0.194563,-0.180538,-0.163450,-0.141483,-0.127310,-0.111596,-0.095488,-0.086832,-0.077419,-0.066857,-0.064554,-0.062171,-0.059699,-0.057125,-0.054435,-0.048632,-0.042066,-0.038376,-0.034303},
-{-0.670736,-0.672092,-0.671812,-0.670663,-0.670549,-0.670730,-0.670927,-0.671078,-0.671164,-0.671189,-0.671021,-0.671075,-0.671219,-0.671310,-0.671427,-0.671572,-0.671807,-0.672062,-0.672309,-0.672557,-0.672808,-0.673057,-0.673305,-0.673929,-0.674552,-0.675799,-0.677043,-0.678283,-0.680743,-0.683166,-0.685536,-0.687840,-0.690067,-0.692205,-0.694247,-0.696187,-0.698020,-0.699744,-0.701359,-0.702865,-0.706165,-0.708833,-0.710915,-0.712460,-0.713510,-0.714105,-0.714277,-0.714053,-0.713452,-0.712490,-0.711176,-0.709516,-0.707509,-0.705148,-0.702423,-0.699317,-0.695803,-0.691851,-0.687416,-0.682445,-0.676867,-0.670592,-0.663504,-0.655451,-0.646227,-0.635554,-0.623036,-0.608090,-0.601244,-0.593791,-0.585630,-0.576638,-0.566651,-0.555455,-0.542760,-0.528156,-0.511038,-0.490465,-0.464847,-0.431189,-0.409563,-0.382936,-0.348824,-0.327730,-0.302947,-0.291759,-0.279694,-0.266590,-0.252176,-0.235931,-0.216835,-0.192946,-0.178198,-0.160681,-0.138951,-0.125667,-0.110911,-0.095128,-0.091773,-0.088322,-0.084758,-0.081061,-0.077210,-0.068928,-0.059584,-0.054342,-0.048559},
-{-0.910592,-0.910063,-0.911380,-0.911832,-0.911012,-0.911003,-0.911199,-0.911439,-0.911606,-0.911660,-0.911352,-0.911585,-0.911648,-0.911704,-0.911854,-0.911933,-0.912192,-0.912425,-0.912663,-0.912897,-0.913141,-0.913376,-0.913616,-0.914220,-0.914830,-0.916061,-0.917309,-0.918574,-0.921148,-0.923769,-0.926420,-0.929083,-0.931738,-0.934365,-0.936941,-0.939446,-0.941862,-0.944173,-0.946367,-0.948436,-0.953025,-0.956761,-0.959656,-0.961747,-0.963080,-0.963701,-0.963651,-0.962967,-0.961680,-0.959815,-0.957389,-0.954417,-0.950902,-0.946845,-0.942236,-0.937057,-0.931283,-0.924873,-0.917775,-0.909918,-0.901208,-0.891524,-0.880707,-0.868545,-0.854753,-0.838939,-0.820547,-0.798756,-0.788822,-0.778034,-0.766250,-0.753290,-0.738922,-0.722836,-0.704612,-0.683652,-0.659084,-0.629562,-0.592913,-0.545420,-0.515651,-0.480063,-0.436051,-0.409334,-0.377864,-0.363486,-0.347803,-0.330563,-0.311454,-0.290066,-0.265802,-0.237412,-0.220683,-0.201065,-0.176930,-0.162373,-0.145371,-0.124789,-0.120176,-0.115422,-0.110541,-0.105527,-0.100358,-0.089395,-0.077178,-0.070358,-0.062849},
-{-1.163133,-1.162051,-1.161016,-1.162363,-1.161800,-1.161553,-1.161645,-1.161909,-1.162120,-1.162171,-1.161849,-1.162143,-1.162003,-1.162223,-1.162278,-1.162400,-1.162612,-1.162792,-1.163001,-1.163209,-1.163415,-1.163621,-1.163836,-1.164362,-1.164893,-1.165982,-1.167096,-1.168236,-1.170596,-1.173058,-1.175616,-1.178263,-1.180984,-1.183762,-1.186579,-1.189408,-1.192222,-1.194992,-1.197689,-1.200289,-1.206244,-1.211270,-1.215276,-1.218241,-1.220174,-1.221102,-1.221052,-1.220056,-1.218138,-1.215325,-1.211642,-1.207111,-1.201759,-1.195608,-1.188677,-1.180978,-1.172507,-1.163245,-1.153145,-1.142130,-1.130089,-1.116863,-1.102237,-1.085922,-1.067530,-1.046522,-1.022136,-0.993243,-0.980058,-0.965724,-0.950047,-0.932779,-0.913601,-0.892095,-0.867699,-0.839644,-0.806856,-0.767797,-0.720146,-0.659944,-0.622848,-0.578732,-0.524237,-0.491317,-0.452927,-0.435542,-0.416661,-0.395943,-0.372912,-0.346898,-0.316949,-0.281670,-0.261342,-0.238436,-0.211307,-0.195088,-0.176156,-0.153337,-0.148132,-0.142654,-0.136869,-0.130747,-0.124273,-0.110319,-0.094939,-0.086464,-0.077185},
-{-1.414276,-1.416039,-1.415596,-1.415363,-1.415597,-1.415238,-1.415194,-1.415427,-1.415648,-1.415679,-1.415505,-1.415544,-1.415631,-1.415658,-1.415791,-1.415907,-1.416079,-1.416241,-1.416430,-1.416629,-1.416797,-1.416999,-1.417174,-1.417648,-1.418130,-1.419109,-1.420112,-1.421142,-1.423282,-1.425540,-1.427915,-1.430412,-1.433028,-1.435759,-1.438595,-1.441525,-1.444529,-1.447581,-1.450649,-1.453695,-1.460994,-1.467516,-1.473003,-1.477325,-1.480421,-1.482261,-1.482821,-1.482069,-1.479966,-1.476459,-1.471497,-1.465052,-1.457153,-1.447911,-1.437516,-1.426190,-1.414119,-1.401396,-1.388008,-1.373845,-1.358718,-1.342365,-1.324453,-1.304557,-1.282128,-1.256434,-1.226447,-1.190653,-1.174220,-1.156285,-1.136589,-1.114807,-1.090529,-1.063232,-1.032247,-0.996712,-0.955487,-0.906959,-0.848541,-0.775494,-0.730792,-0.678016,-0.613349,-0.574379,-0.528885,-0.508284,-0.485946,-0.461517,-0.434493,-0.404108,-0.369135,-0.327547,-0.303278,-0.275875,-0.244209,-0.225953,-0.204982,-0.179727,-0.173965,-0.167908,-0.161519,-0.154752,-0.147552,-0.131555,-0.113035,-0.102763,-0.091610},
-{-1.669503,-1.668395,-1.669442,-1.668664,-1.669275,-1.668971,-1.668820,-1.668995,-1.669204,-1.669212,-1.669190,-1.669059,-1.669253,-1.669326,-1.669380,-1.669414,-1.669602,-1.669773,-1.669951,-1.670142,-1.670305,-1.670479,-1.670661,-1.671105,-1.671552,-1.672460,-1.673398,-1.674357,-1.676355,-1.678461,-1.680685,-1.683035,-1.685516,-1.688135,-1.690893,-1.693787,-1.696812,-1.699961,-1.703216,-1.706546,-1.714937,-1.722933,-1.730080,-1.736116,-1.740904,-1.744368,-1.746449,-1.747073,-1.746118,-1.743369,-1.738448,-1.730726,-1.719332,-1.703841,-1.685684,-1.667396,-1.650218,-1.634024,-1.618223,-1.602186,-1.585342,-1.567163,-1.547117,-1.524616,-1.498944,-1.469166,-1.433974,-1.391423,-1.371712,-1.350090,-1.326232,-1.299741,-1.270135,-1.236831,-1.199118,-1.156089,-1.106489,-1.048413,-0.978780,-0.892317,-0.839828,-0.778168,-0.702974,-0.657884,-0.605411,-0.581667,-0.555906,-0.527711,-0.496517,-0.461510,-0.421398,-0.373867,-0.346042,-0.314367,-0.277467,-0.256370,-0.232725,-0.204918,-0.198597,-0.191947,-0.184925,-0.177485,-0.169568,-0.151985,-0.131247,-0.119312,-0.106197}};
-  const double imomegaqnm20[8][107] = {{-1.669503,-1.668395,-1.669442,-1.668664,-1.669275,-1.668971,-1.668820,-1.668995,-1.669204,-1.669212,-1.669190,-1.669059,-1.669253,-1.669326,-1.669380,-1.669414,-1.669602,-1.669773,-1.669951,-1.670142,-1.670305,-1.670479,-1.670661,-1.671105,-1.671552,-1.672460,-1.673398,-1.674357,-1.676355,-1.678461,-1.680685,-1.683035,-1.685516,-1.688135,-1.690893,-1.693787,-1.696812,-1.699961,-1.703216,-1.706546,-1.714937,-1.722933,-1.730080,-1.736116,-1.740904,-1.744368,-1.746449,-1.747073,-1.746118,-1.743369,-1.738448,-1.730726,-1.719332,-1.703841,-0.088946,-0.088898,-0.088817,-0.088700,-0.088547,-0.088353,-0.088115,-0.087827,-0.087481,-0.087069,-0.086579,-0.085995,-0.085295,-0.084453,-0.084067,-0.083648,-0.083194,-0.082698,-0.082156,-0.081562,-0.080908,-0.080185,-0.079381,-0.078483,-0.077473,-0.076330,-0.075701,-0.075028,-0.074306,-0.073926,-0.073532,-0.073371,-0.073207,-0.073041,-0.072872,-0.072701,-0.072527,-0.072351,-0.072263,-0.072174,-0.072087,-0.072043,-0.071996,-0.071930,-0.071911,-0.071886,-0.071856,-0.071815,-0.071760,-0.071567,-0.071095,-0.070577,-0.069561},
-{-1.669503,-1.668395,-1.669442,-1.668664,-1.669275,-1.668971,-1.668820,-1.668995,-1.669204,-1.669212,-1.669190,-1.669059,-1.669253,-1.669326,-1.669380,-1.669414,-1.669602,-1.669773,-1.669951,-1.670142,-1.670305,-1.670479,-1.670661,-1.671105,-1.671552,-1.672460,-1.673398,-1.674357,-1.676355,-1.678461,-1.680685,-1.683035,-1.685516,-1.688135,-1.690893,-1.693787,-1.696812,-1.699961,-1.703216,-1.706546,-1.714937,-1.722933,-1.730080,-1.736116,-1.740904,-1.744368,-1.746449,-1.747073,-1.746118,-1.743369,-1.738448,-1.730726,-1.719332,-1.703841,-0.273860,-0.273694,-0.273414,-0.273014,-0.272487,-0.271821,-0.271003,-0.270014,-0.268831,-0.267421,-0.265747,-0.263754,-0.261372,-0.258507,-0.257198,-0.255780,-0.254240,-0.252564,-0.250736,-0.248735,-0.246539,-0.244119,-0.241444,-0.238480,-0.235186,-0.231528,-0.229555,-0.227483,-0.225314,-0.224195,-0.223053,-0.222591,-0.222125,-0.221655,-0.221182,-0.220707,-0.220228,-0.219746,-0.219504,-0.219261,-0.219017,-0.218894,-0.218769,-0.218646,-0.218624,-0.218602,-0.218583,-0.218567,-0.218555,-0.218550,-0.218576,-0.218586,-0.218541},
-{-1.669503,-1.668395,-1.669442,-1.668664,-1.669275,-1.668971,-1.668820,-1.668995,-1.669204,-1.669212,-1.669190,-1.669059,-1.669253,-1.669326,-1.669380,-1.669414,-1.669602,-1.669773,-1.669951,-1.670142,-1.670305,-1.670479,-1.670661,-1.671105,-1.671552,-1.672460,-1.673398,-1.674357,-1.676355,-1.678461,-1.680685,-1.683035,-1.685516,-1.688135,-1.690893,-1.693787,-1.696812,-1.699961,-1.703216,-1.706546,-1.714937,-1.722933,-1.730080,-1.736116,-1.740904,-1.744368,-1.746449,-1.747073,-1.746118,-1.743369,-1.738448,-1.730726,-1.719332,-1.703841,-0.478161,-0.477809,-0.477217,-0.476373,-0.475263,-0.473863,-0.472148,-0.470080,-0.467612,-0.464686,-0.461221,-0.457117,-0.452237,-0.446396,-0.443736,-0.440863,-0.437753,-0.434379,-0.430711,-0.426714,-0.422353,-0.417586,-0.412380,-0.406711,-0.400596,-0.394120,-0.390798,-0.387457,-0.384120,-0.382462,-0.380814,-0.380158,-0.379504,-0.378853,-0.378204,-0.377558,-0.376915,-0.376275,-0.375956,-0.375638,-0.375319,-0.375160,-0.375004,-0.374856,-0.374826,-0.374795,-0.374762,-0.374724,-0.374680,-0.374571,-0.374466,-0.374476,-0.374628},
-{-1.669503,-1.668395,-1.669442,-1.668664,-1.669275,-1.668971,-1.668820,-1.668995,-1.669204,-1.669212,-1.669190,-1.669059,-1.669253,-1.669326,-1.669380,-1.669414,-1.669602,-1.669773,-1.669951,-1.670142,-1.670305,-1.670479,-1.670661,-1.671105,-1.671552,-1.672460,-1.673398,-1.674357,-1.676355,-1.678461,-1.680685,-1.683035,-1.685516,-1.688135,-1.690893,-1.693787,-1.696812,-1.699961,-1.703216,-1.706546,-1.714937,-1.722933,-1.730080,-1.736116,-1.740904,-1.744368,-1.746449,-1.747073,-1.746118,-1.743369,-1.738448,-1.730726,-1.719332,-1.703841,-0.704945,-0.704331,-0.703296,-0.701824,-0.699889,-0.697457,-0.694481,-0.690905,-0.686650,-0.681622,-0.675691,-0.668694,-0.660408,-0.650537,-0.646058,-0.641230,-0.636017,-0.630380,-0.624277,-0.617664,-0.610506,-0.602788,-0.594547,-0.585942,-0.577339,-0.569239,-0.565445,-0.561815,-0.558363,-0.556704,-0.555087,-0.554453,-0.553825,-0.553204,-0.552590,-0.551982,-0.551381,-0.550785,-0.550490,-0.550199,-0.549903,-0.549755,-0.549623,-0.549478,-0.549438,-0.549395,-0.549349,-0.549308,-0.549280,-0.549303,-0.549380,-0.549273,-0.548898},
-{-1.669503,-1.668395,-1.669442,-1.668664,-1.669275,-1.668971,-1.668820,-1.668995,-1.669204,-1.669212,-1.669190,-1.669059,-1.669253,-1.669326,-1.669380,-1.669414,-1.669602,-1.669773,-1.669951,-1.670142,-1.670305,-1.670479,-1.670661,-1.671105,-1.671552,-1.672460,-1.673398,-1.674357,-1.676355,-1.678461,-1.680685,-1.683035,-1.685516,-1.688135,-1.690893,-1.693787,-1.696812,-1.699961,-1.703216,-1.706546,-1.714937,-1.722933,-1.730080,-1.736116,-1.740904,-1.744368,-1.746449,-1.747073,-1.746118,-1.743369,-1.738448,-1.730726,-1.719332,-1.703841,-0.946541,-0.945626,-0.944084,-0.941891,-0.939010,-0.935394,-0.930976,-0.925674,-0.919380,-0.911953,-0.903214,-0.892924,-0.880767,-0.866316,-0.859772,-0.852729,-0.845140,-0.836957,-0.828139,-0.818665,-0.808571,-0.798035,-0.787576,-0.778347,-0.771240,-0.764674,-0.761819,-0.759101,-0.756567,-0.755353,-0.754178,-0.753717,-0.753262,-0.752812,-0.752366,-0.751927,-0.751490,-0.751064,-0.750845,-0.750633,-0.750426,-0.750296,-0.750238,-0.750094,-0.750035,-0.749986,-0.749967,-0.749993,-0.750061,-0.750126,-0.749650,-0.749564,-0.750138},
-{-1.669503,-1.668395,-1.669442,-1.668664,-1.669275,-1.668971,-1.668820,-1.668995,-1.669204,-1.669212,-1.669190,-1.669059,-1.669253,-1.669326,-1.669380,-1.669414,-1.669602,-1.669773,-1.669951,-1.670142,-1.670305,-1.670479,-1.670661,-1.671105,-1.671552,-1.672460,-1.673398,-1.674357,-1.676355,-1.678461,-1.680685,-1.683035,-1.685516,-1.688135,-1.690893,-1.693787,-1.696812,-1.699961,-1.703216,-1.706546,-1.714937,-1.722933,-1.730080,-1.736116,-1.740904,-1.744368,-1.746449,-1.747073,-1.746118,-1.743369,-1.738448,-1.730726,-1.719332,-1.703841,-1.195198,-1.193960,-1.191877,-1.188916,-1.185032,-1.180162,-1.174222,-1.167105,-1.158673,-1.148745,-1.137087,-1.123387,-1.107232,-1.088067,-1.079403,-1.070093,-1.060089,-1.049356,-1.037903,-1.025862,-1.013708,-1.002960,-0.997335,-0.993889,-0.987227,-0.983917,-0.982151,-0.980231,-0.978641,-0.977871,-0.977090,-0.976786,-0.976474,-0.976178,-0.975870,-0.975582,-0.975274,-0.974976,-0.974851,-0.974680,-0.974600,-0.974444,-0.974424,-0.974293,-0.974188,-0.974146,-0.974213,-0.974371,-0.974505,-0.974110,-0.974112,-0.974787,-0.974253},
-{-1.669503,-1.668395,-1.669442,-1.668664,-1.669275,-1.668971,-1.668820,-1.668995,-1.669204,-1.669212,-1.669190,-1.669059,-1.669253,-1.669326,-1.669380,-1.669414,-1.669602,-1.669773,-1.669951,-1.670142,-1.670305,-1.670479,-1.670661,-1.671105,-1.671552,-1.672460,-1.673398,-1.674357,-1.676355,-1.678461,-1.680685,-1.683035,-1.685516,-1.688135,-1.690893,-1.693787,-1.696812,-1.699961,-1.703216,-1.706546,-1.714937,-1.722933,-1.730080,-1.736116,-1.740904,-1.744368,-1.746449,-1.747073,-1.746118,-1.743369,-1.738448,-1.730726,-1.719332,-1.703841,-1.447378,-1.445774,-1.443079,-1.439259,-1.434262,-1.428019,-1.420435,-1.411388,-1.400713,-1.388197,-1.373555,-1.356407,-1.336243,-1.312390,-1.301635,-1.290113,-1.277800,-1.264747,-1.251235,-1.238360,-1.230978,-1.236823,-1.228953,-1.223151,-1.221395,-1.219601,-1.218691,-1.216721,-1.215773,-1.215081,-1.214311,-1.214157,-1.213848,-1.213637,-1.213402,-1.213208,-1.212985,-1.212747,-1.212620,-1.212586,-1.212371,-1.212445,-1.212213,-1.212199,-1.212018,-1.212001,-1.212205,-1.212475,-1.212482,-1.211727,-1.212758,-1.211922,-1.211527},
-{-1.669503,-1.668395,-1.669442,-1.668664,-1.669275,-1.668971,-1.668820,-1.668995,-1.669204,-1.669212,-1.669190,-1.669059,-1.669253,-1.669326,-1.669380,-1.669414,-1.669602,-1.669773,-1.669951,-1.670142,-1.670305,-1.670479,-1.670661,-1.671105,-1.671552,-1.672460,-1.673398,-1.674357,-1.676355,-1.678461,-1.680685,-1.683035,-1.685516,-1.688135,-1.690893,-1.693787,-1.696812,-1.699961,-1.703216,-1.706546,-1.714937,-1.722933,-1.730080,-1.736116,-1.740904,-1.744368,-1.746449,-1.747073,-1.746118,-1.743369,-1.738448,-1.730726,-1.719332,-1.703841,-1.703116,-1.700942,-1.697329,-1.692278,-1.685776,-1.677781,-1.668216,-1.656957,-1.643827,-1.628580,-1.610879,-1.590273,-1.566155,-1.537745,-1.524995,-1.511417,-1.497110,-1.482566,-1.470178,-1.480076,-1.483391,-1.467377,-1.472722,-1.464347,-1.468574,-1.463725,-1.464201,-1.462140,-1.458072,-1.458542,-1.458162,-1.458344,-1.458079,-1.457758,-1.457217,-1.457199,-1.457032,-1.456856,-1.456708,-1.456496,-1.456405,-1.456612,-1.456203,-1.456343,-1.456084,-1.456111,-1.456452,-1.456702,-1.456399,-1.456163,-1.456141,-1.455774,-1.457166}};
-  const double imomegaqnm33[8][107] = {{-0.068612,-0.073535,-0.077498,-0.082919,-0.086037,-0.087057,-0.087838,-0.088440,-0.088909,-0.089277,-0.090269,-0.090639,-0.090797,-0.090910,-0.090941,-0.090952,-0.090960,-0.090966,-0.090973,-0.090980,-0.090987,-0.090994,-0.091001,-0.091020,-0.091038,-0.091074,-0.091110,-0.091146,-0.091217,-0.091287,-0.091356,-0.091424,-0.091492,-0.091558,-0.091624,-0.091688,-0.091751,-0.091814,-0.091875,-0.091934,-0.092078,-0.092214,-0.092339,-0.092455,-0.092558,-0.092649,-0.092726,-0.092787,-0.092830,-0.092854,-0.092856,-0.092834,-0.092784,-0.092703,-0.092587,-0.092430,-0.092228,-0.091973,-0.091656,-0.091267,-0.090793,-0.090218,-0.089521,-0.088676,-0.087647,-0.086385,-0.084821,-0.082856,-0.081925,-0.080892,-0.079741,-0.078451,-0.076995,-0.075339,-0.073436,-0.071223,-0.068611,-0.065463,-0.061565,-0.056537,-0.053388,-0.049609,-0.044905,-0.042044,-0.038688,-0.037163,-0.035505,-0.033687,-0.031671,-0.029403,-0.026797,-0.023711,-0.021911,-0.019865,-0.017473,-0.016091,-0.014533,-0.012727,-0.012325,-0.011907,-0.011470,-0.011012,-0.010530,-0.009477,-0.008266,-0.007576,-0.006807},
-{-0.277496,-0.278402,-0.278809,-0.278955,-0.278824,-0.278742,-0.278664,-0.278594,-0.278534,-0.278482,-0.278334,-0.278289,-0.278281,-0.278294,-0.278307,-0.278318,-0.278336,-0.278354,-0.278373,-0.278391,-0.278409,-0.278427,-0.278446,-0.278491,-0.278537,-0.278627,-0.278716,-0.278805,-0.278980,-0.279153,-0.279323,-0.279489,-0.279653,-0.279813,-0.279970,-0.280123,-0.280273,-0.280419,-0.280561,-0.280699,-0.281026,-0.281324,-0.281591,-0.281825,-0.282020,-0.282175,-0.282285,-0.282345,-0.282350,-0.282293,-0.282168,-0.281967,-0.281681,-0.281298,-0.280807,-0.280191,-0.279434,-0.278515,-0.277407,-0.276080,-0.274494,-0.272602,-0.270340,-0.267630,-0.264363,-0.260394,-0.255518,-0.249435,-0.246568,-0.243397,-0.239871,-0.235928,-0.231489,-0.226451,-0.220675,-0.213971,-0.206071,-0.196570,-0.184822,-0.169692,-0.160224,-0.148867,-0.134739,-0.126150,-0.116076,-0.111499,-0.106524,-0.101069,-0.095019,-0.088212,-0.080393,-0.071135,-0.065734,-0.059597,-0.052418,-0.048273,-0.043599,-0.038180,-0.036976,-0.035721,-0.034410,-0.033036,-0.031590,-0.028432,-0.024799,-0.022729,-0.020420},
-{-0.486993,-0.484741,-0.483427,-0.482389,-0.482301,-0.482372,-0.482460,-0.482542,-0.482611,-0.482664,-0.482744,-0.482718,-0.482702,-0.482709,-0.482722,-0.482729,-0.482743,-0.482759,-0.482774,-0.482789,-0.482804,-0.482819,-0.482834,-0.482871,-0.482907,-0.482980,-0.483051,-0.483121,-0.483256,-0.483386,-0.483511,-0.483630,-0.483742,-0.483849,-0.483949,-0.484043,-0.484130,-0.484210,-0.484283,-0.484348,-0.484477,-0.484555,-0.484575,-0.484535,-0.484428,-0.484247,-0.483987,-0.483638,-0.483192,-0.482640,-0.481968,-0.481164,-0.480211,-0.479093,-0.477786,-0.476267,-0.474506,-0.472466,-0.470105,-0.467369,-0.464195,-0.460500,-0.456181,-0.451103,-0.445090,-0.437899,-0.429190,-0.418467,-0.413455,-0.407937,-0.401829,-0.395030,-0.387407,-0.378790,-0.368950,-0.357573,-0.344212,-0.328195,-0.308447,-0.283082,-0.267235,-0.248247,-0.224647,-0.210309,-0.193501,-0.185866,-0.177568,-0.168469,-0.158382,-0.147032,-0.133998,-0.118564,-0.109560,-0.099331,-0.087366,-0.080456,-0.072667,-0.063634,-0.061627,-0.059535,-0.057351,-0.055061,-0.052650,-0.047387,-0.041331,-0.037882,-0.034034},
-{-0.709974,-0.711601,-0.713499,-0.714385,-0.713785,-0.713546,-0.713418,-0.713383,-0.713411,-0.713468,-0.713655,-0.713595,-0.713563,-0.713584,-0.713571,-0.713561,-0.713550,-0.713535,-0.713522,-0.713507,-0.713493,-0.713479,-0.713465,-0.713428,-0.713392,-0.713317,-0.713241,-0.713162,-0.712999,-0.712828,-0.712649,-0.712461,-0.712264,-0.712058,-0.711843,-0.711618,-0.711383,-0.711138,-0.710882,-0.710616,-0.709899,-0.709105,-0.708229,-0.707264,-0.706201,-0.705033,-0.703748,-0.702336,-0.700785,-0.699079,-0.697202,-0.695135,-0.692855,-0.690337,-0.687550,-0.684459,-0.681020,-0.677183,-0.672887,-0.668056,-0.662599,-0.656401,-0.649315,-0.641153,-0.631664,-0.620511,-0.607221,-0.591101,-0.583641,-0.575473,-0.566484,-0.556529,-0.545428,-0.532943,-0.518759,-0.502439,-0.483360,-0.460589,-0.432625,-0.396831,-0.374520,-0.347819,-0.314676,-0.294558,-0.270986,-0.260282,-0.248651,-0.235902,-0.221769,-0.205870,-0.187614,-0.166001,-0.153393,-0.139070,-0.122317,-0.112642,-0.101735,-0.089089,-0.086278,-0.083351,-0.080292,-0.077086,-0.073710,-0.066342,-0.057864,-0.053035,-0.047648},
-{-0.972477,-0.969229,-0.967660,-0.969029,-0.969442,-0.969155,-0.968886,-0.968746,-0.968738,-0.968815,-0.969029,-0.968878,-0.968919,-0.968877,-0.968857,-0.968828,-0.968768,-0.968706,-0.968649,-0.968589,-0.968529,-0.968470,-0.968410,-0.968260,-0.968110,-0.967806,-0.967500,-0.967190,-0.966561,-0.965920,-0.965265,-0.964597,-0.963916,-0.963220,-0.962509,-0.961784,-0.961043,-0.960287,-0.959514,-0.958725,-0.956678,-0.954518,-0.952237,-0.949827,-0.947277,-0.944577,-0.941715,-0.938677,-0.935446,-0.932005,-0.928331,-0.924401,-0.920185,-0.915649,-0.910755,-0.905456,-0.899695,-0.893406,-0.886510,-0.878908,-0.870479,-0.861073,-0.850501,-0.838516,-0.824795,-0.808901,-0.790225,-0.767883,-0.757639,-0.746483,-0.734270,-0.720819,-0.705900,-0.689212,-0.670355,-0.648776,-0.623682,-0.593881,-0.557455,-0.511016,-0.482143,-0.447640,-0.404868,-0.378929,-0.348555,-0.334768,-0.319791,-0.303378,-0.285189,-0.264731,-0.241246,-0.213447,-0.197233,-0.178815,-0.157271,-0.144831,-0.130807,-0.114545,-0.110932,-0.107167,-0.103234,-0.099111,-0.094772,-0.085297,-0.074397,-0.068188,-0.061261},
-{-1.234880,-1.238501,-1.237567,-1.236381,-1.237353,-1.237185,-1.236888,-1.236715,-1.236725,-1.236844,-1.236889,-1.236862,-1.236868,-1.236807,-1.236739,-1.236707,-1.236605,-1.236507,-1.236413,-1.236315,-1.236219,-1.236121,-1.236024,-1.235780,-1.235534,-1.235039,-1.234539,-1.234033,-1.233006,-1.231956,-1.230884,-1.229790,-1.228672,-1.227531,-1.226366,-1.225176,-1.223961,-1.222721,-1.221454,-1.220161,-1.216809,-1.213278,-1.209559,-1.205642,-1.201516,-1.197169,-1.192585,-1.187749,-1.182642,-1.177243,-1.171527,-1.165464,-1.159019,-1.152151,-1.144813,-1.136947,-1.128483,-1.119340,-1.109418,-1.098594,-1.086720,-1.073606,-1.059017,-1.042646,-1.024094,-1.002820,-0.978074,-0.948772,-0.935434,-0.920971,-0.905209,-0.887929,-0.868853,-0.847622,-0.823753,-0.796583,-0.765161,-0.728048,-0.682917,-0.625639,-0.590118,-0.547732,-0.495250,-0.463448,-0.426230,-0.409344,-0.391005,-0.370913,-0.348652,-0.323623,-0.294897,-0.260904,-0.241081,-0.218564,-0.192229,-0.177023,-0.159881,-0.140004,-0.135587,-0.130985,-0.126178,-0.121138,-0.115834,-0.104253,-0.090930,-0.083341,-0.074875},
-{-1.508123,-1.507143,-1.508863,-1.507649,-1.508328,-1.508308,-1.508054,-1.507900,-1.507943,-1.508075,-1.507959,-1.508051,-1.507942,-1.507906,-1.507868,-1.507795,-1.507680,-1.507563,-1.507448,-1.507330,-1.507211,-1.507093,-1.506973,-1.506674,-1.506374,-1.505766,-1.505151,-1.504528,-1.503256,-1.501952,-1.500614,-1.499242,-1.497835,-1.496393,-1.494914,-1.493399,-1.491846,-1.490254,-1.488623,-1.486953,-1.482598,-1.477977,-1.473078,-1.467888,-1.462391,-1.456574,-1.450419,-1.443908,-1.437021,-1.429733,-1.422014,-1.413833,-1.405148,-1.395912,-1.386070,-1.375552,-1.364277,-1.352147,-1.339041,-1.324812,-1.309279,-1.292214,-1.273331,-1.252260,-1.228516,-1.201450,-1.170160,-1.133351,-1.116676,-1.098649,-1.079064,-1.057665,-1.034127,-1.008030,-0.978819,-0.945725,-0.907651,-0.862934,-0.808869,-0.740600,-0.698384,-0.648072,-0.585828,-0.548130,-0.504030,-0.484027,-0.462309,-0.438520,-0.412171,-0.382553,-0.348572,-0.308374,-0.284937,-0.258319,-0.227191,-0.209218,-0.188957,-0.165464,-0.160243,-0.154805,-0.149123,-0.143167,-0.136898,-0.123211,-0.107464,-0.098495,-0.102103},
-{-1.779474,-1.778289,-1.778279,-1.778446,-1.778602,-1.778683,-1.778496,-1.778376,-1.778435,-1.778543,-1.778425,-1.778411,-1.778415,-1.778342,-1.778265,-1.778203,-1.778078,-1.777952,-1.777827,-1.777701,-1.777572,-1.777445,-1.777316,-1.776993,-1.776668,-1.776009,-1.775340,-1.774660,-1.773268,-1.771834,-1.770354,-1.768830,-1.767260,-1.765643,-1.763977,-1.762263,-1.760499,-1.758683,-1.756815,-1.754894,-1.749851,-1.744448,-1.738667,-1.732489,-1.725894,-1.718862,-1.711372,-1.703401,-1.694926,-1.685918,-1.676347,-1.666175,-1.655359,-1.643845,-1.631569,-1.618456,-1.604409,-1.589315,-1.573032,-1.555388,-1.536168,-1.515101,-1.491847,-1.465968,-1.436889,-1.403838,-1.365752,-1.321105,-1.300933,-1.279162,-1.255553,-1.229810,-1.201558,-1.170316,-1.135450,-1.096094,-1.051014,-0.998352,-0.935078,-0.855690,-0.806777,-0.748562,-0.676569,-0.632966,-0.581960,-0.558828,-0.533715,-0.506213,-0.475757,-0.441533,-0.402280,-0.355861,-0.328804,-0.298080,-0.262156,-0.241415,-0.218035,-0.190926,-0.184902,-0.178626,-0.172070,-0.165197,-0.157962,-0.142169,-0.123998,-0.113649,-0.115718}};
-  const double imomegaqnm32[8][107] = {{-0.069981,-0.075891,-0.079961,-0.084549,-0.086675,-0.087288,-0.087731,-0.088055,-0.088298,-0.088483,-0.088949,-0.089111,-0.089177,-0.089224,-0.089240,-0.089249,-0.089264,-0.089280,-0.089296,-0.089311,-0.089327,-0.089343,-0.089359,-0.089399,-0.089438,-0.089516,-0.089592,-0.089667,-0.089815,-0.089958,-0.090097,-0.090231,-0.090362,-0.090489,-0.090611,-0.090731,-0.090846,-0.090958,-0.091066,-0.091171,-0.091418,-0.091644,-0.091851,-0.092037,-0.092203,-0.092349,-0.092475,-0.092580,-0.092663,-0.092724,-0.092760,-0.092770,-0.092752,-0.092703,-0.092620,-0.092500,-0.092336,-0.092124,-0.091857,-0.091525,-0.091117,-0.090620,-0.090016,-0.089280,-0.088383,-0.087280,-0.085912,-0.084190,-0.083373,-0.082467,-0.081457,-0.080325,-0.079046,-0.077590,-0.075918,-0.073972,-0.071674,-0.068905,-0.065473,-0.061044,-0.058268,-0.054933,-0.050781,-0.048255,-0.045293,-0.043948,-0.042487,-0.040887,-0.039116,-0.037130,-0.034861,-0.032200,-0.030668,-0.028952,-0.026993,-0.025895,-0.024695,-0.023373,-0.023091,-0.022804,-0.022510,-0.022210,-0.021904,-0.021273,-0.020618,-0.020284,-0.019946},
-{-0.269958,-0.271103,-0.271569,-0.271797,-0.271769,-0.271739,-0.271709,-0.271682,-0.271660,-0.271642,-0.271600,-0.271599,-0.271610,-0.271637,-0.271663,-0.271689,-0.271738,-0.271788,-0.271837,-0.271887,-0.271936,-0.271985,-0.272034,-0.272155,-0.272276,-0.272514,-0.272749,-0.272979,-0.273430,-0.273867,-0.274290,-0.274699,-0.275094,-0.275477,-0.275847,-0.276204,-0.276548,-0.276881,-0.277202,-0.277511,-0.278233,-0.278886,-0.279471,-0.279990,-0.280444,-0.280831,-0.281152,-0.281405,-0.281588,-0.281697,-0.281728,-0.281677,-0.281536,-0.281298,-0.280953,-0.280489,-0.279891,-0.279142,-0.278220,-0.277098,-0.275743,-0.274112,-0.272151,-0.269788,-0.266929,-0.263444,-0.259149,-0.253778,-0.251243,-0.248435,-0.245311,-0.241815,-0.237876,-0.233400,-0.228266,-0.222302,-0.215266,-0.206793,-0.196296,-0.182737,-0.174223,-0.163971,-0.151146,-0.143303,-0.134051,-0.129825,-0.125215,-0.120137,-0.114476,-0.108062,-0.100631,-0.091721,-0.086456,-0.080395,-0.073168,-0.068900,-0.063968,-0.058005,-0.056627,-0.055164,-0.053600,-0.051916,-0.050086,-0.045842,-0.040492,-0.037243,-0.033496},
-{-0.467568,-0.466534,-0.465963,-0.465576,-0.465576,-0.465611,-0.465647,-0.465678,-0.465703,-0.465721,-0.465757,-0.465769,-0.465786,-0.465830,-0.465874,-0.465917,-0.466002,-0.466087,-0.466172,-0.466257,-0.466342,-0.466426,-0.466510,-0.466719,-0.466926,-0.467335,-0.467737,-0.468132,-0.468902,-0.469646,-0.470362,-0.471052,-0.471716,-0.472354,-0.472967,-0.473555,-0.474117,-0.474656,-0.475171,-0.475662,-0.476788,-0.477775,-0.478627,-0.479346,-0.479936,-0.480396,-0.480728,-0.480929,-0.480996,-0.480925,-0.480709,-0.480339,-0.479805,-0.479093,-0.478187,-0.477067,-0.475709,-0.474081,-0.472149,-0.469864,-0.467171,-0.463997,-0.460250,-0.455807,-0.450509,-0.444136,-0.436378,-0.426779,-0.422279,-0.417316,-0.411814,-0.405678,-0.398787,-0.390983,-0.382055,-0.371712,-0.359535,-0.344894,-0.326766,-0.303324,-0.288565,-0.270734,-0.248298,-0.234485,-0.218082,-0.210545,-0.202287,-0.193147,-0.182897,-0.171205,-0.157550,-0.141037,-0.131219,-0.119895,-0.106426,-0.098550,-0.089605,-0.079206,-0.076902,-0.074511,-0.072025,-0.069436,-0.066736,-0.060945,-0.054409,-0.050632,-0.046214},
-{-0.676421,-0.677009,-0.677656,-0.677994,-0.677837,-0.677774,-0.677743,-0.677739,-0.677751,-0.677771,-0.677847,-0.677865,-0.677889,-0.677954,-0.678013,-0.678072,-0.678191,-0.678309,-0.678427,-0.678545,-0.678662,-0.678779,-0.678896,-0.679186,-0.679474,-0.680043,-0.680603,-0.681153,-0.682225,-0.683259,-0.684252,-0.685206,-0.686119,-0.686991,-0.687822,-0.688612,-0.689362,-0.690072,-0.690741,-0.691371,-0.692774,-0.693937,-0.694869,-0.695575,-0.696061,-0.696329,-0.696381,-0.696216,-0.695833,-0.695224,-0.694383,-0.693299,-0.691956,-0.690337,-0.688418,-0.686172,-0.683563,-0.680548,-0.677075,-0.673077,-0.668472,-0.663158,-0.657000,-0.649824,-0.641401,-0.631413,-0.619417,-0.604759,-0.597941,-0.590456,-0.582192,-0.573014,-0.562747,-0.551163,-0.537956,-0.522703,-0.504794,-0.483307,-0.456741,-0.422406,-0.400785,-0.374655,-0.341786,-0.321582,-0.297656,-0.286701,-0.274734,-0.261540,-0.246825,-0.230161,-0.210883,-0.187861,-0.174326,-0.158846,-0.140582,-0.129950,-0.117883,-0.103783,-0.100635,-0.097352,-0.093916,-0.090311,-0.086514,-0.078232,-0.068781,-0.063492,-0.057725},
-{-0.909938,-0.908951,-0.908223,-0.908499,-0.908759,-0.908711,-0.908640,-0.908591,-0.908577,-0.908590,-0.908700,-0.908704,-0.908742,-0.908816,-0.908884,-0.908954,-0.909092,-0.909230,-0.909367,-0.909505,-0.909642,-0.909779,-0.909915,-0.910255,-0.910593,-0.911263,-0.911925,-0.912578,-0.913857,-0.915095,-0.916290,-0.917440,-0.918541,-0.919593,-0.920592,-0.921538,-0.922429,-0.923266,-0.924046,-0.924769,-0.926330,-0.927539,-0.928398,-0.928916,-0.929098,-0.928950,-0.928475,-0.927673,-0.926544,-0.925081,-0.923275,-0.921114,-0.918580,-0.915649,-0.912293,-0.908473,-0.904145,-0.899253,-0.893726,-0.887477,-0.880398,-0.872351,-0.863160,-0.852593,-0.840344,-0.825994,-0.808951,-0.788349,-0.778833,-0.768426,-0.756980,-0.744315,-0.730198,-0.714323,-0.696284,-0.675516,-0.651207,-0.622130,-0.586300,-0.540190,-0.511288,-0.476530,-0.433121,-0.406628,-0.375448,-0.361237,-0.345759,-0.328746,-0.309828,-0.288470,-0.263842,-0.234536,-0.217363,-0.197780,-0.174761,-0.161405,-0.146283,-0.128649,-0.124714,-0.120609,-0.116313,-0.111801,-0.107044,-0.096630,-0.084618,-0.077780,-0.070190},
-{-1.152050,-1.153709,-1.153872,-1.153087,-1.153488,-1.153542,-1.153476,-1.153392,-1.153351,-1.153363,-1.153489,-1.153480,-1.153543,-1.153597,-1.153671,-1.153738,-1.153876,-1.154015,-1.154153,-1.154291,-1.154429,-1.154567,-1.154704,-1.155048,-1.155391,-1.156075,-1.156756,-1.157432,-1.158768,-1.160078,-1.161357,-1.162600,-1.163801,-1.164956,-1.166059,-1.167107,-1.168097,-1.169023,-1.169885,-1.170680,-1.172359,-1.173585,-1.174349,-1.174649,-1.174488,-1.173869,-1.172794,-1.171266,-1.169282,-1.166836,-1.163919,-1.160514,-1.156601,-1.152151,-1.147129,-1.141488,-1.135171,-1.128109,-1.120212,-1.111371,-1.101448,-1.090269,-1.077610,-1.063177,-1.046581,-1.027290,-1.004550,-0.977259,-0.964715,-0.951032,-0.936026,-0.919465,-0.901055,-0.880410,-0.857015,-0.830164,-0.798841,-0.761530,-0.715803,-0.657401,-0.621064,-0.577636,-0.523777,-0.491090,-0.452772,-0.435359,-0.416427,-0.395655,-0.372601,-0.346625,-0.316732,-0.281231,-0.260459,-0.236798,-0.209028,-0.192939,-0.174750,-0.153576,-0.148857,-0.143934,-0.138785,-0.133379,-0.127679,-0.115203,-0.100791,-0.092559,-0.083365},
-{-1.406836,-1.405392,-1.406268,-1.406057,-1.406142,-1.406299,-1.406271,-1.406165,-1.406107,-1.406129,-1.406223,-1.406264,-1.406282,-1.406354,-1.406410,-1.406470,-1.406596,-1.406721,-1.406845,-1.406969,-1.407094,-1.407219,-1.407344,-1.407657,-1.407971,-1.408601,-1.409232,-1.409865,-1.411131,-1.412394,-1.413647,-1.414882,-1.416094,-1.417274,-1.418417,-1.419514,-1.420559,-1.421547,-1.422471,-1.423325,-1.425130,-1.426417,-1.427149,-1.427306,-1.426878,-1.425861,-1.424254,-1.422054,-1.419260,-1.415863,-1.411852,-1.407208,-1.401906,-1.395912,-1.389184,-1.381667,-1.373291,-1.363970,-1.353597,-1.342038,-1.329123,-1.314638,-1.298306,-1.279767,-1.258538,-1.233961,-1.205106,-1.170609,-1.154795,-1.137571,-1.118711,-1.097933,-1.074875,-1.049071,-1.019901,-0.986518,-0.947721,-0.901729,-0.845717,-0.774746,-0.730886,-0.678728,-0.614393,-0.575510,-0.530067,-0.509459,-0.487080,-0.462557,-0.435377,-0.404792,-0.369646,-0.327970,-0.303613,-0.275888,-0.243375,-0.224553,-0.203287,-0.178557,-0.173049,-0.167306,-0.161301,-0.154998,-0.148355,-0.133821,-0.117037,-0.107447,-0.096722},
-{-1.662798,-1.663080,-1.662335,-1.662964,-1.662684,-1.662889,-1.662913,-1.662801,-1.662735,-1.662773,-1.662813,-1.662899,-1.662888,-1.662944,-1.663002,-1.663061,-1.663164,-1.663269,-1.663373,-1.663478,-1.663585,-1.663691,-1.663798,-1.664065,-1.664335,-1.664878,-1.665428,-1.665983,-1.667108,-1.668250,-1.669401,-1.670556,-1.671708,-1.672850,-1.673973,-1.675069,-1.676129,-1.677144,-1.678106,-1.679006,-1.680938,-1.682332,-1.683111,-1.683222,-1.682636,-1.681333,-1.679303,-1.676539,-1.673034,-1.668778,-1.663757,-1.657948,-1.651324,-1.643845,-1.635461,-1.626108,-1.615705,-1.604150,-1.591316,-1.577043,-1.561127,-1.543311,-1.523262,-1.500544,-1.474575,-1.444558,-1.409367,-1.367353,-1.348111,-1.327168,-1.304254,-1.279033,-1.251079,-1.219847,-1.184614,-1.144406,-1.097849,-1.042913,-0.976381,-0.892625,-0.841139,-0.780155,-0.705249,-0.660126,-0.607512,-0.583693,-0.557852,-0.529565,-0.498246,-0.463041,-0.422630,-0.374769,-0.346825,-0.315037,-0.277784,-0.256229,-0.231884,-0.203589,-0.197290,-0.190724,-0.183858,-0.176655,-0.169065,-0.152466,-0.133310,-0.122367,-0.110130}};
-  const double imomegaqnm31[8][107] = {{-0.073965,-0.078720,-0.081273,-0.083514,-0.084354,-0.084576,-0.084731,-0.084843,-0.084925,-0.084987,-0.085144,-0.085201,-0.085229,-0.085261,-0.085286,-0.085309,-0.085356,-0.085403,-0.085450,-0.085496,-0.085542,-0.085588,-0.085634,-0.085746,-0.085857,-0.086073,-0.086282,-0.086485,-0.086872,-0.087235,-0.087577,-0.087899,-0.088203,-0.088490,-0.088761,-0.089017,-0.089259,-0.089488,-0.089706,-0.089912,-0.090380,-0.090791,-0.091150,-0.091464,-0.091737,-0.091972,-0.092173,-0.092340,-0.092476,-0.092582,-0.092658,-0.092704,-0.092719,-0.092703,-0.092653,-0.092568,-0.092445,-0.092279,-0.092066,-0.091800,-0.091472,-0.091074,-0.090593,-0.090012,-0.089309,-0.088456,-0.087414,-0.086124,-0.085522,-0.084860,-0.084129,-0.083320,-0.082420,-0.081411,-0.080274,-0.078981,-0.077496,-0.075769,-0.073730,-0.071271,-0.069834,-0.068222,-0.066393,-0.065381,-0.064294,-0.063835,-0.063362,-0.062875,-0.062371,-0.061850,-0.061312,-0.060755,-0.060470,-0.060179,-0.059884,-0.059734,-0.059583,-0.059430,-0.059399,-0.059368,-0.059336,-0.059303,-0.059270,-0.059196,-0.059100,-0.059030,-0.058923},
-{-0.257000,-0.257665,-0.257908,-0.258023,-0.258024,-0.258019,-0.258015,-0.258013,-0.258013,-0.258015,-0.258039,-0.258074,-0.258112,-0.258186,-0.258260,-0.258334,-0.258480,-0.258625,-0.258770,-0.258914,-0.259056,-0.259199,-0.259340,-0.259689,-0.260034,-0.260708,-0.261363,-0.261998,-0.263215,-0.264363,-0.265445,-0.266467,-0.267431,-0.268341,-0.269202,-0.270015,-0.270783,-0.271511,-0.272198,-0.272849,-0.274329,-0.275619,-0.276741,-0.277716,-0.278556,-0.279274,-0.279879,-0.280377,-0.280775,-0.281074,-0.281276,-0.281383,-0.281391,-0.281298,-0.281099,-0.280787,-0.280353,-0.279785,-0.279069,-0.278184,-0.277108,-0.275810,-0.274252,-0.272382,-0.270135,-0.267421,-0.264118,-0.260049,-0.258153,-0.256073,-0.253782,-0.251247,-0.248428,-0.245276,-0.241726,-0.237695,-0.233072,-0.227706,-0.221382,-0.213796,-0.209396,-0.204502,-0.199040,-0.196076,-0.192951,-0.191656,-0.190336,-0.188992,-0.187625,-0.186235,-0.184824,-0.183393,-0.182671,-0.181945,-0.181214,-0.180847,-0.180480,-0.180111,-0.180037,-0.179963,-0.179890,-0.179816,-0.179742,-0.179595,-0.179448,-0.179373,-0.179291},
-{-0.438425,-0.438087,-0.437919,-0.437841,-0.437874,-0.437896,-0.437917,-0.437936,-0.437953,-0.437968,-0.438032,-0.438094,-0.438157,-0.438284,-0.438411,-0.438537,-0.438789,-0.439039,-0.439289,-0.439538,-0.439785,-0.440032,-0.440278,-0.440887,-0.441489,-0.442675,-0.443833,-0.444965,-0.447147,-0.449222,-0.451191,-0.453059,-0.454827,-0.456502,-0.458085,-0.459583,-0.460999,-0.462337,-0.463601,-0.464796,-0.467500,-0.469841,-0.471860,-0.473592,-0.475065,-0.476303,-0.477323,-0.478139,-0.478760,-0.479195,-0.479446,-0.479514,-0.479398,-0.479093,-0.478589,-0.477876,-0.476938,-0.475754,-0.474299,-0.472539,-0.470433,-0.467927,-0.464954,-0.461426,-0.457227,-0.452200,-0.446129,-0.438708,-0.435265,-0.431497,-0.427357,-0.422787,-0.417716,-0.412055,-0.405691,-0.398475,-0.390214,-0.380643,-0.369405,-0.356038,-0.348409,-0.340129,-0.331334,-0.326854,-0.322403,-0.320644,-0.318901,-0.317177,-0.315474,-0.313795,-0.312140,-0.310513,-0.309710,-0.308914,-0.308125,-0.307734,-0.307344,-0.306956,-0.306879,-0.306802,-0.306724,-0.306647,-0.306570,-0.306416,-0.306263,-0.306188,-0.306116},
-{-0.628868,-0.629059,-0.629251,-0.629368,-0.629364,-0.629366,-0.629377,-0.629392,-0.629411,-0.629432,-0.629528,-0.629614,-0.629701,-0.629877,-0.630052,-0.630227,-0.630577,-0.630926,-0.631275,-0.631623,-0.631970,-0.632317,-0.632663,-0.633525,-0.634382,-0.636081,-0.637758,-0.639410,-0.642638,-0.645751,-0.648743,-0.651607,-0.654340,-0.656943,-0.659416,-0.661762,-0.663984,-0.666085,-0.668072,-0.669947,-0.674181,-0.677822,-0.680932,-0.683568,-0.685774,-0.687587,-0.689038,-0.690149,-0.690940,-0.691421,-0.691601,-0.691482,-0.691063,-0.690337,-0.689294,-0.687916,-0.686181,-0.684059,-0.681512,-0.678492,-0.674936,-0.670767,-0.665883,-0.660153,-0.653405,-0.645405,-0.635830,-0.624217,-0.618856,-0.613004,-0.606588,-0.599521,-0.591693,-0.582965,-0.573162,-0.562050,-0.549321,-0.534558,-0.517219,-0.496761,-0.485452,-0.474177,-0.464760,-0.460806,-0.457005,-0.455613,-0.454269,-0.452951,-0.451682,-0.450454,-0.449265,-0.448112,-0.447548,-0.446993,-0.446447,-0.446176,-0.445908,-0.445642,-0.445589,-0.445536,-0.445483,-0.445430,-0.445378,-0.445273,-0.445167,-0.445112,-0.445058},
-{-0.835448,-0.835253,-0.835042,-0.835103,-0.835219,-0.835235,-0.835240,-0.835247,-0.835261,-0.835279,-0.835396,-0.835495,-0.835597,-0.835803,-0.836008,-0.836214,-0.836625,-0.837036,-0.837448,-0.837860,-0.838272,-0.838685,-0.839098,-0.840131,-0.841164,-0.843233,-0.845299,-0.847361,-0.851456,-0.855491,-0.859442,-0.863287,-0.867009,-0.870593,-0.874030,-0.877314,-0.880443,-0.883414,-0.886230,-0.888894,-0.894914,-0.900079,-0.904466,-0.908148,-0.911188,-0.913640,-0.915547,-0.916946,-0.917861,-0.918314,-0.918317,-0.917875,-0.916988,-0.915649,-0.913844,-0.911551,-0.908740,-0.905371,-0.901393,-0.896739,-0.891326,-0.885045,-0.877759,-0.869287,-0.859391,-0.847746,-0.833903,-0.817210,-0.809530,-0.801158,-0.791989,-0.781896,-0.770716,-0.758241,-0.744199,-0.728220,-0.709790,-0.688167,-0.662240,-0.630487,-0.612549,-0.571494,-0.486130,-0.438446,-0.387187,-0.365452,-0.342801,-0.319027,-0.293847,-0.266859,-0.237443,-0.204552,-0.186235,-0.166131,-0.143489,-0.130811,-0.116844,-0.101053,-0.097600,-0.094024,-0.090311,-0.086443,-0.082398,-0.073659,-0.063756,-0.058185,-0.052028},
-{-1.055096,-1.055587,-1.055823,-1.055596,-1.055704,-1.055763,-1.055785,-1.055787,-1.055787,-1.055798,-1.055925,-1.056017,-1.056124,-1.056330,-1.056539,-1.056746,-1.057163,-1.057581,-1.058000,-1.058420,-1.058842,-1.059265,-1.059689,-1.060755,-1.061828,-1.063995,-1.066188,-1.068404,-1.072890,-1.077425,-1.081977,-1.086510,-1.090990,-1.095386,-1.099668,-1.103814,-1.107806,-1.111631,-1.115281,-1.118752,-1.126641,-1.133437,-1.139208,-1.144031,-1.147984,-1.151132,-1.153535,-1.155237,-1.156276,-1.156679,-1.156463,-1.155637,-1.154203,-1.152151,-1.149466,-1.146119,-1.142073,-1.137277,-1.131663,-1.125146,-1.117617,-1.108936,-1.098922,-1.087336,-1.073866,-1.058079,-1.039373,-1.016863,-1.006512,-0.995224,-0.982851,-0.969207,-0.954050,-0.937061,-0.917797,-0.895619,-0.869517,-0.837664,-0.795682,-0.727748,-0.673462,-0.625162,-0.604395,-0.565264,-0.499648,-0.471392,-0.441689,-0.410470,-0.377515,-0.342341,-0.304152,-0.261610,-0.237990,-0.212119,-0.183050,-0.166802,-0.148923,-0.128738,-0.124327,-0.119761,-0.115020,-0.110083,-0.104922,-0.093776,-0.081153,-0.074054,-0.066212},
-{-1.289045,-1.288255,-1.288433,-1.288640,-1.288549,-1.288644,-1.288703,-1.288706,-1.288688,-1.288684,-1.288818,-1.288890,-1.288996,-1.289180,-1.289366,-1.289557,-1.289935,-1.290316,-1.290698,-1.291083,-1.291469,-1.291857,-1.292247,-1.293230,-1.294224,-1.296246,-1.298314,-1.300425,-1.304775,-1.309281,-1.313921,-1.318664,-1.323475,-1.328313,-1.333134,-1.337897,-1.342561,-1.347094,-1.351472,-1.355673,-1.365337,-1.373750,-1.380929,-1.386937,-1.391850,-1.395744,-1.398684,-1.400729,-1.401921,-1.402296,-1.401875,-1.400672,-1.398687,-1.395912,-1.392326,-1.387896,-1.382574,-1.376297,-1.368983,-1.360525,-1.350784,-1.339586,-1.326700,-1.311825,-1.294559,-1.274346,-1.250397,-1.221536,-1.208233,-1.193693,-1.177704,-1.159992,-1.140188,-1.117780,-1.092012,-1.061679,-1.024671,-0.976981,-0.912501,-0.833125,-0.790484,-0.734372,-0.645066,-0.613912,-0.604454,-0.609849,-0.605557,-0.606365,-0.604589,-0.604930,-0.604121,-0.603299,-0.603050,-0.602792,-0.602503,-0.602362,-0.602223,-0.602084,-0.602056,-0.602029,-0.602001,-0.601973,-0.601946,-0.601891,-0.601836,-0.601808,-0.601780},
-{-1.529937,-1.530686,-1.530097,-1.530516,-1.530284,-1.530367,-1.530473,-1.530487,-1.530447,-1.530426,-1.530556,-1.530632,-1.530702,-1.530869,-1.531033,-1.531192,-1.531519,-1.531846,-1.532176,-1.532508,-1.532841,-1.533177,-1.533514,-1.534366,-1.535229,-1.536994,-1.538809,-1.540677,-1.544569,-1.548674,-1.552990,-1.557506,-1.562202,-1.567050,-1.572010,-1.577037,-1.582076,-1.587077,-1.591989,-1.596774,-1.607981,-1.617910,-1.626466,-1.633664,-1.639564,-1.644238,-1.647757,-1.650184,-1.651570,-1.651955,-1.651367,-1.649819,-1.647315,-1.643845,-1.639383,-1.633891,-1.627312,-1.619571,-1.610568,-1.600172,-1.588217,-1.574486,-1.558699,-1.540482,-1.519332,-1.494548,-1.465118,-1.429498,-1.412999,-1.394890,-1.374865,-1.352518,-1.327280,-1.298333,-1.264444,-1.223753,-1.173773,-1.112633,-1.040469,-0.950308,-0.891893,-0.826341,-0.752817,-0.699230,-0.623128,-0.578017,-0.540747,-0.502810,-0.462361,-0.418819,-0.371581,-0.319165,-0.290138,-0.258403,-0.222812,-0.202950,-0.181119,-0.156500,-0.151124,-0.145560,-0.139786,-0.133773,-0.127489,-0.113925,-0.098570,-0.089940,-0.080407}};
-  const double imomegaqnm30[8][107] = {{-1.529937,-1.530686,-1.530097,-1.530516,-1.530284,-1.530367,-1.530473,-1.530487,-1.530447,-1.530426,-1.530556,-1.530632,-1.530702,-1.530869,-1.531033,-1.531192,-1.531519,-1.531846,-1.532176,-1.532508,-1.532841,-1.533177,-1.533514,-1.534366,-1.535229,-1.536994,-1.538809,-1.540677,-1.544569,-1.548674,-1.552990,-1.557506,-1.562202,-1.567050,-1.572010,-1.577037,-1.582076,-1.587077,-1.591989,-1.596774,-1.607981,-1.617910,-1.626466,-1.633664,-1.639564,-1.644238,-1.647757,-1.650184,-1.651570,-1.651955,-1.651367,-1.649819,-1.647315,-1.643845,-0.092687,-0.092637,-0.092553,-0.092433,-0.092275,-0.092076,-0.091832,-0.091538,-0.091186,-0.090769,-0.090275,-0.089691,-0.088997,-0.088168,-0.087792,-0.087386,-0.086947,-0.086471,-0.085955,-0.085393,-0.084779,-0.084107,-0.083367,-0.082549,-0.081642,-0.080628,-0.080076,-0.079490,-0.078867,-0.078540,-0.078202,-0.078064,-0.077924,-0.077783,-0.077639,-0.077493,-0.077346,-0.077196,-0.077121,-0.077045,-0.076969,-0.076929,-0.076884,-0.076820,-0.076802,-0.076779,-0.076750,-0.076713,-0.076663,-0.076489,-0.076039,-0.075485,-0.074203},
-{-1.529937,-1.530686,-1.530097,-1.530516,-1.530284,-1.530367,-1.530473,-1.530487,-1.530447,-1.530426,-1.530556,-1.530632,-1.530702,-1.530869,-1.531033,-1.531192,-1.531519,-1.531846,-1.532176,-1.532508,-1.532841,-1.533177,-1.533514,-1.534366,-1.535229,-1.536994,-1.538809,-1.540677,-1.544569,-1.548674,-1.552990,-1.557506,-1.562202,-1.567050,-1.572010,-1.577037,-1.582076,-1.587077,-1.591989,-1.596774,-1.607981,-1.617910,-1.626466,-1.633664,-1.639564,-1.644238,-1.647757,-1.650184,-1.651570,-1.651955,-1.651367,-1.649819,-1.647315,-1.643845,-0.281245,-0.281086,-0.280817,-0.280433,-0.279928,-0.279291,-0.278511,-0.277569,-0.276446,-0.275114,-0.273539,-0.271675,-0.269463,-0.266825,-0.265627,-0.264336,-0.262942,-0.261433,-0.259797,-0.258018,-0.256079,-0.253960,-0.251636,-0.249081,-0.246264,-0.243150,-0.241470,-0.239702,-0.237841,-0.236875,-0.235884,-0.235481,-0.235073,-0.234662,-0.234247,-0.233827,-0.233404,-0.232976,-0.232761,-0.232544,-0.232327,-0.232217,-0.232108,-0.232000,-0.231978,-0.231958,-0.231937,-0.231918,-0.231899,-0.231862,-0.231806,-0.231736,-0.231556},
-{-1.529937,-1.530686,-1.530097,-1.530516,-1.530284,-1.530367,-1.530473,-1.530487,-1.530447,-1.530426,-1.530556,-1.530632,-1.530702,-1.530869,-1.531033,-1.531192,-1.531519,-1.531846,-1.532176,-1.532508,-1.532841,-1.533177,-1.533514,-1.534366,-1.535229,-1.536994,-1.538809,-1.540677,-1.544569,-1.548674,-1.552990,-1.557506,-1.562202,-1.567050,-1.572010,-1.577037,-1.582076,-1.587077,-1.591989,-1.596774,-1.607981,-1.617910,-1.626466,-1.633664,-1.639564,-1.644238,-1.647757,-1.650184,-1.651570,-1.651955,-1.651367,-1.649819,-1.647315,-1.643845,-0.478993,-0.478693,-0.478187,-0.477465,-0.476516,-0.475321,-0.473856,-0.472093,-0.469991,-0.467502,-0.464563,-0.461092,-0.456981,-0.452089,-0.449873,-0.447487,-0.444914,-0.442135,-0.439128,-0.435869,-0.432331,-0.428485,-0.424299,-0.419744,-0.414795,-0.409439,-0.406611,-0.403687,-0.400675,-0.399138,-0.397582,-0.396955,-0.396325,-0.395693,-0.395058,-0.394421,-0.393782,-0.393140,-0.392819,-0.392497,-0.392175,-0.392013,-0.391852,-0.391691,-0.391658,-0.391625,-0.391592,-0.391559,-0.391525,-0.391457,-0.391405,-0.391405,-0.391445},
-{-1.529937,-1.530686,-1.530097,-1.530516,-1.530284,-1.530367,-1.530473,-1.530487,-1.530447,-1.530426,-1.530556,-1.530632,-1.530702,-1.530869,-1.531033,-1.531192,-1.531519,-1.531846,-1.532176,-1.532508,-1.532841,-1.533177,-1.533514,-1.534366,-1.535229,-1.536994,-1.538809,-1.540677,-1.544569,-1.548674,-1.552990,-1.557506,-1.562202,-1.567050,-1.572010,-1.577037,-1.582076,-1.587077,-1.591989,-1.596774,-1.607981,-1.617910,-1.626466,-1.633664,-1.639564,-1.644238,-1.647757,-1.650184,-1.651570,-1.651955,-1.651367,-1.649819,-1.647315,-1.643845,-0.690175,-0.689687,-0.688863,-0.687691,-0.686150,-0.684213,-0.681842,-0.678992,-0.675601,-0.671595,-0.666873,-0.661311,-0.654741,-0.646948,-0.643426,-0.639642,-0.635570,-0.631185,-0.626456,-0.621355,-0.615851,-0.609918,-0.603541,-0.596726,-0.589514,-0.581992,-0.578157,-0.574299,-0.570439,-0.568516,-0.566600,-0.565836,-0.565074,-0.564314,-0.563556,-0.562800,-0.562047,-0.561296,-0.560921,-0.560547,-0.560174,-0.559988,-0.559802,-0.559615,-0.559578,-0.559540,-0.559503,-0.559467,-0.559432,-0.559363,-0.559277,-0.559209,-0.559138},
-{-1.529937,-1.530686,-1.530097,-1.530516,-1.530284,-1.530367,-1.530473,-1.530487,-1.530447,-1.530426,-1.530556,-1.530632,-1.530702,-1.530869,-1.531033,-1.531192,-1.531519,-1.531846,-1.532176,-1.532508,-1.532841,-1.533177,-1.533514,-1.534366,-1.535229,-1.536994,-1.538809,-1.540677,-1.544569,-1.548674,-1.552990,-1.557506,-1.562202,-1.567050,-1.572010,-1.577037,-1.582076,-1.587077,-1.591989,-1.596774,-1.607981,-1.617910,-1.626466,-1.633664,-1.639564,-1.644238,-1.647757,-1.650184,-1.651570,-1.651955,-1.651367,-1.649819,-1.647315,-1.643845,-0.915410,-0.914686,-0.913468,-0.911735,-0.909458,-0.906598,-0.903103,-0.898906,-0.893923,-0.888043,-0.881128,-0.872996,-0.863415,-0.852081,-0.846972,-0.841494,-0.835614,-0.829301,-0.822525,-0.815260,-0.807496,-0.799244,-0.790564,-0.781585,-0.772513,-0.763590,-0.759253,-0.755027,-0.750929,-0.748931,-0.746968,-0.746193,-0.745424,-0.744661,-0.743903,-0.743152,-0.742406,-0.741667,-0.741299,-0.740933,-0.740568,-0.740387,-0.740205,-0.740023,-0.739987,-0.739952,-0.739918,-0.739883,-0.739847,-0.739761,-0.739695,-0.739705,-0.739695},
-{-1.529937,-1.530686,-1.530097,-1.530516,-1.530284,-1.530367,-1.530473,-1.530487,-1.530447,-1.530426,-1.530556,-1.530632,-1.530702,-1.530869,-1.531033,-1.531192,-1.531519,-1.531846,-1.532176,-1.532508,-1.532841,-1.533177,-1.533514,-1.534366,-1.535229,-1.536994,-1.538809,-1.540677,-1.544569,-1.548674,-1.552990,-1.557506,-1.562202,-1.567050,-1.572010,-1.577037,-1.582076,-1.587077,-1.591989,-1.596774,-1.607981,-1.617910,-1.626466,-1.633664,-1.639564,-1.644238,-1.647757,-1.650184,-1.651570,-1.651955,-1.651367,-1.649819,-1.647315,-1.643845,-1.151824,-1.150837,-1.149175,-1.146812,-1.143709,-1.139814,-1.135056,-1.129348,-1.122576,-1.114592,-1.105211,-1.094192,-1.081227,-1.065919,-1.059035,-1.051666,-1.043780,-1.035350,-1.026359,-1.016818,-1.006788,-0.996417,-0.985980,-0.975863,-0.966386,-0.957682,-0.953634,-0.949785,-0.946128,-0.944368,-0.942653,-0.941979,-0.941311,-0.940651,-0.939997,-0.939349,-0.938708,-0.938073,-0.937758,-0.937445,-0.937132,-0.936977,-0.936822,-0.936667,-0.936639,-0.936611,-0.936580,-0.936544,-0.936504,-0.936448,-0.936428,-0.936315,-0.936219},
-{-1.529937,-1.530686,-1.530097,-1.530516,-1.530284,-1.530367,-1.530473,-1.530487,-1.530447,-1.530426,-1.530556,-1.530632,-1.530702,-1.530869,-1.531033,-1.531192,-1.531519,-1.531846,-1.532176,-1.532508,-1.532841,-1.533177,-1.533514,-1.534366,-1.535229,-1.536994,-1.538809,-1.540677,-1.544569,-1.548674,-1.552990,-1.557506,-1.562202,-1.567050,-1.572010,-1.577037,-1.582076,-1.587077,-1.591989,-1.596774,-1.607981,-1.617910,-1.626466,-1.633664,-1.639564,-1.644238,-1.647757,-1.650184,-1.651570,-1.651955,-1.651367,-1.649819,-1.647315,-1.643845,-1.395494,-1.394233,-1.392109,-1.389089,-1.385124,-1.380148,-1.374073,-1.366785,-1.358140,-1.347953,-1.335985,-1.321933,-1.305409,-1.285931,-1.277193,-1.267863,-1.257920,-1.247362,-1.236235,-1.224669,-1.212958,-1.201632,-1.191349,-1.182302,-1.174267,-1.167204,-1.163981,-1.160939,-1.158062,-1.156680,-1.155334,-1.154806,-1.154282,-1.153764,-1.153251,-1.152743,-1.152240,-1.151741,-1.151494,-1.151247,-1.151003,-1.150879,-1.150761,-1.150640,-1.150623,-1.150601,-1.150566,-1.150523,-1.150492,-1.150513,-1.150334,-1.150373,-1.150585},
-{-1.529937,-1.530686,-1.530097,-1.530516,-1.530284,-1.530367,-1.530473,-1.530487,-1.530447,-1.530426,-1.530556,-1.530632,-1.530702,-1.530869,-1.531033,-1.531192,-1.531519,-1.531846,-1.532176,-1.532508,-1.532841,-1.533177,-1.533514,-1.534366,-1.535229,-1.536994,-1.538809,-1.540677,-1.544569,-1.548674,-1.552990,-1.557506,-1.562202,-1.567050,-1.572010,-1.577037,-1.582076,-1.587077,-1.591989,-1.596774,-1.607981,-1.617910,-1.626466,-1.633664,-1.639564,-1.644238,-1.647757,-1.650184,-1.651570,-1.651955,-1.651367,-1.649819,-1.647315,-1.643845,-1.643335,-1.641797,-1.639208,-1.635528,-1.630696,-1.624631,-1.617226,-1.608344,-1.597807,-1.585389,-1.570800,-1.553671,-1.533537,-1.509851,-1.499261,-1.488002,-1.476093,-1.463621,-1.450821,-1.438215,-1.426792,-1.417582,-1.409842,-1.402860,-1.396979,-1.391746,-1.389346,-1.387063,-1.384890,-1.383840,-1.382815,-1.382410,-1.382010,-1.381612,-1.381218,-1.380828,-1.380440,-1.380056,-1.379863,-1.379676,-1.379489,-1.379383,-1.379306,-1.379208,-1.379208,-1.379184,-1.379129,-1.379081,-1.379097,-1.379105,-1.379024,-1.379212,-1.378677}};
-  const double imomegaqnm44[8][107] = {{-0.047289,-0.057085,-0.065286,-0.076920,-0.083531,-0.085574,-0.087060,-0.088144,-0.088942,-0.089536,-0.090962,-0.091420,-0.091606,-0.091741,-0.091784,-0.091803,-0.091819,-0.091828,-0.091837,-0.091845,-0.091853,-0.091861,-0.091870,-0.091890,-0.091911,-0.091952,-0.091993,-0.092034,-0.092115,-0.092196,-0.092275,-0.092354,-0.092432,-0.092510,-0.092586,-0.092662,-0.092736,-0.092810,-0.092882,-0.092953,-0.093127,-0.093292,-0.093448,-0.093595,-0.093730,-0.093853,-0.093962,-0.094056,-0.094132,-0.094189,-0.094223,-0.094233,-0.094215,-0.094164,-0.094077,-0.093948,-0.093770,-0.093537,-0.093239,-0.092865,-0.092401,-0.091829,-0.091127,-0.090268,-0.089212,-0.087909,-0.086287,-0.084240,-0.083269,-0.082192,-0.080991,-0.079644,-0.078125,-0.076399,-0.074418,-0.072119,-0.069410,-0.066156,-0.062140,-0.056982,-0.053763,-0.049911,-0.045132,-0.042232,-0.038838,-0.037297,-0.035624,-0.033790,-0.031759,-0.029475,-0.026854,-0.023753,-0.021945,-0.019893,-0.017493,-0.016108,-0.014546,-0.012736,-0.012334,-0.011915,-0.011478,-0.011019,-0.010536,-0.009482,-0.008270,-0.007580,-0.006809},
-{-0.267496,-0.272430,-0.275117,-0.277412,-0.278166,-0.278332,-0.278431,-0.278489,-0.278523,-0.278542,-0.278554,-0.278543,-0.278539,-0.278544,-0.278555,-0.278567,-0.278590,-0.278613,-0.278636,-0.278659,-0.278682,-0.278704,-0.278727,-0.278784,-0.278841,-0.278955,-0.279068,-0.279180,-0.279403,-0.279623,-0.279841,-0.280057,-0.280270,-0.280480,-0.280687,-0.280892,-0.281093,-0.281291,-0.281485,-0.281676,-0.282137,-0.282572,-0.282979,-0.283355,-0.283696,-0.283998,-0.284257,-0.284467,-0.284624,-0.284721,-0.284749,-0.284701,-0.284567,-0.284334,-0.283990,-0.283519,-0.282901,-0.282113,-0.281129,-0.279913,-0.278426,-0.276614,-0.274412,-0.271733,-0.268465,-0.264452,-0.259480,-0.253233,-0.250278,-0.247003,-0.243357,-0.239276,-0.234678,-0.229458,-0.223476,-0.216539,-0.208375,-0.198576,-0.186494,-0.170992,-0.161324,-0.149756,-0.135408,-0.126707,-0.116519,-0.111896,-0.106875,-0.101374,-0.095279,-0.088426,-0.080562,-0.071259,-0.065836,-0.059678,-0.052479,-0.048323,-0.043639,-0.038210,-0.037003,-0.035747,-0.034434,-0.033058,-0.031609,-0.028447,-0.024810,-0.022739,-0.020428},
-{-0.476992,-0.476552,-0.476059,-0.475354,-0.475023,-0.474945,-0.474902,-0.474880,-0.474873,-0.474873,-0.474904,-0.474923,-0.474932,-0.474945,-0.474960,-0.474975,-0.475006,-0.475036,-0.475066,-0.475097,-0.475127,-0.475157,-0.475187,-0.475263,-0.475338,-0.475487,-0.475635,-0.475782,-0.476073,-0.476359,-0.476641,-0.476918,-0.477190,-0.477456,-0.477718,-0.477973,-0.478223,-0.478467,-0.478704,-0.478936,-0.479483,-0.479984,-0.480434,-0.480828,-0.481160,-0.481423,-0.481610,-0.481712,-0.481721,-0.481624,-0.481410,-0.481064,-0.480570,-0.479908,-0.479056,-0.477986,-0.476666,-0.475060,-0.473120,-0.470791,-0.468003,-0.464669,-0.460679,-0.455890,-0.450113,-0.443090,-0.434465,-0.423712,-0.418650,-0.413055,-0.406842,-0.399905,-0.392108,-0.383276,-0.373175,-0.361487,-0.347759,-0.331313,-0.311071,-0.285140,-0.268985,-0.249669,-0.225726,-0.211210,-0.194221,-0.186512,-0.178140,-0.168968,-0.158807,-0.147383,-0.134275,-0.118768,-0.109729,-0.099465,-0.087465,-0.080539,-0.072732,-0.063683,-0.061672,-0.059578,-0.057390,-0.055096,-0.052682,-0.047413,-0.041350,-0.037898,-0.034047},
-{-0.688887,-0.687276,-0.686870,-0.687194,-0.687484,-0.687529,-0.687535,-0.687523,-0.687504,-0.687487,-0.687464,-0.687480,-0.687488,-0.687497,-0.687509,-0.687521,-0.687544,-0.687567,-0.687590,-0.687613,-0.687636,-0.687658,-0.687681,-0.687738,-0.687794,-0.687905,-0.688015,-0.688122,-0.688333,-0.688537,-0.688734,-0.688923,-0.689105,-0.689278,-0.689444,-0.689601,-0.689749,-0.689889,-0.690018,-0.690138,-0.690394,-0.690579,-0.690690,-0.690717,-0.690652,-0.690487,-0.690211,-0.689812,-0.689276,-0.688589,-0.687732,-0.686685,-0.685425,-0.683924,-0.682151,-0.680068,-0.677629,-0.674782,-0.671462,-0.667589,-0.663066,-0.657772,-0.651551,-0.644203,-0.635463,-0.624972,-0.612229,-0.596503,-0.589146,-0.581044,-0.572077,-0.562097,-0.550915,-0.538287,-0.523888,-0.507273,-0.487810,-0.464555,-0.436002,-0.399509,-0.376808,-0.349693,-0.316109,-0.295761,-0.271954,-0.261154,-0.249426,-0.236578,-0.222347,-0.206349,-0.187993,-0.166281,-0.153625,-0.139254,-0.122453,-0.112755,-0.101826,-0.089156,-0.086341,-0.083409,-0.080346,-0.077135,-0.073755,-0.066378,-0.057891,-0.053057,-0.047665},
-{-0.918235,-0.920515,-0.920895,-0.920137,-0.920012,-0.920094,-0.920167,-0.920207,-0.920214,-0.920202,-0.920149,-0.920166,-0.920164,-0.920160,-0.920158,-0.920156,-0.920152,-0.920148,-0.920144,-0.920140,-0.920136,-0.920132,-0.920127,-0.920116,-0.920104,-0.920079,-0.920051,-0.920022,-0.919956,-0.919881,-0.919796,-0.919702,-0.919597,-0.919482,-0.919356,-0.919218,-0.919069,-0.918908,-0.918734,-0.918547,-0.918020,-0.917401,-0.916681,-0.915851,-0.914900,-0.913815,-0.912584,-0.911190,-0.909617,-0.907843,-0.905847,-0.903603,-0.901078,-0.898239,-0.895043,-0.891442,-0.887378,-0.882780,-0.877566,-0.871633,-0.864855,-0.857075,-0.848091,-0.837647,-0.825400,-0.810890,-0.793470,-0.772205,-0.762324,-0.751485,-0.739534,-0.726280,-0.711484,-0.694831,-0.675907,-0.654142,-0.628729,-0.598457,-0.561400,-0.514171,-0.484847,-0.449863,-0.406581,-0.380377,-0.349729,-0.335831,-0.320740,-0.304211,-0.285904,-0.265327,-0.241720,-0.213799,-0.197524,-0.179045,-0.157442,-0.144973,-0.130920,-0.114630,-0.111011,-0.107241,-0.103302,-0.099174,-0.094829,-0.085343,-0.074431,-0.068217,-0.061284},
-{-1.172429,-1.170250,-1.170724,-1.171528,-1.171085,-1.171073,-1.171150,-1.171223,-1.171252,-1.171240,-1.171165,-1.171180,-1.171155,-1.171139,-1.171115,-1.171094,-1.171049,-1.171005,-1.170960,-1.170916,-1.170871,-1.170826,-1.170781,-1.170668,-1.170555,-1.170326,-1.170094,-1.169858,-1.169379,-1.168887,-1.168382,-1.167864,-1.167332,-1.166786,-1.166225,-1.165649,-1.165057,-1.164449,-1.163825,-1.163183,-1.161499,-1.159693,-1.157756,-1.155675,-1.153437,-1.151026,-1.148428,-1.145621,-1.142586,-1.139297,-1.135727,-1.131843,-1.127608,-1.122977,-1.117900,-1.112316,-1.106154,-1.099328,-1.091735,-1.083249,-1.073714,-1.062936,-1.050670,-1.036597,-1.020299,-1.001210,-0.978540,-0.951144,-0.938500,-0.924680,-0.909499,-0.892724,-0.874063,-0.853135,-0.829435,-0.802272,-0.770663,-0.733138,-0.687353,-0.629184,-0.593147,-0.550213,-0.497162,-0.465071,-0.427558,-0.410551,-0.392089,-0.371872,-0.349482,-0.324320,-0.295457,-0.261323,-0.241428,-0.218839,-0.192433,-0.177192,-0.160015,-0.140105,-0.135681,-0.131073,-0.126259,-0.121213,-0.115902,-0.104308,-0.090972,-0.083376,-0.074903},
-{-1.434106,-1.435046,-1.433745,-1.434332,-1.434110,-1.434007,-1.434061,-1.434149,-1.434181,-1.434154,-1.434096,-1.434067,-1.434053,-1.434006,-1.433967,-1.433925,-1.433841,-1.433756,-1.433671,-1.433587,-1.433502,-1.433417,-1.433332,-1.433118,-1.432903,-1.432470,-1.432032,-1.431590,-1.430693,-1.429777,-1.428843,-1.427889,-1.426915,-1.425920,-1.424905,-1.423867,-1.422808,-1.421726,-1.420620,-1.419490,-1.416555,-1.413454,-1.410174,-1.406700,-1.403018,-1.399110,-1.394956,-1.390535,-1.385822,-1.380787,-1.375397,-1.369615,-1.363395,-1.356686,-1.349428,-1.341548,-1.332961,-1.323565,-1.313236,-1.301825,-1.289146,-1.274967,-1.258995,-1.240852,-1.220040,-1.195886,-1.167453,-1.133385,-1.117752,-1.100721,-1.082074,-1.061538,-1.038767,-1.013313,-0.984584,-0.951766,-0.913705,-0.868675,-0.813920,-0.744589,-0.701738,-0.650764,-0.587868,-0.549856,-0.505448,-0.485323,-0.463480,-0.439564,-0.413085,-0.383331,-0.349205,-0.308853,-0.285337,-0.258637,-0.227427,-0.209413,-0.189112,-0.165580,-0.160352,-0.154906,-0.149217,-0.143253,-0.136976,-0.123274,-0.107512,-0.098535,-0.088522},
-{-1.701724,-1.702654,-1.702929,-1.702488,-1.702586,-1.702446,-1.702476,-1.702559,-1.702577,-1.702533,-1.702508,-1.702450,-1.702433,-1.702375,-1.702317,-1.702258,-1.702143,-1.702028,-1.701913,-1.701797,-1.701681,-1.701565,-1.701448,-1.701156,-1.700862,-1.700270,-1.699671,-1.699066,-1.697836,-1.696579,-1.695294,-1.693982,-1.692640,-1.691270,-1.689869,-1.688438,-1.686975,-1.685480,-1.683952,-1.682390,-1.678334,-1.674047,-1.669517,-1.664727,-1.659659,-1.654293,-1.648606,-1.642574,-1.636168,-1.629355,-1.622096,-1.614348,-1.606060,-1.597171,-1.587611,-1.577296,-1.566129,-1.553988,-1.540731,-1.526181,-1.510123,-1.492287,-1.472329,-1.449810,-1.424148,-1.394562,-1.359963,-1.318780,-1.299967,-1.279528,-1.257209,-1.232697,-1.205593,-1.175383,-1.141384,-1.102665,-1.057901,-1.005112,-0.941138,-0.860413,-0.810643,-0.751534,-0.678709,-0.634741,-0.583406,-0.560151,-0.534917,-0.507294,-0.476715,-0.442361,-0.402967,-0.356392,-0.329251,-0.298439,-0.262423,-0.241636,-0.218210,-0.191057,-0.185023,-0.178739,-0.172175,-0.165293,-0.158050,-0.142240,-0.124053,-0.113695,-0.102141}};
-  const double imomegaqnm43[8][107] = {{-0.050967,-0.062587,-0.071427,-0.082053,-0.086727,-0.087934,-0.088737,-0.089284,-0.089666,-0.089939,-0.090561,-0.090757,-0.090839,-0.090902,-0.090925,-0.090937,-0.090952,-0.090965,-0.090977,-0.090990,-0.091003,-0.091015,-0.091028,-0.091059,-0.091090,-0.091152,-0.091213,-0.091273,-0.091393,-0.091510,-0.091625,-0.091738,-0.091848,-0.091956,-0.092062,-0.092166,-0.092267,-0.092367,-0.092464,-0.092559,-0.092786,-0.092999,-0.093198,-0.093382,-0.093550,-0.093702,-0.093836,-0.093952,-0.094048,-0.094123,-0.094175,-0.094201,-0.094198,-0.094164,-0.094095,-0.093985,-0.093831,-0.093624,-0.093357,-0.093020,-0.092601,-0.092084,-0.091449,-0.090670,-0.089712,-0.088528,-0.087053,-0.085187,-0.084300,-0.083315,-0.082216,-0.080981,-0.079586,-0.077998,-0.076170,-0.074044,-0.071530,-0.068498,-0.064738,-0.059879,-0.056829,-0.053157,-0.048569,-0.045767,-0.042466,-0.040960,-0.039319,-0.037514,-0.035505,-0.033234,-0.030612,-0.027485,-0.025648,-0.023550,-0.021079,-0.019644,-0.018017,-0.016120,-0.015696,-0.015255,-0.014793,-0.014308,-0.013797,-0.012678,-0.011388,-0.010652,-0.009830},
-{-0.267208,-0.271308,-0.273219,-0.274661,-0.275084,-0.275171,-0.275221,-0.275250,-0.275266,-0.275275,-0.275283,-0.275284,-0.275289,-0.275306,-0.275325,-0.275344,-0.275382,-0.275420,-0.275458,-0.275495,-0.275533,-0.275570,-0.275608,-0.275701,-0.275793,-0.275977,-0.276159,-0.276339,-0.276694,-0.277041,-0.277381,-0.277714,-0.278040,-0.278358,-0.278669,-0.278973,-0.279270,-0.279560,-0.279842,-0.280118,-0.280775,-0.281387,-0.281952,-0.282469,-0.282937,-0.283353,-0.283715,-0.284019,-0.284261,-0.284436,-0.284538,-0.284561,-0.284496,-0.284334,-0.284064,-0.283670,-0.283138,-0.282446,-0.281571,-0.280483,-0.279144,-0.277507,-0.275512,-0.273080,-0.270109,-0.266454,-0.261917,-0.256203,-0.253495,-0.250490,-0.247140,-0.243383,-0.239143,-0.234319,-0.228777,-0.222332,-0.214721,-0.205548,-0.194178,-0.179489,-0.170264,-0.159161,-0.145275,-0.136787,-0.126779,-0.122211,-0.117228,-0.111743,-0.105633,-0.098719,-0.090720,-0.081161,-0.075534,-0.069090,-0.061475,-0.057034,-0.051986,-0.046068,-0.044743,-0.043358,-0.041905,-0.040378,-0.038763,-0.035212,-0.031077,-0.028696,-0.026012},
-{-0.467961,-0.467928,-0.467721,-0.467392,-0.467251,-0.467223,-0.467210,-0.467207,-0.467209,-0.467213,-0.467240,-0.467258,-0.467274,-0.467304,-0.467335,-0.467366,-0.467428,-0.467490,-0.467551,-0.467613,-0.467674,-0.467735,-0.467796,-0.467948,-0.468099,-0.468399,-0.468695,-0.468987,-0.469562,-0.470123,-0.470670,-0.471203,-0.471723,-0.472229,-0.472721,-0.473200,-0.473665,-0.474117,-0.474555,-0.474980,-0.475982,-0.476899,-0.477729,-0.478470,-0.479120,-0.479676,-0.480131,-0.480483,-0.480722,-0.480843,-0.480834,-0.480685,-0.480382,-0.479908,-0.479245,-0.478369,-0.477252,-0.475861,-0.474154,-0.472081,-0.469580,-0.466571,-0.462953,-0.458595,-0.453321,-0.446894,-0.438977,-0.429080,-0.424409,-0.419240,-0.413489,-0.407057,-0.399812,-0.391586,-0.382153,-0.371204,-0.358294,-0.342758,-0.323524,-0.298692,-0.283102,-0.264334,-0.240854,-0.226493,-0.209553,-0.201816,-0.193377,-0.184084,-0.173730,-0.162011,-0.148455,-0.132258,-0.122731,-0.111831,-0.098972,-0.091490,-0.083002,-0.073087,-0.070872,-0.068561,-0.066141,-0.063599,-0.060917,-0.055039,-0.048237,-0.044343,-0.039981},
-{-0.672249,-0.671448,-0.671290,-0.671459,-0.671573,-0.671589,-0.671592,-0.671589,-0.671585,-0.671583,-0.671597,-0.671622,-0.671642,-0.671683,-0.671725,-0.671766,-0.671849,-0.671931,-0.672013,-0.672095,-0.672177,-0.672258,-0.672340,-0.672542,-0.672743,-0.673140,-0.673532,-0.673919,-0.674676,-0.675411,-0.676124,-0.676815,-0.677484,-0.678131,-0.678756,-0.679359,-0.679940,-0.680499,-0.681036,-0.681551,-0.682741,-0.683793,-0.684705,-0.685475,-0.686100,-0.686575,-0.686895,-0.687052,-0.687038,-0.686842,-0.686450,-0.685846,-0.685012,-0.683924,-0.682556,-0.680873,-0.678838,-0.676402,-0.673507,-0.670082,-0.666037,-0.661260,-0.655609,-0.648898,-0.640878,-0.631213,-0.619430,-0.604832,-0.597984,-0.590428,-0.582049,-0.572704,-0.562209,-0.550324,-0.536732,-0.520992,-0.502477,-0.480242,-0.452767,-0.417355,-0.395150,-0.368437,-0.335051,-0.314653,-0.290615,-0.279647,-0.267693,-0.254542,-0.239906,-0.223365,-0.204271,-0.181520,-0.168174,-0.152942,-0.135027,-0.124632,-0.112868,-0.099165,-0.096110,-0.092924,-0.089591,-0.086093,-0.082405,-0.074336,-0.065019,-0.059696,-0.053742},
-{-0.890457,-0.891421,-0.891587,-0.891311,-0.891280,-0.891313,-0.891341,-0.891358,-0.891365,-0.891365,-0.891375,-0.891404,-0.891428,-0.891476,-0.891524,-0.891572,-0.891669,-0.891765,-0.891860,-0.891956,-0.892051,-0.892146,-0.892240,-0.892476,-0.892709,-0.893171,-0.893625,-0.894073,-0.894945,-0.895787,-0.896599,-0.897380,-0.898130,-0.898849,-0.899536,-0.900191,-0.900814,-0.901405,-0.901963,-0.902490,-0.903662,-0.904630,-0.905391,-0.905943,-0.906283,-0.906405,-0.906302,-0.905967,-0.905388,-0.904551,-0.903440,-0.902035,-0.900311,-0.898239,-0.895783,-0.892901,-0.889542,-0.885644,-0.881130,-0.875907,-0.869859,-0.862840,-0.854663,-0.845086,-0.833786,-0.820324,-0.804084,-0.784160,-0.774872,-0.764659,-0.753372,-0.740824,-0.726777,-0.710918,-0.692834,-0.671952,-0.647457,-0.618121,-0.581970,-0.535513,-0.506452,-0.471562,-0.428069,-0.401560,-0.370386,-0.356189,-0.340731,-0.323748,-0.304876,-0.283583,-0.259050,-0.229886,-0.212810,-0.193352,-0.170509,-0.157275,-0.142315,-0.124914,-0.121039,-0.116998,-0.112773,-0.108340,-0.103669,-0.093454,-0.081672,-0.074946,-0.067429},
-{-1.126859,-1.125834,-1.125954,-1.126319,-1.126176,-1.126168,-1.126195,-1.126225,-1.126243,-1.126248,-1.126253,-1.126286,-1.126307,-1.126359,-1.126409,-1.126459,-1.126559,-1.126659,-1.126759,-1.126858,-1.126957,-1.127056,-1.127154,-1.127399,-1.127642,-1.128122,-1.128594,-1.129058,-1.129961,-1.130829,-1.131662,-1.132458,-1.133215,-1.133934,-1.134612,-1.135250,-1.135845,-1.136399,-1.136910,-1.137378,-1.138355,-1.139054,-1.139470,-1.139598,-1.139435,-1.138972,-1.138204,-1.137119,-1.135705,-1.133945,-1.131820,-1.129304,-1.126368,-1.122977,-1.119085,-1.114642,-1.109583,-1.103831,-1.097292,-1.089849,-1.081358,-1.071637,-1.060455,-1.047509,-1.032398,-1.014577,-0.993280,-0.967385,-0.955381,-0.942227,-0.927737,-0.911678,-0.893755,-0.873583,-0.850650,-0.824251,-0.793379,-0.756525,-0.711269,-0.653346,-0.617238,-0.574013,-0.520310,-0.487672,-0.449379,-0.431968,-0.413032,-0.392253,-0.369188,-0.343199,-0.313298,-0.277807,-0.257054,-0.233428,-0.205721,-0.189684,-0.171568,-0.150512,-0.145825,-0.140939,-0.135831,-0.130473,-0.124828,-0.112489,-0.098264,-0.090147,-0.081079},
-{-1.372466,-1.373275,-1.372701,-1.372840,-1.372836,-1.372781,-1.372788,-1.372825,-1.372853,-1.372859,-1.372859,-1.372887,-1.372910,-1.372957,-1.373005,-1.373052,-1.373147,-1.373241,-1.373335,-1.373428,-1.373522,-1.373615,-1.373707,-1.373939,-1.374168,-1.374622,-1.375069,-1.375509,-1.376365,-1.377189,-1.377976,-1.378725,-1.379434,-1.380101,-1.380722,-1.381298,-1.381825,-1.382302,-1.382728,-1.383101,-1.383798,-1.384146,-1.384132,-1.383747,-1.382982,-1.381828,-1.380274,-1.378309,-1.375916,-1.373076,-1.369766,-1.365955,-1.361610,-1.356686,-1.351132,-1.344884,-1.337866,-1.329985,-1.321128,-1.311153,-1.299886,-1.287108,-1.272539,-1.255814,-1.236450,-1.213789,-1.186908,-1.154456,-1.139486,-1.123126,-1.105153,-1.085290,-1.063183,-1.038372,-1.010246,-0.977967,-0.940341,-0.895582,-0.840838,-0.771099,-0.727798,-0.676120,-0.612136,-0.573358,-0.527953,-0.507339,-0.484939,-0.460381,-0.433149,-0.402495,-0.367263,-0.325492,-0.301088,-0.273325,-0.240789,-0.221967,-0.200716,-0.176027,-0.170533,-0.164807,-0.158821,-0.152543,-0.145930,-0.131477,-0.114820,-0.105319,-0.094706},
-{-1.626688,-1.626751,-1.627193,-1.626831,-1.626996,-1.626921,-1.626905,-1.626944,-1.626977,-1.626979,-1.626985,-1.626995,-1.627023,-1.627062,-1.627102,-1.627143,-1.627225,-1.627306,-1.627387,-1.627469,-1.627550,-1.627630,-1.627711,-1.627912,-1.628112,-1.628508,-1.628900,-1.629286,-1.630041,-1.630769,-1.631466,-1.632130,-1.632756,-1.633340,-1.633881,-1.634374,-1.634816,-1.635205,-1.635538,-1.635812,-1.636228,-1.636233,-1.635804,-1.634922,-1.633571,-1.631734,-1.629398,-1.626546,-1.623158,-1.619211,-1.614677,-1.609522,-1.603703,-1.597171,-1.589863,-1.581706,-1.572609,-1.562462,-1.551132,-1.538451,-1.524214,-1.508161,-1.489960,-1.469181,-1.445251,-1.417395,-1.384523,-1.345045,-1.326899,-1.307110,-1.285418,-1.261497,-1.234937,-1.205201,-1.171580,-1.133104,-1.088396,-1.035401,-0.970849,-0.889002,-0.838381,-0.778147,-0.703806,-0.658863,-0.606333,-0.582515,-0.556653,-0.528321,-0.496929,-0.461622,-0.421075,-0.373046,-0.345006,-0.313120,-0.275774,-0.254178,-0.229802,-0.201493,-0.195195,-0.188631,-0.181771,-0.174575,-0.166996,-0.150436,-0.131355,-0.120473,-0.108320}};
-  const double imomegaqnm42[8][107] = {{-0.058810,-0.071056,-0.078796,-0.085560,-0.087557,-0.087981,-0.088246,-0.088420,-0.088539,-0.088624,-0.088828,-0.088902,-0.088937,-0.088971,-0.088989,-0.089004,-0.089030,-0.089056,-0.089082,-0.089107,-0.089133,-0.089158,-0.089183,-0.089245,-0.089307,-0.089429,-0.089548,-0.089665,-0.089892,-0.090110,-0.090319,-0.090520,-0.090713,-0.090899,-0.091078,-0.091250,-0.091416,-0.091576,-0.091729,-0.091877,-0.092222,-0.092535,-0.092818,-0.093072,-0.093299,-0.093501,-0.093676,-0.093827,-0.093952,-0.094051,-0.094123,-0.094167,-0.094181,-0.094164,-0.094112,-0.094023,-0.093891,-0.093712,-0.093480,-0.093187,-0.092822,-0.092374,-0.091825,-0.091157,-0.090340,-0.089338,-0.088098,-0.086545,-0.085812,-0.085002,-0.084103,-0.083099,-0.081972,-0.080698,-0.079245,-0.077572,-0.075621,-0.073305,-0.070497,-0.066982,-0.064850,-0.062371,-0.059422,-0.057713,-0.055802,-0.054970,-0.054093,-0.053167,-0.052186,-0.051143,-0.050031,-0.048842,-0.048214,-0.047563,-0.046887,-0.046540,-0.046185,-0.045824,-0.045750,-0.045677,-0.045603,-0.045529,-0.045454,-0.045304,-0.045151,-0.045072,-0.044992},
-{-0.264390,-0.266773,-0.267754,-0.268435,-0.268620,-0.268657,-0.268678,-0.268691,-0.268699,-0.268704,-0.268721,-0.268737,-0.268756,-0.268796,-0.268835,-0.268875,-0.268954,-0.269033,-0.269112,-0.269190,-0.269268,-0.269346,-0.269423,-0.269615,-0.269805,-0.270179,-0.270546,-0.270905,-0.271603,-0.272272,-0.272916,-0.273534,-0.274128,-0.274699,-0.275248,-0.275776,-0.276283,-0.276770,-0.277238,-0.277688,-0.278737,-0.279683,-0.280534,-0.281295,-0.281970,-0.282563,-0.283075,-0.283507,-0.283860,-0.284131,-0.284318,-0.284418,-0.284425,-0.284334,-0.284137,-0.283822,-0.283378,-0.282788,-0.282034,-0.281092,-0.279931,-0.278514,-0.276792,-0.274702,-0.272161,-0.269054,-0.265225,-0.260445,-0.258194,-0.255707,-0.252948,-0.249872,-0.246422,-0.242524,-0.238083,-0.232970,-0.227005,-0.219928,-0.211340,-0.200582,-0.194047,-0.186442,-0.177398,-0.172168,-0.166341,-0.163817,-0.161172,-0.158397,-0.155488,-0.152440,-0.149256,-0.145944,-0.144246,-0.142522,-0.140776,-0.139896,-0.139012,-0.138124,-0.137946,-0.137768,-0.137590,-0.137412,-0.137233,-0.136876,-0.136519,-0.136340,-0.136160},
-{-0.454114,-0.454188,-0.454117,-0.453995,-0.453956,-0.453954,-0.453958,-0.453964,-0.453971,-0.453979,-0.454018,-0.454053,-0.454087,-0.454156,-0.454225,-0.454294,-0.454431,-0.454568,-0.454704,-0.454839,-0.454974,-0.455109,-0.455243,-0.455576,-0.455906,-0.456556,-0.457193,-0.457819,-0.459033,-0.460200,-0.461321,-0.462398,-0.463432,-0.464425,-0.465378,-0.466292,-0.467169,-0.468009,-0.468815,-0.469587,-0.471377,-0.472977,-0.474401,-0.475659,-0.476759,-0.477707,-0.478508,-0.479163,-0.479672,-0.480035,-0.480247,-0.480302,-0.480193,-0.479908,-0.479434,-0.478754,-0.477847,-0.476685,-0.475236,-0.473460,-0.471304,-0.468706,-0.465581,-0.461823,-0.457290,-0.451789,-0.445051,-0.436686,-0.432761,-0.428434,-0.423641,-0.418305,-0.412329,-0.405585,-0.397909,-0.389076,-0.378772,-0.366539,-0.351667,-0.332968,-0.321562,-0.308233,-0.292322,-0.283123,-0.272956,-0.268620,-0.264155,-0.259609,-0.255066,-0.250638,-0.246403,-0.242355,-0.240406,-0.238508,-0.236662,-0.235759,-0.234868,-0.233989,-0.233815,-0.233641,-0.233468,-0.233296,-0.233123,-0.232781,-0.232440,-0.232270,-0.232101},
-{-0.648389,-0.648069,-0.648032,-0.648120,-0.648171,-0.648183,-0.648191,-0.648199,-0.648206,-0.648215,-0.648264,-0.648315,-0.648365,-0.648465,-0.648565,-0.648665,-0.648863,-0.649062,-0.649259,-0.649456,-0.649653,-0.649848,-0.650044,-0.650528,-0.651009,-0.651959,-0.652892,-0.653808,-0.655592,-0.657311,-0.658964,-0.660553,-0.662079,-0.663543,-0.664946,-0.666290,-0.667577,-0.668807,-0.669982,-0.671104,-0.673687,-0.675969,-0.677968,-0.679703,-0.681185,-0.682426,-0.683433,-0.684210,-0.684759,-0.685079,-0.685164,-0.685008,-0.684600,-0.683924,-0.682962,-0.681688,-0.680073,-0.678078,-0.675656,-0.672749,-0.669283,-0.665166,-0.660278,-0.654466,-0.647525,-0.639177,-0.629034,-0.616531,-0.610691,-0.604267,-0.597168,-0.589279,-0.580458,-0.570517,-0.559212,-0.546206,-0.531024,-0.512964,-0.490908,-0.462919,-0.445629,-0.425112,-0.399954,-0.384908,-0.367650,-0.360049,-0.352082,-0.342567,-0.318968,-0.290453,-0.258664,-0.222654,-0.202571,-0.180561,-0.155823,-0.141995,-0.126777,-0.109593,-0.105838,-0.101951,-0.097915,-0.093712,-0.089318,-0.079830,-0.069083,-0.063040,-0.056364},
-{-0.853446,-0.853813,-0.853876,-0.853807,-0.853824,-0.853845,-0.853864,-0.853880,-0.853893,-0.853905,-0.853966,-0.854032,-0.854097,-0.854226,-0.854356,-0.854485,-0.854743,-0.855000,-0.855257,-0.855513,-0.855768,-0.856023,-0.856277,-0.856910,-0.857539,-0.858783,-0.860011,-0.861221,-0.863587,-0.865877,-0.868089,-0.870221,-0.872273,-0.874244,-0.876134,-0.877943,-0.879673,-0.881325,-0.882899,-0.884397,-0.887822,-0.890809,-0.893382,-0.895565,-0.897376,-0.898832,-0.899944,-0.900719,-0.901163,-0.901274,-0.901048,-0.900477,-0.899547,-0.898239,-0.896528,-0.894382,-0.891761,-0.888616,-0.884884,-0.880488,-0.875329,-0.869287,-0.862201,-0.853868,-0.844015,-0.832273,-0.818121,-0.800806,-0.792753,-0.783915,-0.774169,-0.763359,-0.751287,-0.737698,-0.722247,-0.704463,-0.683664,-0.658816,-0.628211,-0.588666,-0.563573,-0.532655,-0.491591,-0.463983,-0.427824,-0.409990,-0.389707,-0.367796,-0.356393,-0.346180,-0.324863,-0.280112,-0.254936,-0.227115,-0.195789,-0.178303,-0.159092,-0.137437,-0.132711,-0.127819,-0.122742,-0.117457,-0.111934,-0.100014,-0.086524,-0.078944,-0.070572},
-{-1.072047,-1.071660,-1.071696,-1.071852,-1.071838,-1.071847,-1.071867,-1.071889,-1.071908,-1.071924,-1.071994,-1.072072,-1.072147,-1.072299,-1.072450,-1.072602,-1.072904,-1.073206,-1.073508,-1.073809,-1.074110,-1.074410,-1.074710,-1.075459,-1.076204,-1.077687,-1.079157,-1.080613,-1.083479,-1.086277,-1.089000,-1.091641,-1.094197,-1.096662,-1.099033,-1.101308,-1.103486,-1.105566,-1.107549,-1.109433,-1.113723,-1.117427,-1.120571,-1.123179,-1.125276,-1.126882,-1.128014,-1.128684,-1.128897,-1.128656,-1.127956,-1.126788,-1.125136,-1.122977,-1.120280,-1.117006,-1.113105,-1.108514,-1.103154,-1.096929,-1.089715,-1.081356,-1.071653,-1.060343,-1.047082,-1.031397,-1.012625,-0.989793,-0.979214,-0.967624,-0.954863,-0.940725,-0.924950,-0.907196,-0.887000,-0.863715,-0.836390,-0.803542,-0.762631,-0.708697,-0.673728,-0.630147,-0.573902,-0.539636,-0.500193,-0.482250,-0.462281,-0.439394,-0.412490,-0.380102,-0.351248,-0.347751,-0.343291,-0.343798,-0.342229,-0.342109,-0.341525,-0.341141,-0.341022,-0.340957,-0.340861,-0.340789,-0.340701,-0.340537,-0.340374,-0.340293,-0.340212},
-{-1.300896,-1.301336,-1.301154,-1.301182,-1.301235,-1.301228,-1.301239,-1.301262,-1.301287,-1.301306,-1.301379,-1.301462,-1.301542,-1.301704,-1.301865,-1.302026,-1.302349,-1.302672,-1.302995,-1.303318,-1.303641,-1.303964,-1.304287,-1.305095,-1.305902,-1.307515,-1.309125,-1.310729,-1.313916,-1.317065,-1.320162,-1.323196,-1.326158,-1.329037,-1.331825,-1.334515,-1.337102,-1.339582,-1.341951,-1.344206,-1.349342,-1.353760,-1.357472,-1.360501,-1.362870,-1.364602,-1.365717,-1.366229,-1.366147,-1.365474,-1.364207,-1.362333,-1.359835,-1.356686,-1.352849,-1.348276,-1.342906,-1.336663,-1.329452,-1.321152,-1.311612,-1.300640,-1.287991,-1.273342,-1.256266,-1.236177,-1.212248,-1.183263,-1.169862,-1.155197,-1.139060,-1.121190,-1.101249,-1.078793,-1.053212,-1.023645,-0.988819,-0.946728,-0.894001,-0.824570,-0.780378,-0.727096,-0.660767,-0.620196,-0.572343,-0.550699,-0.527420,-0.502221,-0.474283,-0.441723,-0.401557,-0.347751,-0.343291,-0.343798,-0.342229,-0.342109,-0.341525,-0.341141,-0.341022,-0.340957,-0.340861,-0.340789,-0.340701,-0.340537,-0.340374,-0.340293,-0.340212},
-{-1.539724,-1.539542,-1.539848,-1.539693,-1.539814,-1.539804,-1.539800,-1.539820,-1.539849,-1.539871,-1.539941,-1.540021,-1.540102,-1.540260,-1.540419,-1.540579,-1.540898,-1.541217,-1.541537,-1.541858,-1.542178,-1.542500,-1.542821,-1.543628,-1.544436,-1.546060,-1.547692,-1.549330,-1.552618,-1.555910,-1.559191,-1.562447,-1.565662,-1.568822,-1.571913,-1.574923,-1.577839,-1.580653,-1.583357,-1.585943,-1.591863,-1.596971,-1.601252,-1.604711,-1.607367,-1.609238,-1.610346,-1.610704,-1.610324,-1.609208,-1.607352,-1.604743,-1.601360,-1.597171,-1.592132,-1.586186,-1.579262,-1.571268,-1.562088,-1.551580,-1.539561,-1.525801,-1.510003,-1.491777,-1.470605,-1.445775,-1.416275,-1.380611,-1.364135,-1.346106,-1.326267,-1.304287,-1.279742,-1.252065,-1.220484,-1.183911,-1.140760,-1.088628,-1.023770,-0.940046,-0.887831,-0.825435,-0.748211,-0.701587,-0.647081,-0.622271,-0.595247,-0.565632,-0.533066,-0.497000,-0.455359,-0.402452,-0.368523,-0.320551,-0.276061,-0.251386,-0.224156,-0.193441,-0.186744,-0.179816,-0.172632,-0.165157,-0.157350,-0.140519,-0.121500,-0.110824,-0.099042}};
-  const double imomegaqnm41[8][107] = {{-0.070745,-0.079568,-0.082950,-0.084642,-0.084972,-0.085040,-0.085086,-0.085120,-0.085146,-0.085167,-0.085233,-0.085268,-0.085292,-0.085328,-0.085359,-0.085389,-0.085448,-0.085506,-0.085564,-0.085621,-0.085678,-0.085734,-0.085791,-0.085929,-0.086065,-0.086330,-0.086585,-0.086831,-0.087299,-0.087736,-0.088145,-0.088528,-0.088888,-0.089226,-0.089544,-0.089844,-0.090127,-0.090394,-0.090646,-0.090885,-0.091427,-0.091900,-0.092313,-0.092673,-0.092986,-0.093256,-0.093488,-0.093683,-0.093844,-0.093972,-0.094068,-0.094132,-0.094164,-0.094164,-0.094130,-0.094060,-0.093951,-0.093801,-0.093605,-0.093357,-0.093051,-0.092678,-0.092226,-0.091682,-0.091027,-0.090235,-0.089273,-0.088095,-0.087548,-0.086951,-0.086295,-0.085574,-0.084777,-0.083892,-0.082904,-0.081793,-0.080536,-0.079099,-0.077437,-0.075488,-0.074378,-0.073160,-0.071812,-0.071083,-0.070312,-0.069991,-0.069662,-0.069325,-0.068981,-0.068627,-0.068265,-0.067893,-0.067704,-0.067512,-0.067318,-0.067219,-0.067120,-0.067018,-0.066997,-0.066976,-0.066954,-0.066932,-0.066909,-0.066863,-0.066835,-0.066862,-0.067010},
-{-0.255428,-0.256296,-0.256641,-0.256879,-0.256948,-0.256965,-0.256978,-0.256989,-0.256998,-0.257007,-0.257050,-0.257094,-0.257139,-0.257228,-0.257318,-0.257407,-0.257585,-0.257761,-0.257936,-0.258110,-0.258282,-0.258454,-0.258624,-0.259045,-0.259459,-0.260266,-0.261046,-0.261801,-0.263238,-0.264584,-0.265846,-0.267031,-0.268146,-0.269194,-0.270181,-0.271111,-0.271988,-0.272817,-0.273599,-0.274339,-0.276017,-0.277478,-0.278752,-0.279860,-0.280821,-0.281648,-0.282353,-0.282944,-0.283428,-0.283809,-0.284090,-0.284271,-0.284354,-0.284334,-0.284209,-0.283973,-0.283618,-0.283133,-0.282505,-0.281718,-0.280751,-0.279577,-0.278162,-0.276461,-0.274418,-0.271957,-0.268974,-0.265325,-0.263635,-0.261789,-0.259765,-0.257540,-0.255084,-0.252358,-0.249318,-0.245906,-0.242047,-0.237646,-0.232573,-0.226657,-0.223312,-0.219664,-0.215673,-0.213535,-0.211297,-0.210371,-0.209429,-0.208469,-0.207491,-0.206495,-0.205481,-0.204448,-0.203925,-0.203397,-0.202865,-0.202597,-0.202327,-0.202057,-0.202003,-0.201949,-0.201894,-0.201840,-0.201786,-0.201677,-0.201564,-0.201502,-0.201427},
-{-0.432356,-0.432408,-0.432395,-0.432382,-0.432399,-0.432413,-0.432427,-0.432443,-0.432458,-0.432474,-0.432550,-0.432626,-0.432701,-0.432852,-0.433002,-0.433151,-0.433449,-0.433746,-0.434041,-0.434334,-0.434626,-0.434916,-0.435204,-0.435918,-0.436623,-0.438002,-0.439342,-0.440644,-0.443137,-0.445486,-0.447701,-0.449788,-0.451754,-0.453608,-0.455356,-0.457005,-0.458560,-0.460029,-0.461416,-0.462727,-0.465696,-0.468276,-0.470516,-0.472456,-0.474129,-0.475560,-0.476769,-0.477773,-0.478583,-0.479207,-0.479651,-0.479917,-0.480003,-0.479908,-0.479624,-0.479142,-0.478447,-0.477524,-0.476348,-0.474891,-0.473116,-0.470978,-0.468417,-0.465358,-0.461701,-0.457315,-0.452021,-0.445570,-0.442589,-0.439338,-0.435779,-0.431871,-0.427562,-0.422789,-0.417473,-0.411520,-0.404805,-0.397177,-0.388443,-0.378379,-0.372777,-0.366767,-0.360348,-0.356992,-0.353546,-0.352145,-0.350732,-0.349307,-0.347872,-0.346428,-0.344975,-0.343514,-0.342781,-0.342047,-0.341311,-0.340943,-0.340574,-0.340206,-0.340132,-0.340058,-0.339984,-0.339910,-0.339836,-0.339689,-0.339542,-0.339469,-0.339396},
-{-0.613987,-0.613908,-0.613922,-0.613986,-0.614035,-0.614055,-0.614075,-0.614096,-0.614116,-0.614137,-0.614241,-0.614346,-0.614451,-0.614659,-0.614867,-0.615075,-0.615490,-0.615904,-0.616315,-0.616726,-0.617135,-0.617542,-0.617948,-0.618956,-0.619955,-0.621922,-0.623847,-0.625731,-0.629369,-0.632834,-0.636125,-0.639246,-0.642201,-0.644997,-0.647640,-0.650139,-0.652500,-0.654730,-0.656836,-0.658826,-0.663330,-0.667232,-0.670606,-0.673512,-0.676001,-0.678111,-0.679875,-0.681318,-0.682458,-0.683309,-0.683879,-0.684172,-0.684189,-0.683924,-0.683370,-0.682510,-0.681328,-0.679796,-0.677882,-0.675543,-0.672726,-0.669363,-0.665368,-0.660629,-0.655000,-0.648289,-0.640231,-0.630458,-0.625957,-0.621054,-0.615698,-0.609825,-0.603360,-0.596211,-0.588266,-0.579387,-0.569409,-0.558136,-0.545364,-0.530960,-0.523178,-0.515098,-0.506854,-0.502721,-0.498611,-0.496978,-0.495353,-0.493738,-0.492133,-0.490540,-0.488960,-0.487394,-0.486616,-0.485842,-0.485072,-0.484688,-0.484306,-0.483924,-0.483848,-0.483772,-0.483695,-0.483619,-0.483543,-0.483391,-0.483239,-0.483163,-0.483089},
-{-0.803913,-0.804044,-0.804080,-0.804106,-0.804156,-0.804184,-0.804211,-0.804237,-0.804263,-0.804288,-0.804417,-0.804546,-0.804674,-0.804932,-0.805189,-0.805446,-0.805959,-0.806473,-0.806985,-0.807497,-0.808007,-0.808518,-0.809027,-0.810297,-0.811561,-0.814070,-0.816550,-0.818997,-0.823783,-0.828406,-0.832850,-0.837105,-0.841166,-0.845032,-0.848705,-0.852188,-0.855489,-0.858612,-0.861566,-0.864358,-0.870678,-0.876142,-0.880850,-0.884884,-0.888315,-0.891198,-0.893579,-0.895493,-0.896969,-0.898027,-0.898678,-0.898931,-0.898787,-0.898239,-0.897277,-0.895882,-0.894028,-0.891682,-0.888798,-0.885319,-0.881174,-0.876270,-0.870490,-0.863682,-0.855648,-0.846124,-0.834750,-0.821019,-0.814714,-0.807856,-0.800375,-0.792184,-0.783178,-0.773233,-0.762196,-0.749887,-0.736102,-0.720635,-0.703395,-0.684742,-0.675289,-0.666104,-0.657406,-0.653282,-0.649319,-0.647780,-0.646267,-0.644780,-0.643319,-0.641885,-0.640475,-0.639091,-0.638408,-0.637732,-0.637061,-0.636729,-0.636397,-0.636067,-0.636001,-0.635936,-0.635870,-0.635804,-0.635739,-0.635608,-0.635477,-0.635412,-0.635344},
-{-1.004519,-1.004422,-1.004453,-1.004545,-1.004593,-1.004620,-1.004649,-1.004679,-1.004709,-1.004738,-1.004881,-1.005025,-1.005169,-1.005456,-1.005744,-1.006032,-1.006609,-1.007186,-1.007764,-1.008342,-1.008921,-1.009500,-1.010080,-1.011530,-1.012983,-1.015889,-1.018793,-1.021690,-1.027440,-1.033098,-1.038626,-1.043993,-1.049176,-1.054156,-1.058924,-1.063474,-1.067804,-1.071917,-1.075817,-1.079509,-1.087881,-1.095121,-1.101345,-1.106658,-1.111150,-1.114895,-1.117955,-1.120376,-1.122199,-1.123448,-1.124145,-1.124298,-1.123911,-1.122977,-1.121482,-1.119405,-1.116711,-1.113357,-1.109287,-1.104426,-1.098681,-1.091935,-1.084033,-1.074781,-1.063919,-1.051102,-1.035857,-1.017518,-1.009112,-0.999979,-0.990022,-0.979125,-0.967148,-0.953922,-0.939246,-0.922887,-0.904602,-0.884255,-0.862248,-0.840921,-0.831775,-0.823609,-0.816386,-0.813081,-0.809960,-0.808759,-0.807585,-0.806435,-0.805310,-0.804207,-0.803127,-0.802069,-0.801548,-0.801031,-0.800520,-0.800267,-0.800014,-0.799763,-0.799713,-0.799663,-0.799613,-0.799563,-0.799513,-0.799413,-0.799313,-0.799263,-0.799218},
-{-1.215956,-1.216148,-1.216128,-1.216170,-1.216241,-1.216264,-1.216291,-1.216321,-1.216352,-1.216383,-1.216528,-1.216676,-1.216822,-1.217117,-1.217412,-1.217708,-1.218300,-1.218894,-1.219490,-1.220087,-1.220687,-1.221288,-1.221891,-1.223404,-1.224928,-1.228002,-1.231108,-1.234240,-1.240562,-1.246918,-1.253256,-1.259525,-1.265676,-1.271670,-1.277473,-1.283063,-1.288423,-1.293543,-1.298421,-1.303055,-1.313603,-1.322749,-1.330611,-1.337310,-1.342952,-1.347629,-1.351418,-1.354381,-1.356565,-1.358007,-1.358731,-1.358751,-1.358072,-1.356686,-1.354578,-1.351719,-1.348070,-1.343576,-1.338166,-1.331748,-1.324207,-1.315393,-1.305115,-1.293126,-1.279099,-1.262596,-1.243013,-1.219489,-1.208710,-1.196998,-1.184222,-1.170228,-1.154824,-1.137778,-1.118809,-1.097590,-1.073814,-1.047555,-1.021630,-1.006614,-0.999428,-0.994254,-0.989417,-0.987226,-0.985098,-0.984273,-0.983473,-0.982685,-0.981910,-0.981149,-0.980402,-0.979666,-0.979303,-0.978942,-0.978585,-0.978407,-0.978230,-0.978054,-0.978019,-0.977984,-0.977949,-0.977914,-0.977879,-0.977808,-0.977740,-0.977704,-0.977662},
-{-1.438671,-1.438539,-1.438690,-1.438687,-1.438772,-1.438797,-1.438817,-1.438842,-1.438873,-1.438904,-1.439041,-1.439182,-1.439321,-1.439601,-1.439882,-1.440163,-1.440728,-1.441295,-1.441865,-1.442438,-1.443013,-1.443590,-1.444170,-1.445632,-1.447109,-1.450111,-1.453172,-1.456292,-1.462688,-1.469264,-1.475970,-1.482750,-1.489541,-1.496283,-1.502917,-1.509394,-1.515673,-1.521727,-1.527534,-1.533082,-1.545796,-1.556882,-1.566435,-1.574574,-1.581418,-1.587074,-1.591631,-1.595164,-1.597732,-1.599378,-1.600134,-1.600016,-1.599031,-1.597171,-1.594416,-1.590734,-1.586076,-1.580376,-1.573548,-1.565481,-1.556033,-1.545023,-1.532216,-1.517307,-1.499894,-1.479430,-1.455158,-1.425982,-1.412595,-1.398026,-1.382103,-1.364610,-1.345276,-1.323754,-1.299592,-1.272190,-1.240773,-1.204723,-1.125253,-0.938477,-0.838838,-0.734651,-0.622895,-0.562606,-0.497864,-0.470296,-0.441499,-0.411211,-0.379069,-0.646318,-0.573546,-0.492714,-0.447938,-0.398980,-0.344066,-0.313415,-0.279721,-0.241717,-0.233418,-0.224829,-0.215913,-0.206630,-0.196927,-0.175980,-0.152268,-0.138939,-0.124215}};
-  const double imomegaqnm40[8][107] = {{-1.438671,-1.438539,-1.438690,-1.438687,-1.438772,-1.438797,-1.438817,-1.438842,-1.438873,-1.438904,-1.439041,-1.439182,-1.439321,-1.439601,-1.439882,-1.440163,-1.440728,-1.441295,-1.441865,-1.442438,-1.443013,-1.443590,-1.444170,-1.445632,-1.447109,-1.450111,-1.453172,-1.456292,-1.462688,-1.469264,-1.475970,-1.482750,-1.489541,-1.496283,-1.502917,-1.509394,-1.515673,-1.521727,-1.527534,-1.533082,-1.545796,-1.556882,-1.566435,-1.574574,-1.581418,-1.587074,-1.591631,-1.595164,-1.597732,-1.599378,-1.600134,-1.600016,-1.599031,-1.597171,-0.094147,-0.094096,-0.094010,-0.093888,-0.093727,-0.093524,-0.093276,-0.092977,-0.092621,-0.092200,-0.091703,-0.091116,-0.090423,-0.089598,-0.089224,-0.088822,-0.088389,-0.087921,-0.087414,-0.086864,-0.086265,-0.085611,-0.084894,-0.084105,-0.083233,-0.082264,-0.081737,-0.081180,-0.080588,-0.080279,-0.079960,-0.079829,-0.079697,-0.079563,-0.079427,-0.079290,-0.079151,-0.079010,-0.078938,-0.078867,-0.078793,-0.078755,-0.078713,-0.078663,-0.078651,-0.078639,-0.078626,-0.078613,-0.078601,-0.078589,-0.078624,-0.078591,-0.077756},
-{-1.438671,-1.438539,-1.438690,-1.438687,-1.438772,-1.438797,-1.438817,-1.438842,-1.438873,-1.438904,-1.439041,-1.439182,-1.439321,-1.439601,-1.439882,-1.440163,-1.440728,-1.441295,-1.441865,-1.442438,-1.443013,-1.443590,-1.444170,-1.445632,-1.447109,-1.450111,-1.453172,-1.456292,-1.462688,-1.469264,-1.475970,-1.482750,-1.489541,-1.496283,-1.502917,-1.509394,-1.515673,-1.521727,-1.527534,-1.533082,-1.545796,-1.556882,-1.566435,-1.574574,-1.581418,-1.587074,-1.591631,-1.595164,-1.597732,-1.599378,-1.600134,-1.600016,-1.599031,-1.597171,-0.284282,-0.284123,-0.283856,-0.283475,-0.282973,-0.282342,-0.281569,-0.280639,-0.279531,-0.278220,-0.276673,-0.274849,-0.272693,-0.270131,-0.268972,-0.267724,-0.266380,-0.264929,-0.263359,-0.261656,-0.259805,-0.257787,-0.255580,-0.253159,-0.250493,-0.247547,-0.245957,-0.244282,-0.242515,-0.241595,-0.240650,-0.240265,-0.239876,-0.239482,-0.239084,-0.238682,-0.238275,-0.237864,-0.237657,-0.237449,-0.237239,-0.237134,-0.237029,-0.236923,-0.236902,-0.236882,-0.236860,-0.236839,-0.236817,-0.236767,-0.236680,-0.236587,-0.236384},
-{-1.438671,-1.438539,-1.438690,-1.438687,-1.438772,-1.438797,-1.438817,-1.438842,-1.438873,-1.438904,-1.439041,-1.439182,-1.439321,-1.439601,-1.439882,-1.440163,-1.440728,-1.441295,-1.441865,-1.442438,-1.443013,-1.443590,-1.444170,-1.445632,-1.447109,-1.450111,-1.453172,-1.456292,-1.462688,-1.469264,-1.475970,-1.482750,-1.489541,-1.496283,-1.502917,-1.509394,-1.515673,-1.521727,-1.527534,-1.533082,-1.545796,-1.556882,-1.566435,-1.574574,-1.581418,-1.587074,-1.591631,-1.595164,-1.597732,-1.599378,-1.600134,-1.600016,-1.599031,-1.597171,-0.479814,-0.479529,-0.479050,-0.478367,-0.477469,-0.476339,-0.474956,-0.473292,-0.471312,-0.468970,-0.466209,-0.462957,-0.459115,-0.454557,-0.452497,-0.450282,-0.447898,-0.445327,-0.442550,-0.439545,-0.436285,-0.432744,-0.428889,-0.424686,-0.420099,-0.415093,-0.412423,-0.409638,-0.406737,-0.405243,-0.403720,-0.403102,-0.402480,-0.401854,-0.401223,-0.400587,-0.399947,-0.399303,-0.398979,-0.398654,-0.398328,-0.398165,-0.398001,-0.397837,-0.397804,-0.397771,-0.397738,-0.397705,-0.397672,-0.397608,-0.397552,-0.397528,-0.397490},
-{-1.438671,-1.438539,-1.438690,-1.438687,-1.438772,-1.438797,-1.438817,-1.438842,-1.438873,-1.438904,-1.439041,-1.439182,-1.439321,-1.439601,-1.439882,-1.440163,-1.440728,-1.441295,-1.441865,-1.442438,-1.443013,-1.443590,-1.444170,-1.445632,-1.447109,-1.450111,-1.453172,-1.456292,-1.462688,-1.469264,-1.475970,-1.482750,-1.489541,-1.496283,-1.502917,-1.509394,-1.515673,-1.521727,-1.527534,-1.533082,-1.545796,-1.556882,-1.566435,-1.574574,-1.581418,-1.587074,-1.591631,-1.595164,-1.597732,-1.599378,-1.600134,-1.600016,-1.599031,-1.597171,-0.683779,-0.683339,-0.682598,-0.681544,-0.680158,-0.678415,-0.676283,-0.673720,-0.670673,-0.667075,-0.662838,-0.657852,-0.651974,-0.645014,-0.641874,-0.638502,-0.634878,-0.630978,-0.626774,-0.622239,-0.617340,-0.612046,-0.606325,-0.600151,-0.593508,-0.586401,-0.582682,-0.578863,-0.574955,-0.572971,-0.570970,-0.570165,-0.569358,-0.568549,-0.567738,-0.566925,-0.566110,-0.565293,-0.564885,-0.564476,-0.564066,-0.563861,-0.563657,-0.563452,-0.563411,-0.563370,-0.563329,-0.563288,-0.563247,-0.563164,-0.563077,-0.563036,-0.563014},
-{-1.438671,-1.438539,-1.438690,-1.438687,-1.438772,-1.438797,-1.438817,-1.438842,-1.438873,-1.438904,-1.439041,-1.439182,-1.439321,-1.439601,-1.439882,-1.440163,-1.440728,-1.441295,-1.441865,-1.442438,-1.443013,-1.443590,-1.444170,-1.445632,-1.447109,-1.450111,-1.453172,-1.456292,-1.462688,-1.469264,-1.475970,-1.482750,-1.489541,-1.496283,-1.502917,-1.509394,-1.515673,-1.521727,-1.527534,-1.533082,-1.545796,-1.556882,-1.566435,-1.574574,-1.581418,-1.587074,-1.591631,-1.595164,-1.597732,-1.599378,-1.600134,-1.600016,-1.599031,-1.597171,-0.898030,-0.897399,-0.896336,-0.894824,-0.892837,-0.890341,-0.887290,-0.883627,-0.879278,-0.874148,-0.868116,-0.861030,-0.852691,-0.842842,-0.838407,-0.833654,-0.828554,-0.823079,-0.817197,-0.810876,-0.804088,-0.796809,-0.789030,-0.780765,-0.772061,-0.763015,-0.758408,-0.753773,-0.749132,-0.746816,-0.744509,-0.743588,-0.742669,-0.741753,-0.740838,-0.739926,-0.739016,-0.738108,-0.737656,-0.737204,-0.736752,-0.736527,-0.736302,-0.736077,-0.736032,-0.735987,-0.735942,-0.735897,-0.735852,-0.735762,-0.735677,-0.735631,-0.735564},
-{-1.438671,-1.438539,-1.438690,-1.438687,-1.438772,-1.438797,-1.438817,-1.438842,-1.438873,-1.438904,-1.439041,-1.439182,-1.439321,-1.439601,-1.439882,-1.440163,-1.440728,-1.441295,-1.441865,-1.442438,-1.443013,-1.443590,-1.444170,-1.445632,-1.447109,-1.450111,-1.453172,-1.456292,-1.462688,-1.469264,-1.475970,-1.482750,-1.489541,-1.496283,-1.502917,-1.509394,-1.515673,-1.521727,-1.527534,-1.533082,-1.545796,-1.556882,-1.566435,-1.574574,-1.581418,-1.587074,-1.591631,-1.595164,-1.597732,-1.599378,-1.600134,-1.600016,-1.599031,-1.597171,-1.122693,-1.121836,-1.120394,-1.118342,-1.115648,-1.112266,-1.108136,-1.103182,-1.097304,-1.090380,-1.082250,-1.072712,-1.061506,-1.048301,-1.042369,-1.036021,-1.029226,-1.021952,-1.014170,-1.005854,-0.996995,-0.987606,-0.977740,-0.967503,-0.957067,-0.946652,-0.941522,-0.936480,-0.931545,-0.929125,-0.926737,-0.925792,-0.924853,-0.923919,-0.922991,-0.922069,-0.921152,-0.920242,-0.919789,-0.919338,-0.918888,-0.918664,-0.918440,-0.918216,-0.918172,-0.918127,-0.918082,-0.918037,-0.917993,-0.917906,-0.917810,-0.917765,-0.917749},
-{-1.438671,-1.438539,-1.438690,-1.438687,-1.438772,-1.438797,-1.438817,-1.438842,-1.438873,-1.438904,-1.439041,-1.439182,-1.439321,-1.439601,-1.439882,-1.440163,-1.440728,-1.441295,-1.441865,-1.442438,-1.443013,-1.443590,-1.444170,-1.445632,-1.447109,-1.450111,-1.453172,-1.456292,-1.462688,-1.469264,-1.475970,-1.482750,-1.489541,-1.496283,-1.502917,-1.509394,-1.515673,-1.521727,-1.527534,-1.533082,-1.545796,-1.556882,-1.566435,-1.574574,-1.581418,-1.587074,-1.591631,-1.595164,-1.597732,-1.599378,-1.600134,-1.600016,-1.599031,-1.597171,-1.356319,-1.355212,-1.353349,-1.350699,-1.347220,-1.342855,-1.337528,-1.331141,-1.323569,-1.314654,-1.304196,-1.291938,-1.277556,-1.260642,-1.253060,-1.244963,-1.236319,-1.227100,-1.217291,-1.206897,-1.195961,-1.184586,-1.172958,-1.161345,-1.150044,-1.139303,-1.134195,-1.129278,-1.124555,-1.122267,-1.120028,-1.119146,-1.118271,-1.117404,-1.116544,-1.115692,-1.114847,-1.114010,-1.113594,-1.113180,-1.112768,-1.112563,-1.112358,-1.112153,-1.112112,-1.112071,-1.112030,-1.111990,-1.111950,-1.111865,-1.111791,-1.111758,-1.111672},
-{-1.438671,-1.438539,-1.438690,-1.438687,-1.438772,-1.438797,-1.438817,-1.438842,-1.438873,-1.438904,-1.439041,-1.439182,-1.439321,-1.439601,-1.439882,-1.440163,-1.440728,-1.441295,-1.441865,-1.442438,-1.443013,-1.443590,-1.444170,-1.445632,-1.447109,-1.450111,-1.453172,-1.456292,-1.462688,-1.469264,-1.475970,-1.482750,-1.489541,-1.496283,-1.502917,-1.509394,-1.515673,-1.521727,-1.527534,-1.533082,-1.545796,-1.556882,-1.566435,-1.574574,-1.581418,-1.587074,-1.591631,-1.595164,-1.597732,-1.599378,-1.600134,-1.600016,-1.599031,-1.597171,-1.596716,-1.595345,-1.593037,-1.589757,-1.585451,-1.580049,-1.573457,-1.565556,-1.556192,-1.545172,-1.532249,-1.517110,-1.499363,-1.478531,-1.469216,-1.459292,-1.448735,-1.437538,-1.425727,-1.413381,-1.400670,-1.387885,-1.375423,-1.363657,-1.352804,-1.342937,-1.338366,-1.334022,-1.329895,-1.327908,-1.325970,-1.325208,-1.324453,-1.323706,-1.322966,-1.322233,-1.321507,-1.320788,-1.320431,-1.320076,-1.319722,-1.319546,-1.319370,-1.319195,-1.319159,-1.319124,-1.319091,-1.319057,-1.319021,-1.318947,-1.318885,-1.318817,-1.318855}};
+  const double imomegaqnm22[8][107] = {{ 0.078461, 0.080101, 0.081647, 0.084004, 0.085495, 0.086013, 0.086422, 0.086745, 0.087003, 0.087210, 0.087780, 0.087988, 0.088065, 0.088096, 0.088088, 0.088076, 0.088061, 0.088057, 0.088059, 0.088063, 0.088068, 0.088073, 0.088078, 0.088091, 0.088104, 0.088130, 0.088156, 0.088181, 0.088231, 0.088281, 0.088329, 0.088376, 0.088423, 0.088468, 0.088512, 0.088555, 0.088598, 0.088639, 0.088679, 0.088717, 0.088809, 0.088892, 0.088966, 0.089032, 0.089087, 0.089131, 0.089164, 0.089185, 0.089191, 0.089183, 0.089157, 0.089114, 0.089050, 0.088962, 0.088849, 0.088706, 0.088528, 0.088311, 0.088048, 0.087729, 0.087345, 0.086882, 0.086321, 0.085639, 0.084802, 0.083765, 0.082462, 0.080793, 0.079991, 0.079093, 0.078082, 0.076936, 0.075630, 0.074126, 0.072378, 0.070321, 0.067864, 0.064869, 0.061119, 0.056231, 0.053149, 0.049434, 0.044790, 0.041959, 0.038630, 0.037116, 0.035468, 0.033659, 0.031652, 0.029390, 0.026791, 0.023710, 0.021911, 0.019866, 0.017474, 0.016092, 0.014534, 0.012727, 0.012326, 0.011908, 0.011471, 0.011013, 0.010531, 0.009478, 0.008267, 0.007577, 0.006807},
+{ 0.284478, 0.282567, 0.281162, 0.279245, 0.278072, 0.277670, 0.277358, 0.277118, 0.276936, 0.276800, 0.276536, 0.276565, 0.276647, 0.276753, 0.276778, 0.276775, 0.276764, 0.276768, 0.276776, 0.276784, 0.276791, 0.276797, 0.276803, 0.276818, 0.276834, 0.276864, 0.276893, 0.276922, 0.276977, 0.277028, 0.277076, 0.277120, 0.277160, 0.277197, 0.277230, 0.277259, 0.277283, 0.277304, 0.277321, 0.277333, 0.277344, 0.277326, 0.277278, 0.277196, 0.277080, 0.276926, 0.276732, 0.276495, 0.276212, 0.275877, 0.275486, 0.275033, 0.274512, 0.273915, 0.273232, 0.272452, 0.271562, 0.270546, 0.269383, 0.268049, 0.266512, 0.264733, 0.262661, 0.260225, 0.257331, 0.253847, 0.249580, 0.244238, 0.241705, 0.238888, 0.235736, 0.232183, 0.228149, 0.223524, 0.218165, 0.211876, 0.204376, 0.195252, 0.183847, 0.169019, 0.159687, 0.148458, 0.134453, 0.125927, 0.115917, 0.111365, 0.106415, 0.100985, 0.094960, 0.088175, 0.080377, 0.071134, 0.065738, 0.059605, 0.052426, 0.048280, 0.043605, 0.038184, 0.036979, 0.035724, 0.034413, 0.033038, 0.031592, 0.028433, 0.024800, 0.022730, 0.020422},
+{ 0.504534, 0.501693, 0.501238, 0.503711, 0.506007, 0.506490, 0.506633, 0.506559, 0.506365, 0.506120, 0.505173, 0.505120, 0.505381, 0.505519, 0.505371, 0.505318, 0.505354, 0.505311, 0.505262, 0.505236, 0.505210, 0.505177, 0.505141, 0.505059, 0.504978, 0.504812, 0.504645, 0.504476, 0.504135, 0.503786, 0.503432, 0.503070, 0.502702, 0.502326, 0.501944, 0.501554, 0.501156, 0.500751, 0.500338, 0.499917, 0.498828, 0.497686, 0.496488, 0.495230, 0.493910, 0.492523, 0.491065, 0.489531, 0.487913, 0.486206, 0.484399, 0.482484, 0.480448, 0.478277, 0.475955, 0.473463, 0.470778, 0.467872, 0.464713, 0.461260, 0.457463, 0.453259, 0.448569, 0.443287, 0.437269, 0.430315, 0.422131, 0.412262, 0.407689, 0.402664, 0.397103, 0.390894, 0.383895, 0.375919, 0.366715, 0.355940, 0.343110, 0.327518, 0.308058, 0.282827, 0.266998, 0.248008, 0.224410, 0.210086, 0.193307, 0.185690, 0.177413, 0.168340, 0.158283, 0.146966, 0.133965, 0.118563, 0.109572, 0.099352, 0.087389, 0.080478, 0.072685, 0.063646, 0.061638, 0.059545, 0.057359, 0.055068, 0.052656, 0.047390, 0.041333, 0.037883, 0.034035},
+{ 0.777682, 0.778170, 0.774907, 0.771079, 0.772456, 0.773571, 0.774249, 0.774423, 0.774236, 0.773865, 0.772678, 0.773376, 0.773489, 0.772990, 0.773229, 0.773121, 0.773005, 0.772942, 0.772818, 0.772776, 0.772680, 0.772579, 0.772506, 0.772294, 0.772084, 0.771654, 0.771224, 0.770787, 0.769900, 0.768995, 0.768072, 0.767129, 0.766168, 0.765187, 0.764186, 0.763165, 0.762123, 0.761061, 0.759977, 0.758872, 0.756015, 0.753020, 0.749885, 0.746606, 0.743182, 0.739611, 0.735891, 0.732017, 0.727985, 0.723788, 0.719419, 0.714865, 0.710114, 0.705148, 0.699946, 0.694481, 0.688721, 0.682628, 0.676155, 0.669243, 0.661823, 0.653808, 0.645091, 0.635536, 0.624969, 0.613154, 0.599764, 0.584301, 0.577364, 0.569885, 0.561756, 0.552827, 0.542888, 0.531648, 0.518699, 0.503480, 0.485224, 0.462864, 0.434823, 0.398473, 0.375741, 0.348572, 0.314974, 0.294663, 0.270945, 0.260200, 0.248542, 0.235779, 0.221649, 0.205769, 0.187547, 0.165980, 0.153396, 0.139094, 0.122354, 0.112682, 0.101773, 0.089118, 0.086305, 0.083375, 0.080314, 0.077105, 0.073726, 0.066352, 0.057868, 0.053037, 0.047648},
+{ 1.044309, 1.046603, 1.050655, 1.048278, 1.047193, 1.048092, 1.048935, 1.049247, 1.049061, 1.048626, 1.048121, 1.048623, 1.048064, 1.048425, 1.048083, 1.048244, 1.048026, 1.047992, 1.047878, 1.047811, 1.047683, 1.047624, 1.047519, 1.047294, 1.047043, 1.046571, 1.046088, 1.045602, 1.044600, 1.043569, 1.042506, 1.041410, 1.040279, 1.039113, 1.037909, 1.036667, 1.035386, 1.034063, 1.032697, 1.031287, 1.027561, 1.023531, 1.019176, 1.014480, 1.009427, 1.004003, 0.998200, 0.992012, 0.985437, 0.978476, 0.971133, 0.963412, 0.955317, 0.946845, 0.937987, 0.928725, 0.919026, 0.908845, 0.898118, 0.886764, 0.874681, 0.861738, 0.847776, 0.832595, 0.815947, 0.797527, 0.776957, 0.753800, 0.743710, 0.733106, 0.721967, 0.710268, 0.697962, 0.684902, 0.670601, 0.653750, 0.632042, 0.603295, 0.565870, 0.517102, 0.486783, 0.450771, 0.406552, 0.379969, 0.349048, 0.335080, 0.319949, 0.303412, 0.285135, 0.264631, 0.241142, 0.213382, 0.197201, 0.178818, 0.157307, 0.144878, 0.130859, 0.114594, 0.110978, 0.107211, 0.103275, 0.099148, 0.094804, 0.085320, 0.074409, 0.068195, 0.061264},
+{ 1.321876, 1.316952, 1.316680, 1.319467, 1.317311, 1.317699, 1.318525, 1.318939, 1.318766, 1.318308, 1.318440, 1.318071, 1.318219, 1.318003, 1.318199, 1.317998, 1.317922, 1.317906, 1.317816, 1.317701, 1.317641, 1.317538, 1.317449, 1.317225, 1.317008, 1.316565, 1.316117, 1.315660, 1.314736, 1.313781, 1.312801, 1.311792, 1.310749, 1.309671, 1.308555, 1.307400, 1.306200, 1.304955, 1.303660, 1.302314, 1.298700, 1.294695, 1.290248, 1.285302, 1.279801, 1.273681, 1.266873, 1.259306, 1.250911, 1.241631, 1.231433, 1.220321, 1.208348, 1.195608, 1.182210, 1.168248, 1.153773, 1.138779, 1.123199, 1.106915, 1.089762, 1.071525, 1.051940, 1.030673, 1.007299, 0.981265, 0.951825, 0.917950, 0.902851, 0.886706, 0.869389, 0.850781, 0.830803, 0.809534, 0.787531, 0.766572, 0.750871, 0.748723, 0.741744, 0.732374, 0.728044, 0.723765, 0.719565, 0.717492, 0.715438, 0.714621, 0.713807, 0.712996, 0.712188, 0.711383, 0.710581, 0.709781, 0.709382, 0.708984, 0.708587, 0.708388, 0.708190, 0.707992, 0.707952, 0.707911, 0.707871, 0.707832, 0.707796, 0.707720, 0.707620, 0.707592, 0.707598},
+{ 1.582041, 1.586347, 1.583178, 1.585108, 1.583555, 1.583429, 1.584183, 1.584679, 1.584484, 1.583983, 1.584406, 1.583828, 1.584168, 1.584097, 1.583865, 1.583835, 1.583730, 1.583671, 1.583575, 1.583419, 1.583359, 1.583229, 1.583150, 1.582888, 1.582639, 1.582125, 1.581635, 1.581142, 1.580158, 1.579185, 1.578210, 1.577232, 1.576245, 1.575242, 1.574220, 1.573172, 1.572096, 1.570987, 1.569838, 1.568647, 1.565452, 1.561889, 1.557887, 1.553369, 1.548253, 1.542442, 1.535819, 1.528233, 1.519487, 1.509316, 1.497379, 1.483278, 1.466729, 1.447911, 1.427683, 1.407115, 1.386816, 1.366830, 1.346890, 1.326617, 1.305614, 1.283473, 1.259763, 1.233995, 1.205580, 1.173764, 1.137526, 1.095408, 1.076453, 1.056023, 1.033875, 1.009698, 0.983084, 0.953463, 0.919986, 0.881204, 0.833927, 0.770337, 0.707988, 0.641106, 0.601525, 0.555418, 0.499613, 0.466355, 0.427874, 0.410550, 0.391822, 0.371395, 0.348864, 0.323638, 0.294800, 0.260789, 0.240992, 0.218519, 0.192238, 0.177057, 0.159933, 0.140065, 0.135647, 0.131044, 0.126235, 0.121193, 0.115884, 0.104293, 0.090955, 0.083359, 0.074885},
+{ 1.849571, 1.849682, 1.851341, 1.850066, 1.849828, 1.849286, 1.850035, 1.850597, 1.850266, 1.849681, 1.850075, 1.850080, 1.849639, 1.849608, 1.849634, 1.849658, 1.849410, 1.849226, 1.849059, 1.848840, 1.848638, 1.848508, 1.848291, 1.847881, 1.847459, 1.846618, 1.845835, 1.845061, 1.843607, 1.842250, 1.840966, 1.839752, 1.838590, 1.837469, 1.836377, 1.835304, 1.834239, 1.833173, 1.832097, 1.831005, 1.828147, 1.825021, 1.821526, 1.817570, 1.813060, 1.807903, 1.801987, 1.795176, 1.787281, 1.778014, 1.766864, 1.752776, 1.733234, 1.703841, 1.668818, 1.638934, 1.614234, 1.592062, 1.570644, 1.548919, 1.526188, 1.501903, 1.475550, 1.446567, 1.414276, 1.377806, 1.335978, 1.287119, 1.265086, 1.241327, 1.215578, 1.187510, 1.156708, 1.122625, 1.084532, 1.041406, 0.991742, 0.933178, 0.861906, 0.773444, 0.721837, 0.663505, 0.594647, 0.554166, 0.507666, 0.486825, 0.464348, 0.439888, 0.412969, 0.382898, 0.348601, 0.308246, 0.284798, 0.258210, 0.227147, 0.209213, 0.188989, 0.165524, 0.160306, 0.154870, 0.149189, 0.143232, 0.136961, 0.123266, 0.107504, 0.113694, 0.102135}};
+  const double imomegaqnm21[8][107] = {{ 0.074312, 0.077266, 0.079182, 0.081281, 0.082265, 0.082556, 0.082768, 0.082926, 0.083045, 0.083135, 0.083360, 0.083430, 0.083456, 0.083471, 0.083481, 0.083492, 0.083519, 0.083551, 0.083583, 0.083616, 0.083648, 0.083680, 0.083713, 0.083792, 0.083870, 0.084024, 0.084174, 0.084319, 0.084599, 0.084865, 0.085117, 0.085356, 0.085583, 0.085799, 0.086003, 0.086198, 0.086383, 0.086558, 0.086725, 0.086884, 0.087247, 0.087566, 0.087846, 0.088091, 0.088302, 0.088484, 0.088637, 0.088763, 0.088862, 0.088935, 0.088983, 0.089004, 0.088997, 0.088962, 0.088897, 0.088798, 0.088664, 0.088489, 0.088268, 0.087995, 0.087662, 0.087257, 0.086767, 0.086173, 0.085450, 0.084564, 0.083466, 0.082085, 0.081430, 0.080703, 0.079893, 0.078983, 0.077955, 0.076785, 0.075439, 0.073874, 0.072027, 0.069804, 0.067061, 0.063549, 0.061372, 0.058791, 0.055644, 0.053776, 0.051643, 0.050698, 0.049691, 0.048614, 0.047457, 0.046208, 0.044856, 0.043388, 0.042607, 0.041794, 0.040950, 0.040517, 0.040078, 0.039632, 0.039542, 0.039452, 0.039362, 0.039271, 0.039180, 0.038997, 0.038811, 0.038714, 0.038609},
+{ 0.258785, 0.258526, 0.258215, 0.257703, 0.257385, 0.257284, 0.257210, 0.257158, 0.257123, 0.257101, 0.257089, 0.257133, 0.257178, 0.257248, 0.257304, 0.257357, 0.257465, 0.257574, 0.257683, 0.257791, 0.257898, 0.258005, 0.258112, 0.258376, 0.258637, 0.259149, 0.259649, 0.260137, 0.261076, 0.261967, 0.262812, 0.263613, 0.264372, 0.265089, 0.265768, 0.266410, 0.267016, 0.267589, 0.268130, 0.268640, 0.269792, 0.270782, 0.271629, 0.272346, 0.272945, 0.273434, 0.273821, 0.274112, 0.274309, 0.274415, 0.274430, 0.274354, 0.274183, 0.273915, 0.273543, 0.273058, 0.272452, 0.271711, 0.270819, 0.269754, 0.268489, 0.266992, 0.265218, 0.263108, 0.260587, 0.257547, 0.253838, 0.249238, 0.247078, 0.244692, 0.242045, 0.239089, 0.235766, 0.231999, 0.227686, 0.222686, 0.216800, 0.209731, 0.201006, 0.189803, 0.182820, 0.174484, 0.164205, 0.158029, 0.150891, 0.147700, 0.144280, 0.140606, 0.136657, 0.132444, 0.128112, 0.124511, 0.123925, 0.123321, 0.121670, 0.121162, 0.120732, 0.120140, 0.120048, 0.119951, 0.119844, 0.119734, 0.119631, 0.119429, 0.119227, 0.119127, 0.119027},
+{ 0.451082, 0.450126, 0.449946, 0.450393, 0.450836, 0.450954, 0.451016, 0.451037, 0.451032, 0.451015, 0.450927, 0.450953, 0.451028, 0.451151, 0.451242, 0.451336, 0.451538, 0.451736, 0.451932, 0.452129, 0.452326, 0.452521, 0.452716, 0.453201, 0.453683, 0.454634, 0.455570, 0.456489, 0.458275, 0.459989, 0.461626, 0.463185, 0.464665, 0.466067, 0.467390, 0.468636, 0.469808, 0.470906, 0.471935, 0.472897, 0.475022, 0.476783, 0.478216, 0.479352, 0.480220, 0.480840, 0.481231, 0.481407, 0.481377, 0.481149, 0.480726, 0.480109, 0.479294, 0.478277, 0.477047, 0.475592, 0.473893, 0.471929, 0.469669, 0.467076, 0.464104, 0.460691, 0.456761, 0.452210, 0.446903, 0.440653, 0.433196, 0.424144, 0.419951, 0.415358, 0.410300, 0.404693, 0.398434, 0.391383, 0.383355, 0.374094, 0.363227, 0.350188, 0.334044, 0.313093, 0.299808, 0.283583, 0.262719, 0.249472, 0.233119, 0.225306, 0.216483, 0.206365, 0.194563, 0.180538, 0.163450, 0.141483, 0.127310, 0.111596, 0.095488, 0.086832, 0.077419, 0.066857, 0.064554, 0.062171, 0.059699, 0.057125, 0.054435, 0.048632, 0.042066, 0.038376, 0.034303},
+{ 0.670736, 0.672092, 0.671812, 0.670663, 0.670549, 0.670730, 0.670927, 0.671078, 0.671164, 0.671189, 0.671021, 0.671075, 0.671219, 0.671310, 0.671427, 0.671572, 0.671807, 0.672062, 0.672309, 0.672557, 0.672808, 0.673057, 0.673305, 0.673929, 0.674552, 0.675799, 0.677043, 0.678283, 0.680743, 0.683166, 0.685536, 0.687840, 0.690067, 0.692205, 0.694247, 0.696187, 0.698020, 0.699744, 0.701359, 0.702865, 0.706165, 0.708833, 0.710915, 0.712460, 0.713510, 0.714105, 0.714277, 0.714053, 0.713452, 0.712490, 0.711176, 0.709516, 0.707509, 0.705148, 0.702423, 0.699317, 0.695803, 0.691851, 0.687416, 0.682445, 0.676867, 0.670592, 0.663504, 0.655451, 0.646227, 0.635554, 0.623036, 0.608090, 0.601244, 0.593791, 0.585630, 0.576638, 0.566651, 0.555455, 0.542760, 0.528156, 0.511038, 0.490465, 0.464847, 0.431189, 0.409563, 0.382936, 0.348824, 0.327730, 0.302947, 0.291759, 0.279694, 0.266590, 0.252176, 0.235931, 0.216835, 0.192946, 0.178198, 0.160681, 0.138951, 0.125667, 0.110911, 0.095128, 0.091773, 0.088322, 0.084758, 0.081061, 0.077210, 0.068928, 0.059584, 0.054342, 0.048559},
+{ 0.910592, 0.910063, 0.911380, 0.911832, 0.911012, 0.911003, 0.911199, 0.911439, 0.911606, 0.911660, 0.911352, 0.911585, 0.911648, 0.911704, 0.911854, 0.911933, 0.912192, 0.912425, 0.912663, 0.912897, 0.913141, 0.913376, 0.913616, 0.914220, 0.914830, 0.916061, 0.917309, 0.918574, 0.921148, 0.923769, 0.926420, 0.929083, 0.931738, 0.934365, 0.936941, 0.939446, 0.941862, 0.944173, 0.946367, 0.948436, 0.953025, 0.956761, 0.959656, 0.961747, 0.963080, 0.963701, 0.963651, 0.962967, 0.961680, 0.959815, 0.957389, 0.954417, 0.950902, 0.946845, 0.942236, 0.937057, 0.931283, 0.924873, 0.917775, 0.909918, 0.901208, 0.891524, 0.880707, 0.868545, 0.854753, 0.838939, 0.820547, 0.798756, 0.788822, 0.778034, 0.766250, 0.753290, 0.738922, 0.722836, 0.704612, 0.683652, 0.659084, 0.629562, 0.592913, 0.545420, 0.515651, 0.480063, 0.436051, 0.409334, 0.377864, 0.363486, 0.347803, 0.330563, 0.311454, 0.290066, 0.265802, 0.237412, 0.220683, 0.201065, 0.176930, 0.162373, 0.145371, 0.124789, 0.120176, 0.115422, 0.110541, 0.105527, 0.100358, 0.089395, 0.077178, 0.070358, 0.062849},
+{ 1.163133, 1.162051, 1.161016, 1.162363, 1.161800, 1.161553, 1.161645, 1.161909, 1.162120, 1.162171, 1.161849, 1.162143, 1.162003, 1.162223, 1.162278, 1.162400, 1.162612, 1.162792, 1.163001, 1.163209, 1.163415, 1.163621, 1.163836, 1.164362, 1.164893, 1.165982, 1.167096, 1.168236, 1.170596, 1.173058, 1.175616, 1.178263, 1.180984, 1.183762, 1.186579, 1.189408, 1.192222, 1.194992, 1.197689, 1.200289, 1.206244, 1.211270, 1.215276, 1.218241, 1.220174, 1.221102, 1.221052, 1.220056, 1.218138, 1.215325, 1.211642, 1.207111, 1.201759, 1.195608, 1.188677, 1.180978, 1.172507, 1.163245, 1.153145, 1.142130, 1.130089, 1.116863, 1.102237, 1.085922, 1.067530, 1.046522, 1.022136, 0.993243, 0.980058, 0.965724, 0.950047, 0.932779, 0.913601, 0.892095, 0.867699, 0.839644, 0.806856, 0.767797, 0.720146, 0.659944, 0.622848, 0.578732, 0.524237, 0.491317, 0.452927, 0.435542, 0.416661, 0.395943, 0.372912, 0.346898, 0.316949, 0.281670, 0.261342, 0.238436, 0.211307, 0.195088, 0.176156, 0.153337, 0.148132, 0.142654, 0.136869, 0.130747, 0.124273, 0.110319, 0.094939, 0.086464, 0.077185},
+{ 1.414276, 1.416039, 1.415596, 1.415363, 1.415597, 1.415238, 1.415194, 1.415427, 1.415648, 1.415679, 1.415505, 1.415544, 1.415631, 1.415658, 1.415791, 1.415907, 1.416079, 1.416241, 1.416430, 1.416629, 1.416797, 1.416999, 1.417174, 1.417648, 1.418130, 1.419109, 1.420112, 1.421142, 1.423282, 1.425540, 1.427915, 1.430412, 1.433028, 1.435759, 1.438595, 1.441525, 1.444529, 1.447581, 1.450649, 1.453695, 1.460994, 1.467516, 1.473003, 1.477325, 1.480421, 1.482261, 1.482821, 1.482069, 1.479966, 1.476459, 1.471497, 1.465052, 1.457153, 1.447911, 1.437516, 1.426190, 1.414119, 1.401396, 1.388008, 1.373845, 1.358718, 1.342365, 1.324453, 1.304557, 1.282128, 1.256434, 1.226447, 1.190653, 1.174220, 1.156285, 1.136589, 1.114807, 1.090529, 1.063232, 1.032247, 0.996712, 0.955487, 0.906959, 0.848541, 0.775494, 0.730792, 0.678016, 0.613349, 0.574379, 0.528885, 0.508284, 0.485946, 0.461517, 0.434493, 0.404108, 0.369135, 0.327547, 0.303278, 0.275875, 0.244209, 0.225953, 0.204982, 0.179727, 0.173965, 0.167908, 0.161519, 0.154752, 0.147552, 0.131555, 0.113035, 0.102763, 0.091610},
+{ 1.669503, 1.668395, 1.669442, 1.668664, 1.669275, 1.668971, 1.668820, 1.668995, 1.669204, 1.669212, 1.669190, 1.669059, 1.669253, 1.669326, 1.669380, 1.669414, 1.669602, 1.669773, 1.669951, 1.670142, 1.670305, 1.670479, 1.670661, 1.671105, 1.671552, 1.672460, 1.673398, 1.674357, 1.676355, 1.678461, 1.680685, 1.683035, 1.685516, 1.688135, 1.690893, 1.693787, 1.696812, 1.699961, 1.703216, 1.706546, 1.714937, 1.722933, 1.730080, 1.736116, 1.740904, 1.744368, 1.746449, 1.747073, 1.746118, 1.743369, 1.738448, 1.730726, 1.719332, 1.703841, 1.685684, 1.667396, 1.650218, 1.634024, 1.618223, 1.602186, 1.585342, 1.567163, 1.547117, 1.524616, 1.498944, 1.469166, 1.433974, 1.391423, 1.371712, 1.350090, 1.326232, 1.299741, 1.270135, 1.236831, 1.199118, 1.156089, 1.106489, 1.048413, 0.978780, 0.892317, 0.839828, 0.778168, 0.702974, 0.657884, 0.605411, 0.581667, 0.555906, 0.527711, 0.496517, 0.461510, 0.421398, 0.373867, 0.346042, 0.314367, 0.277467, 0.256370, 0.232725, 0.204918, 0.198597, 0.191947, 0.184925, 0.177485, 0.169568, 0.151985, 0.131247, 0.119312, 0.106197}};
+  const double imomegaqnm20[8][107] = {{ 1.669503, 1.668395, 1.669442, 1.668664, 1.669275, 1.668971, 1.668820, 1.668995, 1.669204, 1.669212, 1.669190, 1.669059, 1.669253, 1.669326, 1.669380, 1.669414, 1.669602, 1.669773, 1.669951, 1.670142, 1.670305, 1.670479, 1.670661, 1.671105, 1.671552, 1.672460, 1.673398, 1.674357, 1.676355, 1.678461, 1.680685, 1.683035, 1.685516, 1.688135, 1.690893, 1.693787, 1.696812, 1.699961, 1.703216, 1.706546, 1.714937, 1.722933, 1.730080, 1.736116, 1.740904, 1.744368, 1.746449, 1.747073, 1.746118, 1.743369, 1.738448, 1.730726, 1.719332, 1.703841, 0.088946, 0.088898, 0.088817, 0.088700, 0.088547, 0.088353, 0.088115, 0.087827, 0.087481, 0.087069, 0.086579, 0.085995, 0.085295, 0.084453, 0.084067, 0.083648, 0.083194, 0.082698, 0.082156, 0.081562, 0.080908, 0.080185, 0.079381, 0.078483, 0.077473, 0.076330, 0.075701, 0.075028, 0.074306, 0.073926, 0.073532, 0.073371, 0.073207, 0.073041, 0.072872, 0.072701, 0.072527, 0.072351, 0.072263, 0.072174, 0.072087, 0.072043, 0.071996, 0.071930, 0.071911, 0.071886, 0.071856, 0.071815, 0.071760, 0.071567, 0.071095, 0.070577, 0.069561},
+{ 1.669503, 1.668395, 1.669442, 1.668664, 1.669275, 1.668971, 1.668820, 1.668995, 1.669204, 1.669212, 1.669190, 1.669059, 1.669253, 1.669326, 1.669380, 1.669414, 1.669602, 1.669773, 1.669951, 1.670142, 1.670305, 1.670479, 1.670661, 1.671105, 1.671552, 1.672460, 1.673398, 1.674357, 1.676355, 1.678461, 1.680685, 1.683035, 1.685516, 1.688135, 1.690893, 1.693787, 1.696812, 1.699961, 1.703216, 1.706546, 1.714937, 1.722933, 1.730080, 1.736116, 1.740904, 1.744368, 1.746449, 1.747073, 1.746118, 1.743369, 1.738448, 1.730726, 1.719332, 1.703841, 0.273860, 0.273694, 0.273414, 0.273014, 0.272487, 0.271821, 0.271003, 0.270014, 0.268831, 0.267421, 0.265747, 0.263754, 0.261372, 0.258507, 0.257198, 0.255780, 0.254240, 0.252564, 0.250736, 0.248735, 0.246539, 0.244119, 0.241444, 0.238480, 0.235186, 0.231528, 0.229555, 0.227483, 0.225314, 0.224195, 0.223053, 0.222591, 0.222125, 0.221655, 0.221182, 0.220707, 0.220228, 0.219746, 0.219504, 0.219261, 0.219017, 0.218894, 0.218769, 0.218646, 0.218624, 0.218602, 0.218583, 0.218567, 0.218555, 0.218550, 0.218576, 0.218586, 0.218541},
+{ 1.669503, 1.668395, 1.669442, 1.668664, 1.669275, 1.668971, 1.668820, 1.668995, 1.669204, 1.669212, 1.669190, 1.669059, 1.669253, 1.669326, 1.669380, 1.669414, 1.669602, 1.669773, 1.669951, 1.670142, 1.670305, 1.670479, 1.670661, 1.671105, 1.671552, 1.672460, 1.673398, 1.674357, 1.676355, 1.678461, 1.680685, 1.683035, 1.685516, 1.688135, 1.690893, 1.693787, 1.696812, 1.699961, 1.703216, 1.706546, 1.714937, 1.722933, 1.730080, 1.736116, 1.740904, 1.744368, 1.746449, 1.747073, 1.746118, 1.743369, 1.738448, 1.730726, 1.719332, 1.703841, 0.478161, 0.477809, 0.477217, 0.476373, 0.475263, 0.473863, 0.472148, 0.470080, 0.467612, 0.464686, 0.461221, 0.457117, 0.452237, 0.446396, 0.443736, 0.440863, 0.437753, 0.434379, 0.430711, 0.426714, 0.422353, 0.417586, 0.412380, 0.406711, 0.400596, 0.394120, 0.390798, 0.387457, 0.384120, 0.382462, 0.380814, 0.380158, 0.379504, 0.378853, 0.378204, 0.377558, 0.376915, 0.376275, 0.375956, 0.375638, 0.375319, 0.375160, 0.375004, 0.374856, 0.374826, 0.374795, 0.374762, 0.374724, 0.374680, 0.374571, 0.374466, 0.374476, 0.374628},
+{ 1.669503, 1.668395, 1.669442, 1.668664, 1.669275, 1.668971, 1.668820, 1.668995, 1.669204, 1.669212, 1.669190, 1.669059, 1.669253, 1.669326, 1.669380, 1.669414, 1.669602, 1.669773, 1.669951, 1.670142, 1.670305, 1.670479, 1.670661, 1.671105, 1.671552, 1.672460, 1.673398, 1.674357, 1.676355, 1.678461, 1.680685, 1.683035, 1.685516, 1.688135, 1.690893, 1.693787, 1.696812, 1.699961, 1.703216, 1.706546, 1.714937, 1.722933, 1.730080, 1.736116, 1.740904, 1.744368, 1.746449, 1.747073, 1.746118, 1.743369, 1.738448, 1.730726, 1.719332, 1.703841, 0.704945, 0.704331, 0.703296, 0.701824, 0.699889, 0.697457, 0.694481, 0.690905, 0.686650, 0.681622, 0.675691, 0.668694, 0.660408, 0.650537, 0.646058, 0.641230, 0.636017, 0.630380, 0.624277, 0.617664, 0.610506, 0.602788, 0.594547, 0.585942, 0.577339, 0.569239, 0.565445, 0.561815, 0.558363, 0.556704, 0.555087, 0.554453, 0.553825, 0.553204, 0.552590, 0.551982, 0.551381, 0.550785, 0.550490, 0.550199, 0.549903, 0.549755, 0.549623, 0.549478, 0.549438, 0.549395, 0.549349, 0.549308, 0.549280, 0.549303, 0.549380, 0.549273, 0.548898},
+{ 1.669503, 1.668395, 1.669442, 1.668664, 1.669275, 1.668971, 1.668820, 1.668995, 1.669204, 1.669212, 1.669190, 1.669059, 1.669253, 1.669326, 1.669380, 1.669414, 1.669602, 1.669773, 1.669951, 1.670142, 1.670305, 1.670479, 1.670661, 1.671105, 1.671552, 1.672460, 1.673398, 1.674357, 1.676355, 1.678461, 1.680685, 1.683035, 1.685516, 1.688135, 1.690893, 1.693787, 1.696812, 1.699961, 1.703216, 1.706546, 1.714937, 1.722933, 1.730080, 1.736116, 1.740904, 1.744368, 1.746449, 1.747073, 1.746118, 1.743369, 1.738448, 1.730726, 1.719332, 1.703841, 0.946541, 0.945626, 0.944084, 0.941891, 0.939010, 0.935394, 0.930976, 0.925674, 0.919380, 0.911953, 0.903214, 0.892924, 0.880767, 0.866316, 0.859772, 0.852729, 0.845140, 0.836957, 0.828139, 0.818665, 0.808571, 0.798035, 0.787576, 0.778347, 0.771240, 0.764674, 0.761819, 0.759101, 0.756567, 0.755353, 0.754178, 0.753717, 0.753262, 0.752812, 0.752366, 0.751927, 0.751490, 0.751064, 0.750845, 0.750633, 0.750426, 0.750296, 0.750238, 0.750094, 0.750035, 0.749986, 0.749967, 0.749993, 0.750061, 0.750126, 0.749650, 0.749564, 0.750138},
+{ 1.669503, 1.668395, 1.669442, 1.668664, 1.669275, 1.668971, 1.668820, 1.668995, 1.669204, 1.669212, 1.669190, 1.669059, 1.669253, 1.669326, 1.669380, 1.669414, 1.669602, 1.669773, 1.669951, 1.670142, 1.670305, 1.670479, 1.670661, 1.671105, 1.671552, 1.672460, 1.673398, 1.674357, 1.676355, 1.678461, 1.680685, 1.683035, 1.685516, 1.688135, 1.690893, 1.693787, 1.696812, 1.699961, 1.703216, 1.706546, 1.714937, 1.722933, 1.730080, 1.736116, 1.740904, 1.744368, 1.746449, 1.747073, 1.746118, 1.743369, 1.738448, 1.730726, 1.719332, 1.703841, 1.195198, 1.193960, 1.191877, 1.188916, 1.185032, 1.180162, 1.174222, 1.167105, 1.158673, 1.148745, 1.137087, 1.123387, 1.107232, 1.088067, 1.079403, 1.070093, 1.060089, 1.049356, 1.037903, 1.025862, 1.013708, 1.002960, 0.997335, 0.993889, 0.987227, 0.983917, 0.982151, 0.980231, 0.978641, 0.977871, 0.977090, 0.976786, 0.976474, 0.976178, 0.975870, 0.975582, 0.975274, 0.974976, 0.974851, 0.974680, 0.974600, 0.974444, 0.974424, 0.974293, 0.974188, 0.974146, 0.974213, 0.974371, 0.974505, 0.974110, 0.974112, 0.974787, 0.974253},
+{ 1.669503, 1.668395, 1.669442, 1.668664, 1.669275, 1.668971, 1.668820, 1.668995, 1.669204, 1.669212, 1.669190, 1.669059, 1.669253, 1.669326, 1.669380, 1.669414, 1.669602, 1.669773, 1.669951, 1.670142, 1.670305, 1.670479, 1.670661, 1.671105, 1.671552, 1.672460, 1.673398, 1.674357, 1.676355, 1.678461, 1.680685, 1.683035, 1.685516, 1.688135, 1.690893, 1.693787, 1.696812, 1.699961, 1.703216, 1.706546, 1.714937, 1.722933, 1.730080, 1.736116, 1.740904, 1.744368, 1.746449, 1.747073, 1.746118, 1.743369, 1.738448, 1.730726, 1.719332, 1.703841, 1.447378, 1.445774, 1.443079, 1.439259, 1.434262, 1.428019, 1.420435, 1.411388, 1.400713, 1.388197, 1.373555, 1.356407, 1.336243, 1.312390, 1.301635, 1.290113, 1.277800, 1.264747, 1.251235, 1.238360, 1.230978, 1.236823, 1.228953, 1.223151, 1.221395, 1.219601, 1.218691, 1.216721, 1.215773, 1.215081, 1.214311, 1.214157, 1.213848, 1.213637, 1.213402, 1.213208, 1.212985, 1.212747, 1.212620, 1.212586, 1.212371, 1.212445, 1.212213, 1.212199, 1.212018, 1.212001, 1.212205, 1.212475, 1.212482, 1.211727, 1.212758, 1.211922, 1.211527},
+{ 1.669503, 1.668395, 1.669442, 1.668664, 1.669275, 1.668971, 1.668820, 1.668995, 1.669204, 1.669212, 1.669190, 1.669059, 1.669253, 1.669326, 1.669380, 1.669414, 1.669602, 1.669773, 1.669951, 1.670142, 1.670305, 1.670479, 1.670661, 1.671105, 1.671552, 1.672460, 1.673398, 1.674357, 1.676355, 1.678461, 1.680685, 1.683035, 1.685516, 1.688135, 1.690893, 1.693787, 1.696812, 1.699961, 1.703216, 1.706546, 1.714937, 1.722933, 1.730080, 1.736116, 1.740904, 1.744368, 1.746449, 1.747073, 1.746118, 1.743369, 1.738448, 1.730726, 1.719332, 1.703841, 1.703116, 1.700942, 1.697329, 1.692278, 1.685776, 1.677781, 1.668216, 1.656957, 1.643827, 1.628580, 1.610879, 1.590273, 1.566155, 1.537745, 1.524995, 1.511417, 1.497110, 1.482566, 1.470178, 1.480076, 1.483391, 1.467377, 1.472722, 1.464347, 1.468574, 1.463725, 1.464201, 1.462140, 1.458072, 1.458542, 1.458162, 1.458344, 1.458079, 1.457758, 1.457217, 1.457199, 1.457032, 1.456856, 1.456708, 1.456496, 1.456405, 1.456612, 1.456203, 1.456343, 1.456084, 1.456111, 1.456452, 1.456702, 1.456399, 1.456163, 1.456141, 1.455774, 1.457166}};
+  const double imomegaqnm33[8][107] = {{ 0.068612, 0.073535, 0.077498, 0.082919, 0.086037, 0.087057, 0.087838, 0.088440, 0.088909, 0.089277, 0.090269, 0.090639, 0.090797, 0.090910, 0.090941, 0.090952, 0.090960, 0.090966, 0.090973, 0.090980, 0.090987, 0.090994, 0.091001, 0.091020, 0.091038, 0.091074, 0.091110, 0.091146, 0.091217, 0.091287, 0.091356, 0.091424, 0.091492, 0.091558, 0.091624, 0.091688, 0.091751, 0.091814, 0.091875, 0.091934, 0.092078, 0.092214, 0.092339, 0.092455, 0.092558, 0.092649, 0.092726, 0.092787, 0.092830, 0.092854, 0.092856, 0.092834, 0.092784, 0.092703, 0.092587, 0.092430, 0.092228, 0.091973, 0.091656, 0.091267, 0.090793, 0.090218, 0.089521, 0.088676, 0.087647, 0.086385, 0.084821, 0.082856, 0.081925, 0.080892, 0.079741, 0.078451, 0.076995, 0.075339, 0.073436, 0.071223, 0.068611, 0.065463, 0.061565, 0.056537, 0.053388, 0.049609, 0.044905, 0.042044, 0.038688, 0.037163, 0.035505, 0.033687, 0.031671, 0.029403, 0.026797, 0.023711, 0.021911, 0.019865, 0.017473, 0.016091, 0.014533, 0.012727, 0.012325, 0.011907, 0.011470, 0.011012, 0.010530, 0.009477, 0.008266, 0.007576, 0.006807},
+{ 0.277496, 0.278402, 0.278809, 0.278955, 0.278824, 0.278742, 0.278664, 0.278594, 0.278534, 0.278482, 0.278334, 0.278289, 0.278281, 0.278294, 0.278307, 0.278318, 0.278336, 0.278354, 0.278373, 0.278391, 0.278409, 0.278427, 0.278446, 0.278491, 0.278537, 0.278627, 0.278716, 0.278805, 0.278980, 0.279153, 0.279323, 0.279489, 0.279653, 0.279813, 0.279970, 0.280123, 0.280273, 0.280419, 0.280561, 0.280699, 0.281026, 0.281324, 0.281591, 0.281825, 0.282020, 0.282175, 0.282285, 0.282345, 0.282350, 0.282293, 0.282168, 0.281967, 0.281681, 0.281298, 0.280807, 0.280191, 0.279434, 0.278515, 0.277407, 0.276080, 0.274494, 0.272602, 0.270340, 0.267630, 0.264363, 0.260394, 0.255518, 0.249435, 0.246568, 0.243397, 0.239871, 0.235928, 0.231489, 0.226451, 0.220675, 0.213971, 0.206071, 0.196570, 0.184822, 0.169692, 0.160224, 0.148867, 0.134739, 0.126150, 0.116076, 0.111499, 0.106524, 0.101069, 0.095019, 0.088212, 0.080393, 0.071135, 0.065734, 0.059597, 0.052418, 0.048273, 0.043599, 0.038180, 0.036976, 0.035721, 0.034410, 0.033036, 0.031590, 0.028432, 0.024799, 0.022729, 0.020420},
+{ 0.486993, 0.484741, 0.483427, 0.482389, 0.482301, 0.482372, 0.482460, 0.482542, 0.482611, 0.482664, 0.482744, 0.482718, 0.482702, 0.482709, 0.482722, 0.482729, 0.482743, 0.482759, 0.482774, 0.482789, 0.482804, 0.482819, 0.482834, 0.482871, 0.482907, 0.482980, 0.483051, 0.483121, 0.483256, 0.483386, 0.483511, 0.483630, 0.483742, 0.483849, 0.483949, 0.484043, 0.484130, 0.484210, 0.484283, 0.484348, 0.484477, 0.484555, 0.484575, 0.484535, 0.484428, 0.484247, 0.483987, 0.483638, 0.483192, 0.482640, 0.481968, 0.481164, 0.480211, 0.479093, 0.477786, 0.476267, 0.474506, 0.472466, 0.470105, 0.467369, 0.464195, 0.460500, 0.456181, 0.451103, 0.445090, 0.437899, 0.429190, 0.418467, 0.413455, 0.407937, 0.401829, 0.395030, 0.387407, 0.378790, 0.368950, 0.357573, 0.344212, 0.328195, 0.308447, 0.283082, 0.267235, 0.248247, 0.224647, 0.210309, 0.193501, 0.185866, 0.177568, 0.168469, 0.158382, 0.147032, 0.133998, 0.118564, 0.109560, 0.099331, 0.087366, 0.080456, 0.072667, 0.063634, 0.061627, 0.059535, 0.057351, 0.055061, 0.052650, 0.047387, 0.041331, 0.037882, 0.034034},
+{ 0.709974, 0.711601, 0.713499, 0.714385, 0.713785, 0.713546, 0.713418, 0.713383, 0.713411, 0.713468, 0.713655, 0.713595, 0.713563, 0.713584, 0.713571, 0.713561, 0.713550, 0.713535, 0.713522, 0.713507, 0.713493, 0.713479, 0.713465, 0.713428, 0.713392, 0.713317, 0.713241, 0.713162, 0.712999, 0.712828, 0.712649, 0.712461, 0.712264, 0.712058, 0.711843, 0.711618, 0.711383, 0.711138, 0.710882, 0.710616, 0.709899, 0.709105, 0.708229, 0.707264, 0.706201, 0.705033, 0.703748, 0.702336, 0.700785, 0.699079, 0.697202, 0.695135, 0.692855, 0.690337, 0.687550, 0.684459, 0.681020, 0.677183, 0.672887, 0.668056, 0.662599, 0.656401, 0.649315, 0.641153, 0.631664, 0.620511, 0.607221, 0.591101, 0.583641, 0.575473, 0.566484, 0.556529, 0.545428, 0.532943, 0.518759, 0.502439, 0.483360, 0.460589, 0.432625, 0.396831, 0.374520, 0.347819, 0.314676, 0.294558, 0.270986, 0.260282, 0.248651, 0.235902, 0.221769, 0.205870, 0.187614, 0.166001, 0.153393, 0.139070, 0.122317, 0.112642, 0.101735, 0.089089, 0.086278, 0.083351, 0.080292, 0.077086, 0.073710, 0.066342, 0.057864, 0.053035, 0.047648},
+{ 0.972477, 0.969229, 0.967660, 0.969029, 0.969442, 0.969155, 0.968886, 0.968746, 0.968738, 0.968815, 0.969029, 0.968878, 0.968919, 0.968877, 0.968857, 0.968828, 0.968768, 0.968706, 0.968649, 0.968589, 0.968529, 0.968470, 0.968410, 0.968260, 0.968110, 0.967806, 0.967500, 0.967190, 0.966561, 0.965920, 0.965265, 0.964597, 0.963916, 0.963220, 0.962509, 0.961784, 0.961043, 0.960287, 0.959514, 0.958725, 0.956678, 0.954518, 0.952237, 0.949827, 0.947277, 0.944577, 0.941715, 0.938677, 0.935446, 0.932005, 0.928331, 0.924401, 0.920185, 0.915649, 0.910755, 0.905456, 0.899695, 0.893406, 0.886510, 0.878908, 0.870479, 0.861073, 0.850501, 0.838516, 0.824795, 0.808901, 0.790225, 0.767883, 0.757639, 0.746483, 0.734270, 0.720819, 0.705900, 0.689212, 0.670355, 0.648776, 0.623682, 0.593881, 0.557455, 0.511016, 0.482143, 0.447640, 0.404868, 0.378929, 0.348555, 0.334768, 0.319791, 0.303378, 0.285189, 0.264731, 0.241246, 0.213447, 0.197233, 0.178815, 0.157271, 0.144831, 0.130807, 0.114545, 0.110932, 0.107167, 0.103234, 0.099111, 0.094772, 0.085297, 0.074397, 0.068188, 0.061261},
+{ 1.234880, 1.238501, 1.237567, 1.236381, 1.237353, 1.237185, 1.236888, 1.236715, 1.236725, 1.236844, 1.236889, 1.236862, 1.236868, 1.236807, 1.236739, 1.236707, 1.236605, 1.236507, 1.236413, 1.236315, 1.236219, 1.236121, 1.236024, 1.235780, 1.235534, 1.235039, 1.234539, 1.234033, 1.233006, 1.231956, 1.230884, 1.229790, 1.228672, 1.227531, 1.226366, 1.225176, 1.223961, 1.222721, 1.221454, 1.220161, 1.216809, 1.213278, 1.209559, 1.205642, 1.201516, 1.197169, 1.192585, 1.187749, 1.182642, 1.177243, 1.171527, 1.165464, 1.159019, 1.152151, 1.144813, 1.136947, 1.128483, 1.119340, 1.109418, 1.098594, 1.086720, 1.073606, 1.059017, 1.042646, 1.024094, 1.002820, 0.978074, 0.948772, 0.935434, 0.920971, 0.905209, 0.887929, 0.868853, 0.847622, 0.823753, 0.796583, 0.765161, 0.728048, 0.682917, 0.625639, 0.590118, 0.547732, 0.495250, 0.463448, 0.426230, 0.409344, 0.391005, 0.370913, 0.348652, 0.323623, 0.294897, 0.260904, 0.241081, 0.218564, 0.192229, 0.177023, 0.159881, 0.140004, 0.135587, 0.130985, 0.126178, 0.121138, 0.115834, 0.104253, 0.090930, 0.083341, 0.074875},
+{ 1.508123, 1.507143, 1.508863, 1.507649, 1.508328, 1.508308, 1.508054, 1.507900, 1.507943, 1.508075, 1.507959, 1.508051, 1.507942, 1.507906, 1.507868, 1.507795, 1.507680, 1.507563, 1.507448, 1.507330, 1.507211, 1.507093, 1.506973, 1.506674, 1.506374, 1.505766, 1.505151, 1.504528, 1.503256, 1.501952, 1.500614, 1.499242, 1.497835, 1.496393, 1.494914, 1.493399, 1.491846, 1.490254, 1.488623, 1.486953, 1.482598, 1.477977, 1.473078, 1.467888, 1.462391, 1.456574, 1.450419, 1.443908, 1.437021, 1.429733, 1.422014, 1.413833, 1.405148, 1.395912, 1.386070, 1.375552, 1.364277, 1.352147, 1.339041, 1.324812, 1.309279, 1.292214, 1.273331, 1.252260, 1.228516, 1.201450, 1.170160, 1.133351, 1.116676, 1.098649, 1.079064, 1.057665, 1.034127, 1.008030, 0.978819, 0.945725, 0.907651, 0.862934, 0.808869, 0.740600, 0.698384, 0.648072, 0.585828, 0.548130, 0.504030, 0.484027, 0.462309, 0.438520, 0.412171, 0.382553, 0.348572, 0.308374, 0.284937, 0.258319, 0.227191, 0.209218, 0.188957, 0.165464, 0.160243, 0.154805, 0.149123, 0.143167, 0.136898, 0.123211, 0.107464, 0.098495, 0.102103},
+{ 1.779474, 1.778289, 1.778279, 1.778446, 1.778602, 1.778683, 1.778496, 1.778376, 1.778435, 1.778543, 1.778425, 1.778411, 1.778415, 1.778342, 1.778265, 1.778203, 1.778078, 1.777952, 1.777827, 1.777701, 1.777572, 1.777445, 1.777316, 1.776993, 1.776668, 1.776009, 1.775340, 1.774660, 1.773268, 1.771834, 1.770354, 1.768830, 1.767260, 1.765643, 1.763977, 1.762263, 1.760499, 1.758683, 1.756815, 1.754894, 1.749851, 1.744448, 1.738667, 1.732489, 1.725894, 1.718862, 1.711372, 1.703401, 1.694926, 1.685918, 1.676347, 1.666175, 1.655359, 1.643845, 1.631569, 1.618456, 1.604409, 1.589315, 1.573032, 1.555388, 1.536168, 1.515101, 1.491847, 1.465968, 1.436889, 1.403838, 1.365752, 1.321105, 1.300933, 1.279162, 1.255553, 1.229810, 1.201558, 1.170316, 1.135450, 1.096094, 1.051014, 0.998352, 0.935078, 0.855690, 0.806777, 0.748562, 0.676569, 0.632966, 0.581960, 0.558828, 0.533715, 0.506213, 0.475757, 0.441533, 0.402280, 0.355861, 0.328804, 0.298080, 0.262156, 0.241415, 0.218035, 0.190926, 0.184902, 0.178626, 0.172070, 0.165197, 0.157962, 0.142169, 0.123998, 0.113649, 0.115718}};
+  const double imomegaqnm32[8][107] = {{ 0.069981, 0.075891, 0.079961, 0.084549, 0.086675, 0.087288, 0.087731, 0.088055, 0.088298, 0.088483, 0.088949, 0.089111, 0.089177, 0.089224, 0.089240, 0.089249, 0.089264, 0.089280, 0.089296, 0.089311, 0.089327, 0.089343, 0.089359, 0.089399, 0.089438, 0.089516, 0.089592, 0.089667, 0.089815, 0.089958, 0.090097, 0.090231, 0.090362, 0.090489, 0.090611, 0.090731, 0.090846, 0.090958, 0.091066, 0.091171, 0.091418, 0.091644, 0.091851, 0.092037, 0.092203, 0.092349, 0.092475, 0.092580, 0.092663, 0.092724, 0.092760, 0.092770, 0.092752, 0.092703, 0.092620, 0.092500, 0.092336, 0.092124, 0.091857, 0.091525, 0.091117, 0.090620, 0.090016, 0.089280, 0.088383, 0.087280, 0.085912, 0.084190, 0.083373, 0.082467, 0.081457, 0.080325, 0.079046, 0.077590, 0.075918, 0.073972, 0.071674, 0.068905, 0.065473, 0.061044, 0.058268, 0.054933, 0.050781, 0.048255, 0.045293, 0.043948, 0.042487, 0.040887, 0.039116, 0.037130, 0.034861, 0.032200, 0.030668, 0.028952, 0.026993, 0.025895, 0.024695, 0.023373, 0.023091, 0.022804, 0.022510, 0.022210, 0.021904, 0.021273, 0.020618, 0.020284, 0.019946},
+{ 0.269958, 0.271103, 0.271569, 0.271797, 0.271769, 0.271739, 0.271709, 0.271682, 0.271660, 0.271642, 0.271600, 0.271599, 0.271610, 0.271637, 0.271663, 0.271689, 0.271738, 0.271788, 0.271837, 0.271887, 0.271936, 0.271985, 0.272034, 0.272155, 0.272276, 0.272514, 0.272749, 0.272979, 0.273430, 0.273867, 0.274290, 0.274699, 0.275094, 0.275477, 0.275847, 0.276204, 0.276548, 0.276881, 0.277202, 0.277511, 0.278233, 0.278886, 0.279471, 0.279990, 0.280444, 0.280831, 0.281152, 0.281405, 0.281588, 0.281697, 0.281728, 0.281677, 0.281536, 0.281298, 0.280953, 0.280489, 0.279891, 0.279142, 0.278220, 0.277098, 0.275743, 0.274112, 0.272151, 0.269788, 0.266929, 0.263444, 0.259149, 0.253778, 0.251243, 0.248435, 0.245311, 0.241815, 0.237876, 0.233400, 0.228266, 0.222302, 0.215266, 0.206793, 0.196296, 0.182737, 0.174223, 0.163971, 0.151146, 0.143303, 0.134051, 0.129825, 0.125215, 0.120137, 0.114476, 0.108062, 0.100631, 0.091721, 0.086456, 0.080395, 0.073168, 0.068900, 0.063968, 0.058005, 0.056627, 0.055164, 0.053600, 0.051916, 0.050086, 0.045842, 0.040492, 0.037243, 0.033496},
+{ 0.467568, 0.466534, 0.465963, 0.465576, 0.465576, 0.465611, 0.465647, 0.465678, 0.465703, 0.465721, 0.465757, 0.465769, 0.465786, 0.465830, 0.465874, 0.465917, 0.466002, 0.466087, 0.466172, 0.466257, 0.466342, 0.466426, 0.466510, 0.466719, 0.466926, 0.467335, 0.467737, 0.468132, 0.468902, 0.469646, 0.470362, 0.471052, 0.471716, 0.472354, 0.472967, 0.473555, 0.474117, 0.474656, 0.475171, 0.475662, 0.476788, 0.477775, 0.478627, 0.479346, 0.479936, 0.480396, 0.480728, 0.480929, 0.480996, 0.480925, 0.480709, 0.480339, 0.479805, 0.479093, 0.478187, 0.477067, 0.475709, 0.474081, 0.472149, 0.469864, 0.467171, 0.463997, 0.460250, 0.455807, 0.450509, 0.444136, 0.436378, 0.426779, 0.422279, 0.417316, 0.411814, 0.405678, 0.398787, 0.390983, 0.382055, 0.371712, 0.359535, 0.344894, 0.326766, 0.303324, 0.288565, 0.270734, 0.248298, 0.234485, 0.218082, 0.210545, 0.202287, 0.193147, 0.182897, 0.171205, 0.157550, 0.141037, 0.131219, 0.119895, 0.106426, 0.098550, 0.089605, 0.079206, 0.076902, 0.074511, 0.072025, 0.069436, 0.066736, 0.060945, 0.054409, 0.050632, 0.046214},
+{ 0.676421, 0.677009, 0.677656, 0.677994, 0.677837, 0.677774, 0.677743, 0.677739, 0.677751, 0.677771, 0.677847, 0.677865, 0.677889, 0.677954, 0.678013, 0.678072, 0.678191, 0.678309, 0.678427, 0.678545, 0.678662, 0.678779, 0.678896, 0.679186, 0.679474, 0.680043, 0.680603, 0.681153, 0.682225, 0.683259, 0.684252, 0.685206, 0.686119, 0.686991, 0.687822, 0.688612, 0.689362, 0.690072, 0.690741, 0.691371, 0.692774, 0.693937, 0.694869, 0.695575, 0.696061, 0.696329, 0.696381, 0.696216, 0.695833, 0.695224, 0.694383, 0.693299, 0.691956, 0.690337, 0.688418, 0.686172, 0.683563, 0.680548, 0.677075, 0.673077, 0.668472, 0.663158, 0.657000, 0.649824, 0.641401, 0.631413, 0.619417, 0.604759, 0.597941, 0.590456, 0.582192, 0.573014, 0.562747, 0.551163, 0.537956, 0.522703, 0.504794, 0.483307, 0.456741, 0.422406, 0.400785, 0.374655, 0.341786, 0.321582, 0.297656, 0.286701, 0.274734, 0.261540, 0.246825, 0.230161, 0.210883, 0.187861, 0.174326, 0.158846, 0.140582, 0.129950, 0.117883, 0.103783, 0.100635, 0.097352, 0.093916, 0.090311, 0.086514, 0.078232, 0.068781, 0.063492, 0.057725},
+{ 0.909938, 0.908951, 0.908223, 0.908499, 0.908759, 0.908711, 0.908640, 0.908591, 0.908577, 0.908590, 0.908700, 0.908704, 0.908742, 0.908816, 0.908884, 0.908954, 0.909092, 0.909230, 0.909367, 0.909505, 0.909642, 0.909779, 0.909915, 0.910255, 0.910593, 0.911263, 0.911925, 0.912578, 0.913857, 0.915095, 0.916290, 0.917440, 0.918541, 0.919593, 0.920592, 0.921538, 0.922429, 0.923266, 0.924046, 0.924769, 0.926330, 0.927539, 0.928398, 0.928916, 0.929098, 0.928950, 0.928475, 0.927673, 0.926544, 0.925081, 0.923275, 0.921114, 0.918580, 0.915649, 0.912293, 0.908473, 0.904145, 0.899253, 0.893726, 0.887477, 0.880398, 0.872351, 0.863160, 0.852593, 0.840344, 0.825994, 0.808951, 0.788349, 0.778833, 0.768426, 0.756980, 0.744315, 0.730198, 0.714323, 0.696284, 0.675516, 0.651207, 0.622130, 0.586300, 0.540190, 0.511288, 0.476530, 0.433121, 0.406628, 0.375448, 0.361237, 0.345759, 0.328746, 0.309828, 0.288470, 0.263842, 0.234536, 0.217363, 0.197780, 0.174761, 0.161405, 0.146283, 0.128649, 0.124714, 0.120609, 0.116313, 0.111801, 0.107044, 0.096630, 0.084618, 0.077780, 0.070190},
+{ 1.152050, 1.153709, 1.153872, 1.153087, 1.153488, 1.153542, 1.153476, 1.153392, 1.153351, 1.153363, 1.153489, 1.153480, 1.153543, 1.153597, 1.153671, 1.153738, 1.153876, 1.154015, 1.154153, 1.154291, 1.154429, 1.154567, 1.154704, 1.155048, 1.155391, 1.156075, 1.156756, 1.157432, 1.158768, 1.160078, 1.161357, 1.162600, 1.163801, 1.164956, 1.166059, 1.167107, 1.168097, 1.169023, 1.169885, 1.170680, 1.172359, 1.173585, 1.174349, 1.174649, 1.174488, 1.173869, 1.172794, 1.171266, 1.169282, 1.166836, 1.163919, 1.160514, 1.156601, 1.152151, 1.147129, 1.141488, 1.135171, 1.128109, 1.120212, 1.111371, 1.101448, 1.090269, 1.077610, 1.063177, 1.046581, 1.027290, 1.004550, 0.977259, 0.964715, 0.951032, 0.936026, 0.919465, 0.901055, 0.880410, 0.857015, 0.830164, 0.798841, 0.761530, 0.715803, 0.657401, 0.621064, 0.577636, 0.523777, 0.491090, 0.452772, 0.435359, 0.416427, 0.395655, 0.372601, 0.346625, 0.316732, 0.281231, 0.260459, 0.236798, 0.209028, 0.192939, 0.174750, 0.153576, 0.148857, 0.143934, 0.138785, 0.133379, 0.127679, 0.115203, 0.100791, 0.092559, 0.083365},
+{ 1.406836, 1.405392, 1.406268, 1.406057, 1.406142, 1.406299, 1.406271, 1.406165, 1.406107, 1.406129, 1.406223, 1.406264, 1.406282, 1.406354, 1.406410, 1.406470, 1.406596, 1.406721, 1.406845, 1.406969, 1.407094, 1.407219, 1.407344, 1.407657, 1.407971, 1.408601, 1.409232, 1.409865, 1.411131, 1.412394, 1.413647, 1.414882, 1.416094, 1.417274, 1.418417, 1.419514, 1.420559, 1.421547, 1.422471, 1.423325, 1.425130, 1.426417, 1.427149, 1.427306, 1.426878, 1.425861, 1.424254, 1.422054, 1.419260, 1.415863, 1.411852, 1.407208, 1.401906, 1.395912, 1.389184, 1.381667, 1.373291, 1.363970, 1.353597, 1.342038, 1.329123, 1.314638, 1.298306, 1.279767, 1.258538, 1.233961, 1.205106, 1.170609, 1.154795, 1.137571, 1.118711, 1.097933, 1.074875, 1.049071, 1.019901, 0.986518, 0.947721, 0.901729, 0.845717, 0.774746, 0.730886, 0.678728, 0.614393, 0.575510, 0.530067, 0.509459, 0.487080, 0.462557, 0.435377, 0.404792, 0.369646, 0.327970, 0.303613, 0.275888, 0.243375, 0.224553, 0.203287, 0.178557, 0.173049, 0.167306, 0.161301, 0.154998, 0.148355, 0.133821, 0.117037, 0.107447, 0.096722},
+{ 1.662798, 1.663080, 1.662335, 1.662964, 1.662684, 1.662889, 1.662913, 1.662801, 1.662735, 1.662773, 1.662813, 1.662899, 1.662888, 1.662944, 1.663002, 1.663061, 1.663164, 1.663269, 1.663373, 1.663478, 1.663585, 1.663691, 1.663798, 1.664065, 1.664335, 1.664878, 1.665428, 1.665983, 1.667108, 1.668250, 1.669401, 1.670556, 1.671708, 1.672850, 1.673973, 1.675069, 1.676129, 1.677144, 1.678106, 1.679006, 1.680938, 1.682332, 1.683111, 1.683222, 1.682636, 1.681333, 1.679303, 1.676539, 1.673034, 1.668778, 1.663757, 1.657948, 1.651324, 1.643845, 1.635461, 1.626108, 1.615705, 1.604150, 1.591316, 1.577043, 1.561127, 1.543311, 1.523262, 1.500544, 1.474575, 1.444558, 1.409367, 1.367353, 1.348111, 1.327168, 1.304254, 1.279033, 1.251079, 1.219847, 1.184614, 1.144406, 1.097849, 1.042913, 0.976381, 0.892625, 0.841139, 0.780155, 0.705249, 0.660126, 0.607512, 0.583693, 0.557852, 0.529565, 0.498246, 0.463041, 0.422630, 0.374769, 0.346825, 0.315037, 0.277784, 0.256229, 0.231884, 0.203589, 0.197290, 0.190724, 0.183858, 0.176655, 0.169065, 0.152466, 0.133310, 0.122367, 0.110130}};
+  const double imomegaqnm31[8][107] = {{ 0.073965, 0.078720, 0.081273, 0.083514, 0.084354, 0.084576, 0.084731, 0.084843, 0.084925, 0.084987, 0.085144, 0.085201, 0.085229, 0.085261, 0.085286, 0.085309, 0.085356, 0.085403, 0.085450, 0.085496, 0.085542, 0.085588, 0.085634, 0.085746, 0.085857, 0.086073, 0.086282, 0.086485, 0.086872, 0.087235, 0.087577, 0.087899, 0.088203, 0.088490, 0.088761, 0.089017, 0.089259, 0.089488, 0.089706, 0.089912, 0.090380, 0.090791, 0.091150, 0.091464, 0.091737, 0.091972, 0.092173, 0.092340, 0.092476, 0.092582, 0.092658, 0.092704, 0.092719, 0.092703, 0.092653, 0.092568, 0.092445, 0.092279, 0.092066, 0.091800, 0.091472, 0.091074, 0.090593, 0.090012, 0.089309, 0.088456, 0.087414, 0.086124, 0.085522, 0.084860, 0.084129, 0.083320, 0.082420, 0.081411, 0.080274, 0.078981, 0.077496, 0.075769, 0.073730, 0.071271, 0.069834, 0.068222, 0.066393, 0.065381, 0.064294, 0.063835, 0.063362, 0.062875, 0.062371, 0.061850, 0.061312, 0.060755, 0.060470, 0.060179, 0.059884, 0.059734, 0.059583, 0.059430, 0.059399, 0.059368, 0.059336, 0.059303, 0.059270, 0.059196, 0.059100, 0.059030, 0.058923},
+{ 0.257000, 0.257665, 0.257908, 0.258023, 0.258024, 0.258019, 0.258015, 0.258013, 0.258013, 0.258015, 0.258039, 0.258074, 0.258112, 0.258186, 0.258260, 0.258334, 0.258480, 0.258625, 0.258770, 0.258914, 0.259056, 0.259199, 0.259340, 0.259689, 0.260034, 0.260708, 0.261363, 0.261998, 0.263215, 0.264363, 0.265445, 0.266467, 0.267431, 0.268341, 0.269202, 0.270015, 0.270783, 0.271511, 0.272198, 0.272849, 0.274329, 0.275619, 0.276741, 0.277716, 0.278556, 0.279274, 0.279879, 0.280377, 0.280775, 0.281074, 0.281276, 0.281383, 0.281391, 0.281298, 0.281099, 0.280787, 0.280353, 0.279785, 0.279069, 0.278184, 0.277108, 0.275810, 0.274252, 0.272382, 0.270135, 0.267421, 0.264118, 0.260049, 0.258153, 0.256073, 0.253782, 0.251247, 0.248428, 0.245276, 0.241726, 0.237695, 0.233072, 0.227706, 0.221382, 0.213796, 0.209396, 0.204502, 0.199040, 0.196076, 0.192951, 0.191656, 0.190336, 0.188992, 0.187625, 0.186235, 0.184824, 0.183393, 0.182671, 0.181945, 0.181214, 0.180847, 0.180480, 0.180111, 0.180037, 0.179963, 0.179890, 0.179816, 0.179742, 0.179595, 0.179448, 0.179373, 0.179291},
+{ 0.438425, 0.438087, 0.437919, 0.437841, 0.437874, 0.437896, 0.437917, 0.437936, 0.437953, 0.437968, 0.438032, 0.438094, 0.438157, 0.438284, 0.438411, 0.438537, 0.438789, 0.439039, 0.439289, 0.439538, 0.439785, 0.440032, 0.440278, 0.440887, 0.441489, 0.442675, 0.443833, 0.444965, 0.447147, 0.449222, 0.451191, 0.453059, 0.454827, 0.456502, 0.458085, 0.459583, 0.460999, 0.462337, 0.463601, 0.464796, 0.467500, 0.469841, 0.471860, 0.473592, 0.475065, 0.476303, 0.477323, 0.478139, 0.478760, 0.479195, 0.479446, 0.479514, 0.479398, 0.479093, 0.478589, 0.477876, 0.476938, 0.475754, 0.474299, 0.472539, 0.470433, 0.467927, 0.464954, 0.461426, 0.457227, 0.452200, 0.446129, 0.438708, 0.435265, 0.431497, 0.427357, 0.422787, 0.417716, 0.412055, 0.405691, 0.398475, 0.390214, 0.380643, 0.369405, 0.356038, 0.348409, 0.340129, 0.331334, 0.326854, 0.322403, 0.320644, 0.318901, 0.317177, 0.315474, 0.313795, 0.312140, 0.310513, 0.309710, 0.308914, 0.308125, 0.307734, 0.307344, 0.306956, 0.306879, 0.306802, 0.306724, 0.306647, 0.306570, 0.306416, 0.306263, 0.306188, 0.306116},
+{ 0.628868, 0.629059, 0.629251, 0.629368, 0.629364, 0.629366, 0.629377, 0.629392, 0.629411, 0.629432, 0.629528, 0.629614, 0.629701, 0.629877, 0.630052, 0.630227, 0.630577, 0.630926, 0.631275, 0.631623, 0.631970, 0.632317, 0.632663, 0.633525, 0.634382, 0.636081, 0.637758, 0.639410, 0.642638, 0.645751, 0.648743, 0.651607, 0.654340, 0.656943, 0.659416, 0.661762, 0.663984, 0.666085, 0.668072, 0.669947, 0.674181, 0.677822, 0.680932, 0.683568, 0.685774, 0.687587, 0.689038, 0.690149, 0.690940, 0.691421, 0.691601, 0.691482, 0.691063, 0.690337, 0.689294, 0.687916, 0.686181, 0.684059, 0.681512, 0.678492, 0.674936, 0.670767, 0.665883, 0.660153, 0.653405, 0.645405, 0.635830, 0.624217, 0.618856, 0.613004, 0.606588, 0.599521, 0.591693, 0.582965, 0.573162, 0.562050, 0.549321, 0.534558, 0.517219, 0.496761, 0.485452, 0.474177, 0.464760, 0.460806, 0.457005, 0.455613, 0.454269, 0.452951, 0.451682, 0.450454, 0.449265, 0.448112, 0.447548, 0.446993, 0.446447, 0.446176, 0.445908, 0.445642, 0.445589, 0.445536, 0.445483, 0.445430, 0.445378, 0.445273, 0.445167, 0.445112, 0.445058},
+{ 0.835448, 0.835253, 0.835042, 0.835103, 0.835219, 0.835235, 0.835240, 0.835247, 0.835261, 0.835279, 0.835396, 0.835495, 0.835597, 0.835803, 0.836008, 0.836214, 0.836625, 0.837036, 0.837448, 0.837860, 0.838272, 0.838685, 0.839098, 0.840131, 0.841164, 0.843233, 0.845299, 0.847361, 0.851456, 0.855491, 0.859442, 0.863287, 0.867009, 0.870593, 0.874030, 0.877314, 0.880443, 0.883414, 0.886230, 0.888894, 0.894914, 0.900079, 0.904466, 0.908148, 0.911188, 0.913640, 0.915547, 0.916946, 0.917861, 0.918314, 0.918317, 0.917875, 0.916988, 0.915649, 0.913844, 0.911551, 0.908740, 0.905371, 0.901393, 0.896739, 0.891326, 0.885045, 0.877759, 0.869287, 0.859391, 0.847746, 0.833903, 0.817210, 0.809530, 0.801158, 0.791989, 0.781896, 0.770716, 0.758241, 0.744199, 0.728220, 0.709790, 0.688167, 0.662240, 0.630487, 0.612549, 0.571494, 0.486130, 0.438446, 0.387187, 0.365452, 0.342801, 0.319027, 0.293847, 0.266859, 0.237443, 0.204552, 0.186235, 0.166131, 0.143489, 0.130811, 0.116844, 0.101053, 0.097600, 0.094024, 0.090311, 0.086443, 0.082398, 0.073659, 0.063756, 0.058185, 0.052028},
+{ 1.055096, 1.055587, 1.055823, 1.055596, 1.055704, 1.055763, 1.055785, 1.055787, 1.055787, 1.055798, 1.055925, 1.056017, 1.056124, 1.056330, 1.056539, 1.056746, 1.057163, 1.057581, 1.058000, 1.058420, 1.058842, 1.059265, 1.059689, 1.060755, 1.061828, 1.063995, 1.066188, 1.068404, 1.072890, 1.077425, 1.081977, 1.086510, 1.090990, 1.095386, 1.099668, 1.103814, 1.107806, 1.111631, 1.115281, 1.118752, 1.126641, 1.133437, 1.139208, 1.144031, 1.147984, 1.151132, 1.153535, 1.155237, 1.156276, 1.156679, 1.156463, 1.155637, 1.154203, 1.152151, 1.149466, 1.146119, 1.142073, 1.137277, 1.131663, 1.125146, 1.117617, 1.108936, 1.098922, 1.087336, 1.073866, 1.058079, 1.039373, 1.016863, 1.006512, 0.995224, 0.982851, 0.969207, 0.954050, 0.937061, 0.917797, 0.895619, 0.869517, 0.837664, 0.795682, 0.727748, 0.673462, 0.625162, 0.604395, 0.565264, 0.499648, 0.471392, 0.441689, 0.410470, 0.377515, 0.342341, 0.304152, 0.261610, 0.237990, 0.212119, 0.183050, 0.166802, 0.148923, 0.128738, 0.124327, 0.119761, 0.115020, 0.110083, 0.104922, 0.093776, 0.081153, 0.074054, 0.066212},
+{ 1.289045, 1.288255, 1.288433, 1.288640, 1.288549, 1.288644, 1.288703, 1.288706, 1.288688, 1.288684, 1.288818, 1.288890, 1.288996, 1.289180, 1.289366, 1.289557, 1.289935, 1.290316, 1.290698, 1.291083, 1.291469, 1.291857, 1.292247, 1.293230, 1.294224, 1.296246, 1.298314, 1.300425, 1.304775, 1.309281, 1.313921, 1.318664, 1.323475, 1.328313, 1.333134, 1.337897, 1.342561, 1.347094, 1.351472, 1.355673, 1.365337, 1.373750, 1.380929, 1.386937, 1.391850, 1.395744, 1.398684, 1.400729, 1.401921, 1.402296, 1.401875, 1.400672, 1.398687, 1.395912, 1.392326, 1.387896, 1.382574, 1.376297, 1.368983, 1.360525, 1.350784, 1.339586, 1.326700, 1.311825, 1.294559, 1.274346, 1.250397, 1.221536, 1.208233, 1.193693, 1.177704, 1.159992, 1.140188, 1.117780, 1.092012, 1.061679, 1.024671, 0.976981, 0.912501, 0.833125, 0.790484, 0.734372, 0.645066, 0.613912, 0.604454, 0.609849, 0.605557, 0.606365, 0.604589, 0.604930, 0.604121, 0.603299, 0.603050, 0.602792, 0.602503, 0.602362, 0.602223, 0.602084, 0.602056, 0.602029, 0.602001, 0.601973, 0.601946, 0.601891, 0.601836, 0.601808, 0.601780},
+{ 1.529937, 1.530686, 1.530097, 1.530516, 1.530284, 1.530367, 1.530473, 1.530487, 1.530447, 1.530426, 1.530556, 1.530632, 1.530702, 1.530869, 1.531033, 1.531192, 1.531519, 1.531846, 1.532176, 1.532508, 1.532841, 1.533177, 1.533514, 1.534366, 1.535229, 1.536994, 1.538809, 1.540677, 1.544569, 1.548674, 1.552990, 1.557506, 1.562202, 1.567050, 1.572010, 1.577037, 1.582076, 1.587077, 1.591989, 1.596774, 1.607981, 1.617910, 1.626466, 1.633664, 1.639564, 1.644238, 1.647757, 1.650184, 1.651570, 1.651955, 1.651367, 1.649819, 1.647315, 1.643845, 1.639383, 1.633891, 1.627312, 1.619571, 1.610568, 1.600172, 1.588217, 1.574486, 1.558699, 1.540482, 1.519332, 1.494548, 1.465118, 1.429498, 1.412999, 1.394890, 1.374865, 1.352518, 1.327280, 1.298333, 1.264444, 1.223753, 1.173773, 1.112633, 1.040469, 0.950308, 0.891893, 0.826341, 0.752817, 0.699230, 0.623128, 0.578017, 0.540747, 0.502810, 0.462361, 0.418819, 0.371581, 0.319165, 0.290138, 0.258403, 0.222812, 0.202950, 0.181119, 0.156500, 0.151124, 0.145560, 0.139786, 0.133773, 0.127489, 0.113925, 0.098570, 0.089940, 0.080407}};
+  const double imomegaqnm30[8][107] = {{ 1.529937, 1.530686, 1.530097, 1.530516, 1.530284, 1.530367, 1.530473, 1.530487, 1.530447, 1.530426, 1.530556, 1.530632, 1.530702, 1.530869, 1.531033, 1.531192, 1.531519, 1.531846, 1.532176, 1.532508, 1.532841, 1.533177, 1.533514, 1.534366, 1.535229, 1.536994, 1.538809, 1.540677, 1.544569, 1.548674, 1.552990, 1.557506, 1.562202, 1.567050, 1.572010, 1.577037, 1.582076, 1.587077, 1.591989, 1.596774, 1.607981, 1.617910, 1.626466, 1.633664, 1.639564, 1.644238, 1.647757, 1.650184, 1.651570, 1.651955, 1.651367, 1.649819, 1.647315, 1.643845, 0.092687, 0.092637, 0.092553, 0.092433, 0.092275, 0.092076, 0.091832, 0.091538, 0.091186, 0.090769, 0.090275, 0.089691, 0.088997, 0.088168, 0.087792, 0.087386, 0.086947, 0.086471, 0.085955, 0.085393, 0.084779, 0.084107, 0.083367, 0.082549, 0.081642, 0.080628, 0.080076, 0.079490, 0.078867, 0.078540, 0.078202, 0.078064, 0.077924, 0.077783, 0.077639, 0.077493, 0.077346, 0.077196, 0.077121, 0.077045, 0.076969, 0.076929, 0.076884, 0.076820, 0.076802, 0.076779, 0.076750, 0.076713, 0.076663, 0.076489, 0.076039, 0.075485, 0.074203},
+{ 1.529937, 1.530686, 1.530097, 1.530516, 1.530284, 1.530367, 1.530473, 1.530487, 1.530447, 1.530426, 1.530556, 1.530632, 1.530702, 1.530869, 1.531033, 1.531192, 1.531519, 1.531846, 1.532176, 1.532508, 1.532841, 1.533177, 1.533514, 1.534366, 1.535229, 1.536994, 1.538809, 1.540677, 1.544569, 1.548674, 1.552990, 1.557506, 1.562202, 1.567050, 1.572010, 1.577037, 1.582076, 1.587077, 1.591989, 1.596774, 1.607981, 1.617910, 1.626466, 1.633664, 1.639564, 1.644238, 1.647757, 1.650184, 1.651570, 1.651955, 1.651367, 1.649819, 1.647315, 1.643845, 0.281245, 0.281086, 0.280817, 0.280433, 0.279928, 0.279291, 0.278511, 0.277569, 0.276446, 0.275114, 0.273539, 0.271675, 0.269463, 0.266825, 0.265627, 0.264336, 0.262942, 0.261433, 0.259797, 0.258018, 0.256079, 0.253960, 0.251636, 0.249081, 0.246264, 0.243150, 0.241470, 0.239702, 0.237841, 0.236875, 0.235884, 0.235481, 0.235073, 0.234662, 0.234247, 0.233827, 0.233404, 0.232976, 0.232761, 0.232544, 0.232327, 0.232217, 0.232108, 0.232000, 0.231978, 0.231958, 0.231937, 0.231918, 0.231899, 0.231862, 0.231806, 0.231736, 0.231556},
+{ 1.529937, 1.530686, 1.530097, 1.530516, 1.530284, 1.530367, 1.530473, 1.530487, 1.530447, 1.530426, 1.530556, 1.530632, 1.530702, 1.530869, 1.531033, 1.531192, 1.531519, 1.531846, 1.532176, 1.532508, 1.532841, 1.533177, 1.533514, 1.534366, 1.535229, 1.536994, 1.538809, 1.540677, 1.544569, 1.548674, 1.552990, 1.557506, 1.562202, 1.567050, 1.572010, 1.577037, 1.582076, 1.587077, 1.591989, 1.596774, 1.607981, 1.617910, 1.626466, 1.633664, 1.639564, 1.644238, 1.647757, 1.650184, 1.651570, 1.651955, 1.651367, 1.649819, 1.647315, 1.643845, 0.478993, 0.478693, 0.478187, 0.477465, 0.476516, 0.475321, 0.473856, 0.472093, 0.469991, 0.467502, 0.464563, 0.461092, 0.456981, 0.452089, 0.449873, 0.447487, 0.444914, 0.442135, 0.439128, 0.435869, 0.432331, 0.428485, 0.424299, 0.419744, 0.414795, 0.409439, 0.406611, 0.403687, 0.400675, 0.399138, 0.397582, 0.396955, 0.396325, 0.395693, 0.395058, 0.394421, 0.393782, 0.393140, 0.392819, 0.392497, 0.392175, 0.392013, 0.391852, 0.391691, 0.391658, 0.391625, 0.391592, 0.391559, 0.391525, 0.391457, 0.391405, 0.391405, 0.391445},
+{ 1.529937, 1.530686, 1.530097, 1.530516, 1.530284, 1.530367, 1.530473, 1.530487, 1.530447, 1.530426, 1.530556, 1.530632, 1.530702, 1.530869, 1.531033, 1.531192, 1.531519, 1.531846, 1.532176, 1.532508, 1.532841, 1.533177, 1.533514, 1.534366, 1.535229, 1.536994, 1.538809, 1.540677, 1.544569, 1.548674, 1.552990, 1.557506, 1.562202, 1.567050, 1.572010, 1.577037, 1.582076, 1.587077, 1.591989, 1.596774, 1.607981, 1.617910, 1.626466, 1.633664, 1.639564, 1.644238, 1.647757, 1.650184, 1.651570, 1.651955, 1.651367, 1.649819, 1.647315, 1.643845, 0.690175, 0.689687, 0.688863, 0.687691, 0.686150, 0.684213, 0.681842, 0.678992, 0.675601, 0.671595, 0.666873, 0.661311, 0.654741, 0.646948, 0.643426, 0.639642, 0.635570, 0.631185, 0.626456, 0.621355, 0.615851, 0.609918, 0.603541, 0.596726, 0.589514, 0.581992, 0.578157, 0.574299, 0.570439, 0.568516, 0.566600, 0.565836, 0.565074, 0.564314, 0.563556, 0.562800, 0.562047, 0.561296, 0.560921, 0.560547, 0.560174, 0.559988, 0.559802, 0.559615, 0.559578, 0.559540, 0.559503, 0.559467, 0.559432, 0.559363, 0.559277, 0.559209, 0.559138},
+{ 1.529937, 1.530686, 1.530097, 1.530516, 1.530284, 1.530367, 1.530473, 1.530487, 1.530447, 1.530426, 1.530556, 1.530632, 1.530702, 1.530869, 1.531033, 1.531192, 1.531519, 1.531846, 1.532176, 1.532508, 1.532841, 1.533177, 1.533514, 1.534366, 1.535229, 1.536994, 1.538809, 1.540677, 1.544569, 1.548674, 1.552990, 1.557506, 1.562202, 1.567050, 1.572010, 1.577037, 1.582076, 1.587077, 1.591989, 1.596774, 1.607981, 1.617910, 1.626466, 1.633664, 1.639564, 1.644238, 1.647757, 1.650184, 1.651570, 1.651955, 1.651367, 1.649819, 1.647315, 1.643845, 0.915410, 0.914686, 0.913468, 0.911735, 0.909458, 0.906598, 0.903103, 0.898906, 0.893923, 0.888043, 0.881128, 0.872996, 0.863415, 0.852081, 0.846972, 0.841494, 0.835614, 0.829301, 0.822525, 0.815260, 0.807496, 0.799244, 0.790564, 0.781585, 0.772513, 0.763590, 0.759253, 0.755027, 0.750929, 0.748931, 0.746968, 0.746193, 0.745424, 0.744661, 0.743903, 0.743152, 0.742406, 0.741667, 0.741299, 0.740933, 0.740568, 0.740387, 0.740205, 0.740023, 0.739987, 0.739952, 0.739918, 0.739883, 0.739847, 0.739761, 0.739695, 0.739705, 0.739695},
+{ 1.529937, 1.530686, 1.530097, 1.530516, 1.530284, 1.530367, 1.530473, 1.530487, 1.530447, 1.530426, 1.530556, 1.530632, 1.530702, 1.530869, 1.531033, 1.531192, 1.531519, 1.531846, 1.532176, 1.532508, 1.532841, 1.533177, 1.533514, 1.534366, 1.535229, 1.536994, 1.538809, 1.540677, 1.544569, 1.548674, 1.552990, 1.557506, 1.562202, 1.567050, 1.572010, 1.577037, 1.582076, 1.587077, 1.591989, 1.596774, 1.607981, 1.617910, 1.626466, 1.633664, 1.639564, 1.644238, 1.647757, 1.650184, 1.651570, 1.651955, 1.651367, 1.649819, 1.647315, 1.643845, 1.151824, 1.150837, 1.149175, 1.146812, 1.143709, 1.139814, 1.135056, 1.129348, 1.122576, 1.114592, 1.105211, 1.094192, 1.081227, 1.065919, 1.059035, 1.051666, 1.043780, 1.035350, 1.026359, 1.016818, 1.006788, 0.996417, 0.985980, 0.975863, 0.966386, 0.957682, 0.953634, 0.949785, 0.946128, 0.944368, 0.942653, 0.941979, 0.941311, 0.940651, 0.939997, 0.939349, 0.938708, 0.938073, 0.937758, 0.937445, 0.937132, 0.936977, 0.936822, 0.936667, 0.936639, 0.936611, 0.936580, 0.936544, 0.936504, 0.936448, 0.936428, 0.936315, 0.936219},
+{ 1.529937, 1.530686, 1.530097, 1.530516, 1.530284, 1.530367, 1.530473, 1.530487, 1.530447, 1.530426, 1.530556, 1.530632, 1.530702, 1.530869, 1.531033, 1.531192, 1.531519, 1.531846, 1.532176, 1.532508, 1.532841, 1.533177, 1.533514, 1.534366, 1.535229, 1.536994, 1.538809, 1.540677, 1.544569, 1.548674, 1.552990, 1.557506, 1.562202, 1.567050, 1.572010, 1.577037, 1.582076, 1.587077, 1.591989, 1.596774, 1.607981, 1.617910, 1.626466, 1.633664, 1.639564, 1.644238, 1.647757, 1.650184, 1.651570, 1.651955, 1.651367, 1.649819, 1.647315, 1.643845, 1.395494, 1.394233, 1.392109, 1.389089, 1.385124, 1.380148, 1.374073, 1.366785, 1.358140, 1.347953, 1.335985, 1.321933, 1.305409, 1.285931, 1.277193, 1.267863, 1.257920, 1.247362, 1.236235, 1.224669, 1.212958, 1.201632, 1.191349, 1.182302, 1.174267, 1.167204, 1.163981, 1.160939, 1.158062, 1.156680, 1.155334, 1.154806, 1.154282, 1.153764, 1.153251, 1.152743, 1.152240, 1.151741, 1.151494, 1.151247, 1.151003, 1.150879, 1.150761, 1.150640, 1.150623, 1.150601, 1.150566, 1.150523, 1.150492, 1.150513, 1.150334, 1.150373, 1.150585},
+{ 1.529937, 1.530686, 1.530097, 1.530516, 1.530284, 1.530367, 1.530473, 1.530487, 1.530447, 1.530426, 1.530556, 1.530632, 1.530702, 1.530869, 1.531033, 1.531192, 1.531519, 1.531846, 1.532176, 1.532508, 1.532841, 1.533177, 1.533514, 1.534366, 1.535229, 1.536994, 1.538809, 1.540677, 1.544569, 1.548674, 1.552990, 1.557506, 1.562202, 1.567050, 1.572010, 1.577037, 1.582076, 1.587077, 1.591989, 1.596774, 1.607981, 1.617910, 1.626466, 1.633664, 1.639564, 1.644238, 1.647757, 1.650184, 1.651570, 1.651955, 1.651367, 1.649819, 1.647315, 1.643845, 1.643335, 1.641797, 1.639208, 1.635528, 1.630696, 1.624631, 1.617226, 1.608344, 1.597807, 1.585389, 1.570800, 1.553671, 1.533537, 1.509851, 1.499261, 1.488002, 1.476093, 1.463621, 1.450821, 1.438215, 1.426792, 1.417582, 1.409842, 1.402860, 1.396979, 1.391746, 1.389346, 1.387063, 1.384890, 1.383840, 1.382815, 1.382410, 1.382010, 1.381612, 1.381218, 1.380828, 1.380440, 1.380056, 1.379863, 1.379676, 1.379489, 1.379383, 1.379306, 1.379208, 1.379208, 1.379184, 1.379129, 1.379081, 1.379097, 1.379105, 1.379024, 1.379212, 1.378677}};
+  const double imomegaqnm44[8][107] = {{ 0.047289, 0.057085, 0.065286, 0.076920, 0.083531, 0.085574, 0.087060, 0.088144, 0.088942, 0.089536, 0.090962, 0.091420, 0.091606, 0.091741, 0.091784, 0.091803, 0.091819, 0.091828, 0.091837, 0.091845, 0.091853, 0.091861, 0.091870, 0.091890, 0.091911, 0.091952, 0.091993, 0.092034, 0.092115, 0.092196, 0.092275, 0.092354, 0.092432, 0.092510, 0.092586, 0.092662, 0.092736, 0.092810, 0.092882, 0.092953, 0.093127, 0.093292, 0.093448, 0.093595, 0.093730, 0.093853, 0.093962, 0.094056, 0.094132, 0.094189, 0.094223, 0.094233, 0.094215, 0.094164, 0.094077, 0.093948, 0.093770, 0.093537, 0.093239, 0.092865, 0.092401, 0.091829, 0.091127, 0.090268, 0.089212, 0.087909, 0.086287, 0.084240, 0.083269, 0.082192, 0.080991, 0.079644, 0.078125, 0.076399, 0.074418, 0.072119, 0.069410, 0.066156, 0.062140, 0.056982, 0.053763, 0.049911, 0.045132, 0.042232, 0.038838, 0.037297, 0.035624, 0.033790, 0.031759, 0.029475, 0.026854, 0.023753, 0.021945, 0.019893, 0.017493, 0.016108, 0.014546, 0.012736, 0.012334, 0.011915, 0.011478, 0.011019, 0.010536, 0.009482, 0.008270, 0.007580, 0.006809},
+{ 0.267496, 0.272430, 0.275117, 0.277412, 0.278166, 0.278332, 0.278431, 0.278489, 0.278523, 0.278542, 0.278554, 0.278543, 0.278539, 0.278544, 0.278555, 0.278567, 0.278590, 0.278613, 0.278636, 0.278659, 0.278682, 0.278704, 0.278727, 0.278784, 0.278841, 0.278955, 0.279068, 0.279180, 0.279403, 0.279623, 0.279841, 0.280057, 0.280270, 0.280480, 0.280687, 0.280892, 0.281093, 0.281291, 0.281485, 0.281676, 0.282137, 0.282572, 0.282979, 0.283355, 0.283696, 0.283998, 0.284257, 0.284467, 0.284624, 0.284721, 0.284749, 0.284701, 0.284567, 0.284334, 0.283990, 0.283519, 0.282901, 0.282113, 0.281129, 0.279913, 0.278426, 0.276614, 0.274412, 0.271733, 0.268465, 0.264452, 0.259480, 0.253233, 0.250278, 0.247003, 0.243357, 0.239276, 0.234678, 0.229458, 0.223476, 0.216539, 0.208375, 0.198576, 0.186494, 0.170992, 0.161324, 0.149756, 0.135408, 0.126707, 0.116519, 0.111896, 0.106875, 0.101374, 0.095279, 0.088426, 0.080562, 0.071259, 0.065836, 0.059678, 0.052479, 0.048323, 0.043639, 0.038210, 0.037003, 0.035747, 0.034434, 0.033058, 0.031609, 0.028447, 0.024810, 0.022739, 0.020428},
+{ 0.476992, 0.476552, 0.476059, 0.475354, 0.475023, 0.474945, 0.474902, 0.474880, 0.474873, 0.474873, 0.474904, 0.474923, 0.474932, 0.474945, 0.474960, 0.474975, 0.475006, 0.475036, 0.475066, 0.475097, 0.475127, 0.475157, 0.475187, 0.475263, 0.475338, 0.475487, 0.475635, 0.475782, 0.476073, 0.476359, 0.476641, 0.476918, 0.477190, 0.477456, 0.477718, 0.477973, 0.478223, 0.478467, 0.478704, 0.478936, 0.479483, 0.479984, 0.480434, 0.480828, 0.481160, 0.481423, 0.481610, 0.481712, 0.481721, 0.481624, 0.481410, 0.481064, 0.480570, 0.479908, 0.479056, 0.477986, 0.476666, 0.475060, 0.473120, 0.470791, 0.468003, 0.464669, 0.460679, 0.455890, 0.450113, 0.443090, 0.434465, 0.423712, 0.418650, 0.413055, 0.406842, 0.399905, 0.392108, 0.383276, 0.373175, 0.361487, 0.347759, 0.331313, 0.311071, 0.285140, 0.268985, 0.249669, 0.225726, 0.211210, 0.194221, 0.186512, 0.178140, 0.168968, 0.158807, 0.147383, 0.134275, 0.118768, 0.109729, 0.099465, 0.087465, 0.080539, 0.072732, 0.063683, 0.061672, 0.059578, 0.057390, 0.055096, 0.052682, 0.047413, 0.041350, 0.037898, 0.034047},
+{ 0.688887, 0.687276, 0.686870, 0.687194, 0.687484, 0.687529, 0.687535, 0.687523, 0.687504, 0.687487, 0.687464, 0.687480, 0.687488, 0.687497, 0.687509, 0.687521, 0.687544, 0.687567, 0.687590, 0.687613, 0.687636, 0.687658, 0.687681, 0.687738, 0.687794, 0.687905, 0.688015, 0.688122, 0.688333, 0.688537, 0.688734, 0.688923, 0.689105, 0.689278, 0.689444, 0.689601, 0.689749, 0.689889, 0.690018, 0.690138, 0.690394, 0.690579, 0.690690, 0.690717, 0.690652, 0.690487, 0.690211, 0.689812, 0.689276, 0.688589, 0.687732, 0.686685, 0.685425, 0.683924, 0.682151, 0.680068, 0.677629, 0.674782, 0.671462, 0.667589, 0.663066, 0.657772, 0.651551, 0.644203, 0.635463, 0.624972, 0.612229, 0.596503, 0.589146, 0.581044, 0.572077, 0.562097, 0.550915, 0.538287, 0.523888, 0.507273, 0.487810, 0.464555, 0.436002, 0.399509, 0.376808, 0.349693, 0.316109, 0.295761, 0.271954, 0.261154, 0.249426, 0.236578, 0.222347, 0.206349, 0.187993, 0.166281, 0.153625, 0.139254, 0.122453, 0.112755, 0.101826, 0.089156, 0.086341, 0.083409, 0.080346, 0.077135, 0.073755, 0.066378, 0.057891, 0.053057, 0.047665},
+{ 0.918235, 0.920515, 0.920895, 0.920137, 0.920012, 0.920094, 0.920167, 0.920207, 0.920214, 0.920202, 0.920149, 0.920166, 0.920164, 0.920160, 0.920158, 0.920156, 0.920152, 0.920148, 0.920144, 0.920140, 0.920136, 0.920132, 0.920127, 0.920116, 0.920104, 0.920079, 0.920051, 0.920022, 0.919956, 0.919881, 0.919796, 0.919702, 0.919597, 0.919482, 0.919356, 0.919218, 0.919069, 0.918908, 0.918734, 0.918547, 0.918020, 0.917401, 0.916681, 0.915851, 0.914900, 0.913815, 0.912584, 0.911190, 0.909617, 0.907843, 0.905847, 0.903603, 0.901078, 0.898239, 0.895043, 0.891442, 0.887378, 0.882780, 0.877566, 0.871633, 0.864855, 0.857075, 0.848091, 0.837647, 0.825400, 0.810890, 0.793470, 0.772205, 0.762324, 0.751485, 0.739534, 0.726280, 0.711484, 0.694831, 0.675907, 0.654142, 0.628729, 0.598457, 0.561400, 0.514171, 0.484847, 0.449863, 0.406581, 0.380377, 0.349729, 0.335831, 0.320740, 0.304211, 0.285904, 0.265327, 0.241720, 0.213799, 0.197524, 0.179045, 0.157442, 0.144973, 0.130920, 0.114630, 0.111011, 0.107241, 0.103302, 0.099174, 0.094829, 0.085343, 0.074431, 0.068217, 0.061284},
+{ 1.172429, 1.170250, 1.170724, 1.171528, 1.171085, 1.171073, 1.171150, 1.171223, 1.171252, 1.171240, 1.171165, 1.171180, 1.171155, 1.171139, 1.171115, 1.171094, 1.171049, 1.171005, 1.170960, 1.170916, 1.170871, 1.170826, 1.170781, 1.170668, 1.170555, 1.170326, 1.170094, 1.169858, 1.169379, 1.168887, 1.168382, 1.167864, 1.167332, 1.166786, 1.166225, 1.165649, 1.165057, 1.164449, 1.163825, 1.163183, 1.161499, 1.159693, 1.157756, 1.155675, 1.153437, 1.151026, 1.148428, 1.145621, 1.142586, 1.139297, 1.135727, 1.131843, 1.127608, 1.122977, 1.117900, 1.112316, 1.106154, 1.099328, 1.091735, 1.083249, 1.073714, 1.062936, 1.050670, 1.036597, 1.020299, 1.001210, 0.978540, 0.951144, 0.938500, 0.924680, 0.909499, 0.892724, 0.874063, 0.853135, 0.829435, 0.802272, 0.770663, 0.733138, 0.687353, 0.629184, 0.593147, 0.550213, 0.497162, 0.465071, 0.427558, 0.410551, 0.392089, 0.371872, 0.349482, 0.324320, 0.295457, 0.261323, 0.241428, 0.218839, 0.192433, 0.177192, 0.160015, 0.140105, 0.135681, 0.131073, 0.126259, 0.121213, 0.115902, 0.104308, 0.090972, 0.083376, 0.074903},
+{ 1.434106, 1.435046, 1.433745, 1.434332, 1.434110, 1.434007, 1.434061, 1.434149, 1.434181, 1.434154, 1.434096, 1.434067, 1.434053, 1.434006, 1.433967, 1.433925, 1.433841, 1.433756, 1.433671, 1.433587, 1.433502, 1.433417, 1.433332, 1.433118, 1.432903, 1.432470, 1.432032, 1.431590, 1.430693, 1.429777, 1.428843, 1.427889, 1.426915, 1.425920, 1.424905, 1.423867, 1.422808, 1.421726, 1.420620, 1.419490, 1.416555, 1.413454, 1.410174, 1.406700, 1.403018, 1.399110, 1.394956, 1.390535, 1.385822, 1.380787, 1.375397, 1.369615, 1.363395, 1.356686, 1.349428, 1.341548, 1.332961, 1.323565, 1.313236, 1.301825, 1.289146, 1.274967, 1.258995, 1.240852, 1.220040, 1.195886, 1.167453, 1.133385, 1.117752, 1.100721, 1.082074, 1.061538, 1.038767, 1.013313, 0.984584, 0.951766, 0.913705, 0.868675, 0.813920, 0.744589, 0.701738, 0.650764, 0.587868, 0.549856, 0.505448, 0.485323, 0.463480, 0.439564, 0.413085, 0.383331, 0.349205, 0.308853, 0.285337, 0.258637, 0.227427, 0.209413, 0.189112, 0.165580, 0.160352, 0.154906, 0.149217, 0.143253, 0.136976, 0.123274, 0.107512, 0.098535, 0.088522},
+{ 1.701724, 1.702654, 1.702929, 1.702488, 1.702586, 1.702446, 1.702476, 1.702559, 1.702577, 1.702533, 1.702508, 1.702450, 1.702433, 1.702375, 1.702317, 1.702258, 1.702143, 1.702028, 1.701913, 1.701797, 1.701681, 1.701565, 1.701448, 1.701156, 1.700862, 1.700270, 1.699671, 1.699066, 1.697836, 1.696579, 1.695294, 1.693982, 1.692640, 1.691270, 1.689869, 1.688438, 1.686975, 1.685480, 1.683952, 1.682390, 1.678334, 1.674047, 1.669517, 1.664727, 1.659659, 1.654293, 1.648606, 1.642574, 1.636168, 1.629355, 1.622096, 1.614348, 1.606060, 1.597171, 1.587611, 1.577296, 1.566129, 1.553988, 1.540731, 1.526181, 1.510123, 1.492287, 1.472329, 1.449810, 1.424148, 1.394562, 1.359963, 1.318780, 1.299967, 1.279528, 1.257209, 1.232697, 1.205593, 1.175383, 1.141384, 1.102665, 1.057901, 1.005112, 0.941138, 0.860413, 0.810643, 0.751534, 0.678709, 0.634741, 0.583406, 0.560151, 0.534917, 0.507294, 0.476715, 0.442361, 0.402967, 0.356392, 0.329251, 0.298439, 0.262423, 0.241636, 0.218210, 0.191057, 0.185023, 0.178739, 0.172175, 0.165293, 0.158050, 0.142240, 0.124053, 0.113695, 0.102141}};
+  const double imomegaqnm43[8][107] = {{ 0.050967, 0.062587, 0.071427, 0.082053, 0.086727, 0.087934, 0.088737, 0.089284, 0.089666, 0.089939, 0.090561, 0.090757, 0.090839, 0.090902, 0.090925, 0.090937, 0.090952, 0.090965, 0.090977, 0.090990, 0.091003, 0.091015, 0.091028, 0.091059, 0.091090, 0.091152, 0.091213, 0.091273, 0.091393, 0.091510, 0.091625, 0.091738, 0.091848, 0.091956, 0.092062, 0.092166, 0.092267, 0.092367, 0.092464, 0.092559, 0.092786, 0.092999, 0.093198, 0.093382, 0.093550, 0.093702, 0.093836, 0.093952, 0.094048, 0.094123, 0.094175, 0.094201, 0.094198, 0.094164, 0.094095, 0.093985, 0.093831, 0.093624, 0.093357, 0.093020, 0.092601, 0.092084, 0.091449, 0.090670, 0.089712, 0.088528, 0.087053, 0.085187, 0.084300, 0.083315, 0.082216, 0.080981, 0.079586, 0.077998, 0.076170, 0.074044, 0.071530, 0.068498, 0.064738, 0.059879, 0.056829, 0.053157, 0.048569, 0.045767, 0.042466, 0.040960, 0.039319, 0.037514, 0.035505, 0.033234, 0.030612, 0.027485, 0.025648, 0.023550, 0.021079, 0.019644, 0.018017, 0.016120, 0.015696, 0.015255, 0.014793, 0.014308, 0.013797, 0.012678, 0.011388, 0.010652, 0.009830},
+{ 0.267208, 0.271308, 0.273219, 0.274661, 0.275084, 0.275171, 0.275221, 0.275250, 0.275266, 0.275275, 0.275283, 0.275284, 0.275289, 0.275306, 0.275325, 0.275344, 0.275382, 0.275420, 0.275458, 0.275495, 0.275533, 0.275570, 0.275608, 0.275701, 0.275793, 0.275977, 0.276159, 0.276339, 0.276694, 0.277041, 0.277381, 0.277714, 0.278040, 0.278358, 0.278669, 0.278973, 0.279270, 0.279560, 0.279842, 0.280118, 0.280775, 0.281387, 0.281952, 0.282469, 0.282937, 0.283353, 0.283715, 0.284019, 0.284261, 0.284436, 0.284538, 0.284561, 0.284496, 0.284334, 0.284064, 0.283670, 0.283138, 0.282446, 0.281571, 0.280483, 0.279144, 0.277507, 0.275512, 0.273080, 0.270109, 0.266454, 0.261917, 0.256203, 0.253495, 0.250490, 0.247140, 0.243383, 0.239143, 0.234319, 0.228777, 0.222332, 0.214721, 0.205548, 0.194178, 0.179489, 0.170264, 0.159161, 0.145275, 0.136787, 0.126779, 0.122211, 0.117228, 0.111743, 0.105633, 0.098719, 0.090720, 0.081161, 0.075534, 0.069090, 0.061475, 0.057034, 0.051986, 0.046068, 0.044743, 0.043358, 0.041905, 0.040378, 0.038763, 0.035212, 0.031077, 0.028696, 0.026012},
+{ 0.467961, 0.467928, 0.467721, 0.467392, 0.467251, 0.467223, 0.467210, 0.467207, 0.467209, 0.467213, 0.467240, 0.467258, 0.467274, 0.467304, 0.467335, 0.467366, 0.467428, 0.467490, 0.467551, 0.467613, 0.467674, 0.467735, 0.467796, 0.467948, 0.468099, 0.468399, 0.468695, 0.468987, 0.469562, 0.470123, 0.470670, 0.471203, 0.471723, 0.472229, 0.472721, 0.473200, 0.473665, 0.474117, 0.474555, 0.474980, 0.475982, 0.476899, 0.477729, 0.478470, 0.479120, 0.479676, 0.480131, 0.480483, 0.480722, 0.480843, 0.480834, 0.480685, 0.480382, 0.479908, 0.479245, 0.478369, 0.477252, 0.475861, 0.474154, 0.472081, 0.469580, 0.466571, 0.462953, 0.458595, 0.453321, 0.446894, 0.438977, 0.429080, 0.424409, 0.419240, 0.413489, 0.407057, 0.399812, 0.391586, 0.382153, 0.371204, 0.358294, 0.342758, 0.323524, 0.298692, 0.283102, 0.264334, 0.240854, 0.226493, 0.209553, 0.201816, 0.193377, 0.184084, 0.173730, 0.162011, 0.148455, 0.132258, 0.122731, 0.111831, 0.098972, 0.091490, 0.083002, 0.073087, 0.070872, 0.068561, 0.066141, 0.063599, 0.060917, 0.055039, 0.048237, 0.044343, 0.039981},
+{ 0.672249, 0.671448, 0.671290, 0.671459, 0.671573, 0.671589, 0.671592, 0.671589, 0.671585, 0.671583, 0.671597, 0.671622, 0.671642, 0.671683, 0.671725, 0.671766, 0.671849, 0.671931, 0.672013, 0.672095, 0.672177, 0.672258, 0.672340, 0.672542, 0.672743, 0.673140, 0.673532, 0.673919, 0.674676, 0.675411, 0.676124, 0.676815, 0.677484, 0.678131, 0.678756, 0.679359, 0.679940, 0.680499, 0.681036, 0.681551, 0.682741, 0.683793, 0.684705, 0.685475, 0.686100, 0.686575, 0.686895, 0.687052, 0.687038, 0.686842, 0.686450, 0.685846, 0.685012, 0.683924, 0.682556, 0.680873, 0.678838, 0.676402, 0.673507, 0.670082, 0.666037, 0.661260, 0.655609, 0.648898, 0.640878, 0.631213, 0.619430, 0.604832, 0.597984, 0.590428, 0.582049, 0.572704, 0.562209, 0.550324, 0.536732, 0.520992, 0.502477, 0.480242, 0.452767, 0.417355, 0.395150, 0.368437, 0.335051, 0.314653, 0.290615, 0.279647, 0.267693, 0.254542, 0.239906, 0.223365, 0.204271, 0.181520, 0.168174, 0.152942, 0.135027, 0.124632, 0.112868, 0.099165, 0.096110, 0.092924, 0.089591, 0.086093, 0.082405, 0.074336, 0.065019, 0.059696, 0.053742},
+{ 0.890457, 0.891421, 0.891587, 0.891311, 0.891280, 0.891313, 0.891341, 0.891358, 0.891365, 0.891365, 0.891375, 0.891404, 0.891428, 0.891476, 0.891524, 0.891572, 0.891669, 0.891765, 0.891860, 0.891956, 0.892051, 0.892146, 0.892240, 0.892476, 0.892709, 0.893171, 0.893625, 0.894073, 0.894945, 0.895787, 0.896599, 0.897380, 0.898130, 0.898849, 0.899536, 0.900191, 0.900814, 0.901405, 0.901963, 0.902490, 0.903662, 0.904630, 0.905391, 0.905943, 0.906283, 0.906405, 0.906302, 0.905967, 0.905388, 0.904551, 0.903440, 0.902035, 0.900311, 0.898239, 0.895783, 0.892901, 0.889542, 0.885644, 0.881130, 0.875907, 0.869859, 0.862840, 0.854663, 0.845086, 0.833786, 0.820324, 0.804084, 0.784160, 0.774872, 0.764659, 0.753372, 0.740824, 0.726777, 0.710918, 0.692834, 0.671952, 0.647457, 0.618121, 0.581970, 0.535513, 0.506452, 0.471562, 0.428069, 0.401560, 0.370386, 0.356189, 0.340731, 0.323748, 0.304876, 0.283583, 0.259050, 0.229886, 0.212810, 0.193352, 0.170509, 0.157275, 0.142315, 0.124914, 0.121039, 0.116998, 0.112773, 0.108340, 0.103669, 0.093454, 0.081672, 0.074946, 0.067429},
+{ 1.126859, 1.125834, 1.125954, 1.126319, 1.126176, 1.126168, 1.126195, 1.126225, 1.126243, 1.126248, 1.126253, 1.126286, 1.126307, 1.126359, 1.126409, 1.126459, 1.126559, 1.126659, 1.126759, 1.126858, 1.126957, 1.127056, 1.127154, 1.127399, 1.127642, 1.128122, 1.128594, 1.129058, 1.129961, 1.130829, 1.131662, 1.132458, 1.133215, 1.133934, 1.134612, 1.135250, 1.135845, 1.136399, 1.136910, 1.137378, 1.138355, 1.139054, 1.139470, 1.139598, 1.139435, 1.138972, 1.138204, 1.137119, 1.135705, 1.133945, 1.131820, 1.129304, 1.126368, 1.122977, 1.119085, 1.114642, 1.109583, 1.103831, 1.097292, 1.089849, 1.081358, 1.071637, 1.060455, 1.047509, 1.032398, 1.014577, 0.993280, 0.967385, 0.955381, 0.942227, 0.927737, 0.911678, 0.893755, 0.873583, 0.850650, 0.824251, 0.793379, 0.756525, 0.711269, 0.653346, 0.617238, 0.574013, 0.520310, 0.487672, 0.449379, 0.431968, 0.413032, 0.392253, 0.369188, 0.343199, 0.313298, 0.277807, 0.257054, 0.233428, 0.205721, 0.189684, 0.171568, 0.150512, 0.145825, 0.140939, 0.135831, 0.130473, 0.124828, 0.112489, 0.098264, 0.090147, 0.081079},
+{ 1.372466, 1.373275, 1.372701, 1.372840, 1.372836, 1.372781, 1.372788, 1.372825, 1.372853, 1.372859, 1.372859, 1.372887, 1.372910, 1.372957, 1.373005, 1.373052, 1.373147, 1.373241, 1.373335, 1.373428, 1.373522, 1.373615, 1.373707, 1.373939, 1.374168, 1.374622, 1.375069, 1.375509, 1.376365, 1.377189, 1.377976, 1.378725, 1.379434, 1.380101, 1.380722, 1.381298, 1.381825, 1.382302, 1.382728, 1.383101, 1.383798, 1.384146, 1.384132, 1.383747, 1.382982, 1.381828, 1.380274, 1.378309, 1.375916, 1.373076, 1.369766, 1.365955, 1.361610, 1.356686, 1.351132, 1.344884, 1.337866, 1.329985, 1.321128, 1.311153, 1.299886, 1.287108, 1.272539, 1.255814, 1.236450, 1.213789, 1.186908, 1.154456, 1.139486, 1.123126, 1.105153, 1.085290, 1.063183, 1.038372, 1.010246, 0.977967, 0.940341, 0.895582, 0.840838, 0.771099, 0.727798, 0.676120, 0.612136, 0.573358, 0.527953, 0.507339, 0.484939, 0.460381, 0.433149, 0.402495, 0.367263, 0.325492, 0.301088, 0.273325, 0.240789, 0.221967, 0.200716, 0.176027, 0.170533, 0.164807, 0.158821, 0.152543, 0.145930, 0.131477, 0.114820, 0.105319, 0.094706},
+{ 1.626688, 1.626751, 1.627193, 1.626831, 1.626996, 1.626921, 1.626905, 1.626944, 1.626977, 1.626979, 1.626985, 1.626995, 1.627023, 1.627062, 1.627102, 1.627143, 1.627225, 1.627306, 1.627387, 1.627469, 1.627550, 1.627630, 1.627711, 1.627912, 1.628112, 1.628508, 1.628900, 1.629286, 1.630041, 1.630769, 1.631466, 1.632130, 1.632756, 1.633340, 1.633881, 1.634374, 1.634816, 1.635205, 1.635538, 1.635812, 1.636228, 1.636233, 1.635804, 1.634922, 1.633571, 1.631734, 1.629398, 1.626546, 1.623158, 1.619211, 1.614677, 1.609522, 1.603703, 1.597171, 1.589863, 1.581706, 1.572609, 1.562462, 1.551132, 1.538451, 1.524214, 1.508161, 1.489960, 1.469181, 1.445251, 1.417395, 1.384523, 1.345045, 1.326899, 1.307110, 1.285418, 1.261497, 1.234937, 1.205201, 1.171580, 1.133104, 1.088396, 1.035401, 0.970849, 0.889002, 0.838381, 0.778147, 0.703806, 0.658863, 0.606333, 0.582515, 0.556653, 0.528321, 0.496929, 0.461622, 0.421075, 0.373046, 0.345006, 0.313120, 0.275774, 0.254178, 0.229802, 0.201493, 0.195195, 0.188631, 0.181771, 0.174575, 0.166996, 0.150436, 0.131355, 0.120473, 0.108320}};
+  const double imomegaqnm42[8][107] = {{ 0.058810, 0.071056, 0.078796, 0.085560, 0.087557, 0.087981, 0.088246, 0.088420, 0.088539, 0.088624, 0.088828, 0.088902, 0.088937, 0.088971, 0.088989, 0.089004, 0.089030, 0.089056, 0.089082, 0.089107, 0.089133, 0.089158, 0.089183, 0.089245, 0.089307, 0.089429, 0.089548, 0.089665, 0.089892, 0.090110, 0.090319, 0.090520, 0.090713, 0.090899, 0.091078, 0.091250, 0.091416, 0.091576, 0.091729, 0.091877, 0.092222, 0.092535, 0.092818, 0.093072, 0.093299, 0.093501, 0.093676, 0.093827, 0.093952, 0.094051, 0.094123, 0.094167, 0.094181, 0.094164, 0.094112, 0.094023, 0.093891, 0.093712, 0.093480, 0.093187, 0.092822, 0.092374, 0.091825, 0.091157, 0.090340, 0.089338, 0.088098, 0.086545, 0.085812, 0.085002, 0.084103, 0.083099, 0.081972, 0.080698, 0.079245, 0.077572, 0.075621, 0.073305, 0.070497, 0.066982, 0.064850, 0.062371, 0.059422, 0.057713, 0.055802, 0.054970, 0.054093, 0.053167, 0.052186, 0.051143, 0.050031, 0.048842, 0.048214, 0.047563, 0.046887, 0.046540, 0.046185, 0.045824, 0.045750, 0.045677, 0.045603, 0.045529, 0.045454, 0.045304, 0.045151, 0.045072, 0.044992},
+{ 0.264390, 0.266773, 0.267754, 0.268435, 0.268620, 0.268657, 0.268678, 0.268691, 0.268699, 0.268704, 0.268721, 0.268737, 0.268756, 0.268796, 0.268835, 0.268875, 0.268954, 0.269033, 0.269112, 0.269190, 0.269268, 0.269346, 0.269423, 0.269615, 0.269805, 0.270179, 0.270546, 0.270905, 0.271603, 0.272272, 0.272916, 0.273534, 0.274128, 0.274699, 0.275248, 0.275776, 0.276283, 0.276770, 0.277238, 0.277688, 0.278737, 0.279683, 0.280534, 0.281295, 0.281970, 0.282563, 0.283075, 0.283507, 0.283860, 0.284131, 0.284318, 0.284418, 0.284425, 0.284334, 0.284137, 0.283822, 0.283378, 0.282788, 0.282034, 0.281092, 0.279931, 0.278514, 0.276792, 0.274702, 0.272161, 0.269054, 0.265225, 0.260445, 0.258194, 0.255707, 0.252948, 0.249872, 0.246422, 0.242524, 0.238083, 0.232970, 0.227005, 0.219928, 0.211340, 0.200582, 0.194047, 0.186442, 0.177398, 0.172168, 0.166341, 0.163817, 0.161172, 0.158397, 0.155488, 0.152440, 0.149256, 0.145944, 0.144246, 0.142522, 0.140776, 0.139896, 0.139012, 0.138124, 0.137946, 0.137768, 0.137590, 0.137412, 0.137233, 0.136876, 0.136519, 0.136340, 0.136160},
+{ 0.454114, 0.454188, 0.454117, 0.453995, 0.453956, 0.453954, 0.453958, 0.453964, 0.453971, 0.453979, 0.454018, 0.454053, 0.454087, 0.454156, 0.454225, 0.454294, 0.454431, 0.454568, 0.454704, 0.454839, 0.454974, 0.455109, 0.455243, 0.455576, 0.455906, 0.456556, 0.457193, 0.457819, 0.459033, 0.460200, 0.461321, 0.462398, 0.463432, 0.464425, 0.465378, 0.466292, 0.467169, 0.468009, 0.468815, 0.469587, 0.471377, 0.472977, 0.474401, 0.475659, 0.476759, 0.477707, 0.478508, 0.479163, 0.479672, 0.480035, 0.480247, 0.480302, 0.480193, 0.479908, 0.479434, 0.478754, 0.477847, 0.476685, 0.475236, 0.473460, 0.471304, 0.468706, 0.465581, 0.461823, 0.457290, 0.451789, 0.445051, 0.436686, 0.432761, 0.428434, 0.423641, 0.418305, 0.412329, 0.405585, 0.397909, 0.389076, 0.378772, 0.366539, 0.351667, 0.332968, 0.321562, 0.308233, 0.292322, 0.283123, 0.272956, 0.268620, 0.264155, 0.259609, 0.255066, 0.250638, 0.246403, 0.242355, 0.240406, 0.238508, 0.236662, 0.235759, 0.234868, 0.233989, 0.233815, 0.233641, 0.233468, 0.233296, 0.233123, 0.232781, 0.232440, 0.232270, 0.232101},
+{ 0.648389, 0.648069, 0.648032, 0.648120, 0.648171, 0.648183, 0.648191, 0.648199, 0.648206, 0.648215, 0.648264, 0.648315, 0.648365, 0.648465, 0.648565, 0.648665, 0.648863, 0.649062, 0.649259, 0.649456, 0.649653, 0.649848, 0.650044, 0.650528, 0.651009, 0.651959, 0.652892, 0.653808, 0.655592, 0.657311, 0.658964, 0.660553, 0.662079, 0.663543, 0.664946, 0.666290, 0.667577, 0.668807, 0.669982, 0.671104, 0.673687, 0.675969, 0.677968, 0.679703, 0.681185, 0.682426, 0.683433, 0.684210, 0.684759, 0.685079, 0.685164, 0.685008, 0.684600, 0.683924, 0.682962, 0.681688, 0.680073, 0.678078, 0.675656, 0.672749, 0.669283, 0.665166, 0.660278, 0.654466, 0.647525, 0.639177, 0.629034, 0.616531, 0.610691, 0.604267, 0.597168, 0.589279, 0.580458, 0.570517, 0.559212, 0.546206, 0.531024, 0.512964, 0.490908, 0.462919, 0.445629, 0.425112, 0.399954, 0.384908, 0.367650, 0.360049, 0.352082, 0.342567, 0.318968, 0.290453, 0.258664, 0.222654, 0.202571, 0.180561, 0.155823, 0.141995, 0.126777, 0.109593, 0.105838, 0.101951, 0.097915, 0.093712, 0.089318, 0.079830, 0.069083, 0.063040, 0.056364},
+{ 0.853446, 0.853813, 0.853876, 0.853807, 0.853824, 0.853845, 0.853864, 0.853880, 0.853893, 0.853905, 0.853966, 0.854032, 0.854097, 0.854226, 0.854356, 0.854485, 0.854743, 0.855000, 0.855257, 0.855513, 0.855768, 0.856023, 0.856277, 0.856910, 0.857539, 0.858783, 0.860011, 0.861221, 0.863587, 0.865877, 0.868089, 0.870221, 0.872273, 0.874244, 0.876134, 0.877943, 0.879673, 0.881325, 0.882899, 0.884397, 0.887822, 0.890809, 0.893382, 0.895565, 0.897376, 0.898832, 0.899944, 0.900719, 0.901163, 0.901274, 0.901048, 0.900477, 0.899547, 0.898239, 0.896528, 0.894382, 0.891761, 0.888616, 0.884884, 0.880488, 0.875329, 0.869287, 0.862201, 0.853868, 0.844015, 0.832273, 0.818121, 0.800806, 0.792753, 0.783915, 0.774169, 0.763359, 0.751287, 0.737698, 0.722247, 0.704463, 0.683664, 0.658816, 0.628211, 0.588666, 0.563573, 0.532655, 0.491591, 0.463983, 0.427824, 0.409990, 0.389707, 0.367796, 0.356393, 0.346180, 0.324863, 0.280112, 0.254936, 0.227115, 0.195789, 0.178303, 0.159092, 0.137437, 0.132711, 0.127819, 0.122742, 0.117457, 0.111934, 0.100014, 0.086524, 0.078944, 0.070572},
+{ 1.072047, 1.071660, 1.071696, 1.071852, 1.071838, 1.071847, 1.071867, 1.071889, 1.071908, 1.071924, 1.071994, 1.072072, 1.072147, 1.072299, 1.072450, 1.072602, 1.072904, 1.073206, 1.073508, 1.073809, 1.074110, 1.074410, 1.074710, 1.075459, 1.076204, 1.077687, 1.079157, 1.080613, 1.083479, 1.086277, 1.089000, 1.091641, 1.094197, 1.096662, 1.099033, 1.101308, 1.103486, 1.105566, 1.107549, 1.109433, 1.113723, 1.117427, 1.120571, 1.123179, 1.125276, 1.126882, 1.128014, 1.128684, 1.128897, 1.128656, 1.127956, 1.126788, 1.125136, 1.122977, 1.120280, 1.117006, 1.113105, 1.108514, 1.103154, 1.096929, 1.089715, 1.081356, 1.071653, 1.060343, 1.047082, 1.031397, 1.012625, 0.989793, 0.979214, 0.967624, 0.954863, 0.940725, 0.924950, 0.907196, 0.887000, 0.863715, 0.836390, 0.803542, 0.762631, 0.708697, 0.673728, 0.630147, 0.573902, 0.539636, 0.500193, 0.482250, 0.462281, 0.439394, 0.412490, 0.380102, 0.351248, 0.347751, 0.343291, 0.343798, 0.342229, 0.342109, 0.341525, 0.341141, 0.341022, 0.340957, 0.340861, 0.340789, 0.340701, 0.340537, 0.340374, 0.340293, 0.340212},
+{ 1.300896, 1.301336, 1.301154, 1.301182, 1.301235, 1.301228, 1.301239, 1.301262, 1.301287, 1.301306, 1.301379, 1.301462, 1.301542, 1.301704, 1.301865, 1.302026, 1.302349, 1.302672, 1.302995, 1.303318, 1.303641, 1.303964, 1.304287, 1.305095, 1.305902, 1.307515, 1.309125, 1.310729, 1.313916, 1.317065, 1.320162, 1.323196, 1.326158, 1.329037, 1.331825, 1.334515, 1.337102, 1.339582, 1.341951, 1.344206, 1.349342, 1.353760, 1.357472, 1.360501, 1.362870, 1.364602, 1.365717, 1.366229, 1.366147, 1.365474, 1.364207, 1.362333, 1.359835, 1.356686, 1.352849, 1.348276, 1.342906, 1.336663, 1.329452, 1.321152, 1.311612, 1.300640, 1.287991, 1.273342, 1.256266, 1.236177, 1.212248, 1.183263, 1.169862, 1.155197, 1.139060, 1.121190, 1.101249, 1.078793, 1.053212, 1.023645, 0.988819, 0.946728, 0.894001, 0.824570, 0.780378, 0.727096, 0.660767, 0.620196, 0.572343, 0.550699, 0.527420, 0.502221, 0.474283, 0.441723, 0.401557, 0.347751, 0.343291, 0.343798, 0.342229, 0.342109, 0.341525, 0.341141, 0.341022, 0.340957, 0.340861, 0.340789, 0.340701, 0.340537, 0.340374, 0.340293, 0.340212},
+{ 1.539724, 1.539542, 1.539848, 1.539693, 1.539814, 1.539804, 1.539800, 1.539820, 1.539849, 1.539871, 1.539941, 1.540021, 1.540102, 1.540260, 1.540419, 1.540579, 1.540898, 1.541217, 1.541537, 1.541858, 1.542178, 1.542500, 1.542821, 1.543628, 1.544436, 1.546060, 1.547692, 1.549330, 1.552618, 1.555910, 1.559191, 1.562447, 1.565662, 1.568822, 1.571913, 1.574923, 1.577839, 1.580653, 1.583357, 1.585943, 1.591863, 1.596971, 1.601252, 1.604711, 1.607367, 1.609238, 1.610346, 1.610704, 1.610324, 1.609208, 1.607352, 1.604743, 1.601360, 1.597171, 1.592132, 1.586186, 1.579262, 1.571268, 1.562088, 1.551580, 1.539561, 1.525801, 1.510003, 1.491777, 1.470605, 1.445775, 1.416275, 1.380611, 1.364135, 1.346106, 1.326267, 1.304287, 1.279742, 1.252065, 1.220484, 1.183911, 1.140760, 1.088628, 1.023770, 0.940046, 0.887831, 0.825435, 0.748211, 0.701587, 0.647081, 0.622271, 0.595247, 0.565632, 0.533066, 0.497000, 0.455359, 0.402452, 0.368523, 0.320551, 0.276061, 0.251386, 0.224156, 0.193441, 0.186744, 0.179816, 0.172632, 0.165157, 0.157350, 0.140519, 0.121500, 0.110824, 0.099042}};
+  const double imomegaqnm41[8][107] = {{ 0.070745, 0.079568, 0.082950, 0.084642, 0.084972, 0.085040, 0.085086, 0.085120, 0.085146, 0.085167, 0.085233, 0.085268, 0.085292, 0.085328, 0.085359, 0.085389, 0.085448, 0.085506, 0.085564, 0.085621, 0.085678, 0.085734, 0.085791, 0.085929, 0.086065, 0.086330, 0.086585, 0.086831, 0.087299, 0.087736, 0.088145, 0.088528, 0.088888, 0.089226, 0.089544, 0.089844, 0.090127, 0.090394, 0.090646, 0.090885, 0.091427, 0.091900, 0.092313, 0.092673, 0.092986, 0.093256, 0.093488, 0.093683, 0.093844, 0.093972, 0.094068, 0.094132, 0.094164, 0.094164, 0.094130, 0.094060, 0.093951, 0.093801, 0.093605, 0.093357, 0.093051, 0.092678, 0.092226, 0.091682, 0.091027, 0.090235, 0.089273, 0.088095, 0.087548, 0.086951, 0.086295, 0.085574, 0.084777, 0.083892, 0.082904, 0.081793, 0.080536, 0.079099, 0.077437, 0.075488, 0.074378, 0.073160, 0.071812, 0.071083, 0.070312, 0.069991, 0.069662, 0.069325, 0.068981, 0.068627, 0.068265, 0.067893, 0.067704, 0.067512, 0.067318, 0.067219, 0.067120, 0.067018, 0.066997, 0.066976, 0.066954, 0.066932, 0.066909, 0.066863, 0.066835, 0.066862, 0.067010},
+{ 0.255428, 0.256296, 0.256641, 0.256879, 0.256948, 0.256965, 0.256978, 0.256989, 0.256998, 0.257007, 0.257050, 0.257094, 0.257139, 0.257228, 0.257318, 0.257407, 0.257585, 0.257761, 0.257936, 0.258110, 0.258282, 0.258454, 0.258624, 0.259045, 0.259459, 0.260266, 0.261046, 0.261801, 0.263238, 0.264584, 0.265846, 0.267031, 0.268146, 0.269194, 0.270181, 0.271111, 0.271988, 0.272817, 0.273599, 0.274339, 0.276017, 0.277478, 0.278752, 0.279860, 0.280821, 0.281648, 0.282353, 0.282944, 0.283428, 0.283809, 0.284090, 0.284271, 0.284354, 0.284334, 0.284209, 0.283973, 0.283618, 0.283133, 0.282505, 0.281718, 0.280751, 0.279577, 0.278162, 0.276461, 0.274418, 0.271957, 0.268974, 0.265325, 0.263635, 0.261789, 0.259765, 0.257540, 0.255084, 0.252358, 0.249318, 0.245906, 0.242047, 0.237646, 0.232573, 0.226657, 0.223312, 0.219664, 0.215673, 0.213535, 0.211297, 0.210371, 0.209429, 0.208469, 0.207491, 0.206495, 0.205481, 0.204448, 0.203925, 0.203397, 0.202865, 0.202597, 0.202327, 0.202057, 0.202003, 0.201949, 0.201894, 0.201840, 0.201786, 0.201677, 0.201564, 0.201502, 0.201427},
+{ 0.432356, 0.432408, 0.432395, 0.432382, 0.432399, 0.432413, 0.432427, 0.432443, 0.432458, 0.432474, 0.432550, 0.432626, 0.432701, 0.432852, 0.433002, 0.433151, 0.433449, 0.433746, 0.434041, 0.434334, 0.434626, 0.434916, 0.435204, 0.435918, 0.436623, 0.438002, 0.439342, 0.440644, 0.443137, 0.445486, 0.447701, 0.449788, 0.451754, 0.453608, 0.455356, 0.457005, 0.458560, 0.460029, 0.461416, 0.462727, 0.465696, 0.468276, 0.470516, 0.472456, 0.474129, 0.475560, 0.476769, 0.477773, 0.478583, 0.479207, 0.479651, 0.479917, 0.480003, 0.479908, 0.479624, 0.479142, 0.478447, 0.477524, 0.476348, 0.474891, 0.473116, 0.470978, 0.468417, 0.465358, 0.461701, 0.457315, 0.452021, 0.445570, 0.442589, 0.439338, 0.435779, 0.431871, 0.427562, 0.422789, 0.417473, 0.411520, 0.404805, 0.397177, 0.388443, 0.378379, 0.372777, 0.366767, 0.360348, 0.356992, 0.353546, 0.352145, 0.350732, 0.349307, 0.347872, 0.346428, 0.344975, 0.343514, 0.342781, 0.342047, 0.341311, 0.340943, 0.340574, 0.340206, 0.340132, 0.340058, 0.339984, 0.339910, 0.339836, 0.339689, 0.339542, 0.339469, 0.339396},
+{ 0.613987, 0.613908, 0.613922, 0.613986, 0.614035, 0.614055, 0.614075, 0.614096, 0.614116, 0.614137, 0.614241, 0.614346, 0.614451, 0.614659, 0.614867, 0.615075, 0.615490, 0.615904, 0.616315, 0.616726, 0.617135, 0.617542, 0.617948, 0.618956, 0.619955, 0.621922, 0.623847, 0.625731, 0.629369, 0.632834, 0.636125, 0.639246, 0.642201, 0.644997, 0.647640, 0.650139, 0.652500, 0.654730, 0.656836, 0.658826, 0.663330, 0.667232, 0.670606, 0.673512, 0.676001, 0.678111, 0.679875, 0.681318, 0.682458, 0.683309, 0.683879, 0.684172, 0.684189, 0.683924, 0.683370, 0.682510, 0.681328, 0.679796, 0.677882, 0.675543, 0.672726, 0.669363, 0.665368, 0.660629, 0.655000, 0.648289, 0.640231, 0.630458, 0.625957, 0.621054, 0.615698, 0.609825, 0.603360, 0.596211, 0.588266, 0.579387, 0.569409, 0.558136, 0.545364, 0.530960, 0.523178, 0.515098, 0.506854, 0.502721, 0.498611, 0.496978, 0.495353, 0.493738, 0.492133, 0.490540, 0.488960, 0.487394, 0.486616, 0.485842, 0.485072, 0.484688, 0.484306, 0.483924, 0.483848, 0.483772, 0.483695, 0.483619, 0.483543, 0.483391, 0.483239, 0.483163, 0.483089},
+{ 0.803913, 0.804044, 0.804080, 0.804106, 0.804156, 0.804184, 0.804211, 0.804237, 0.804263, 0.804288, 0.804417, 0.804546, 0.804674, 0.804932, 0.805189, 0.805446, 0.805959, 0.806473, 0.806985, 0.807497, 0.808007, 0.808518, 0.809027, 0.810297, 0.811561, 0.814070, 0.816550, 0.818997, 0.823783, 0.828406, 0.832850, 0.837105, 0.841166, 0.845032, 0.848705, 0.852188, 0.855489, 0.858612, 0.861566, 0.864358, 0.870678, 0.876142, 0.880850, 0.884884, 0.888315, 0.891198, 0.893579, 0.895493, 0.896969, 0.898027, 0.898678, 0.898931, 0.898787, 0.898239, 0.897277, 0.895882, 0.894028, 0.891682, 0.888798, 0.885319, 0.881174, 0.876270, 0.870490, 0.863682, 0.855648, 0.846124, 0.834750, 0.821019, 0.814714, 0.807856, 0.800375, 0.792184, 0.783178, 0.773233, 0.762196, 0.749887, 0.736102, 0.720635, 0.703395, 0.684742, 0.675289, 0.666104, 0.657406, 0.653282, 0.649319, 0.647780, 0.646267, 0.644780, 0.643319, 0.641885, 0.640475, 0.639091, 0.638408, 0.637732, 0.637061, 0.636729, 0.636397, 0.636067, 0.636001, 0.635936, 0.635870, 0.635804, 0.635739, 0.635608, 0.635477, 0.635412, 0.635344},
+{ 1.004519, 1.004422, 1.004453, 1.004545, 1.004593, 1.004620, 1.004649, 1.004679, 1.004709, 1.004738, 1.004881, 1.005025, 1.005169, 1.005456, 1.005744, 1.006032, 1.006609, 1.007186, 1.007764, 1.008342, 1.008921, 1.009500, 1.010080, 1.011530, 1.012983, 1.015889, 1.018793, 1.021690, 1.027440, 1.033098, 1.038626, 1.043993, 1.049176, 1.054156, 1.058924, 1.063474, 1.067804, 1.071917, 1.075817, 1.079509, 1.087881, 1.095121, 1.101345, 1.106658, 1.111150, 1.114895, 1.117955, 1.120376, 1.122199, 1.123448, 1.124145, 1.124298, 1.123911, 1.122977, 1.121482, 1.119405, 1.116711, 1.113357, 1.109287, 1.104426, 1.098681, 1.091935, 1.084033, 1.074781, 1.063919, 1.051102, 1.035857, 1.017518, 1.009112, 0.999979, 0.990022, 0.979125, 0.967148, 0.953922, 0.939246, 0.922887, 0.904602, 0.884255, 0.862248, 0.840921, 0.831775, 0.823609, 0.816386, 0.813081, 0.809960, 0.808759, 0.807585, 0.806435, 0.805310, 0.804207, 0.803127, 0.802069, 0.801548, 0.801031, 0.800520, 0.800267, 0.800014, 0.799763, 0.799713, 0.799663, 0.799613, 0.799563, 0.799513, 0.799413, 0.799313, 0.799263, 0.799218},
+{ 1.215956, 1.216148, 1.216128, 1.216170, 1.216241, 1.216264, 1.216291, 1.216321, 1.216352, 1.216383, 1.216528, 1.216676, 1.216822, 1.217117, 1.217412, 1.217708, 1.218300, 1.218894, 1.219490, 1.220087, 1.220687, 1.221288, 1.221891, 1.223404, 1.224928, 1.228002, 1.231108, 1.234240, 1.240562, 1.246918, 1.253256, 1.259525, 1.265676, 1.271670, 1.277473, 1.283063, 1.288423, 1.293543, 1.298421, 1.303055, 1.313603, 1.322749, 1.330611, 1.337310, 1.342952, 1.347629, 1.351418, 1.354381, 1.356565, 1.358007, 1.358731, 1.358751, 1.358072, 1.356686, 1.354578, 1.351719, 1.348070, 1.343576, 1.338166, 1.331748, 1.324207, 1.315393, 1.305115, 1.293126, 1.279099, 1.262596, 1.243013, 1.219489, 1.208710, 1.196998, 1.184222, 1.170228, 1.154824, 1.137778, 1.118809, 1.097590, 1.073814, 1.047555, 1.021630, 1.006614, 0.999428, 0.994254, 0.989417, 0.987226, 0.985098, 0.984273, 0.983473, 0.982685, 0.981910, 0.981149, 0.980402, 0.979666, 0.979303, 0.978942, 0.978585, 0.978407, 0.978230, 0.978054, 0.978019, 0.977984, 0.977949, 0.977914, 0.977879, 0.977808, 0.977740, 0.977704, 0.977662},
+{ 1.438671, 1.438539, 1.438690, 1.438687, 1.438772, 1.438797, 1.438817, 1.438842, 1.438873, 1.438904, 1.439041, 1.439182, 1.439321, 1.439601, 1.439882, 1.440163, 1.440728, 1.441295, 1.441865, 1.442438, 1.443013, 1.443590, 1.444170, 1.445632, 1.447109, 1.450111, 1.453172, 1.456292, 1.462688, 1.469264, 1.475970, 1.482750, 1.489541, 1.496283, 1.502917, 1.509394, 1.515673, 1.521727, 1.527534, 1.533082, 1.545796, 1.556882, 1.566435, 1.574574, 1.581418, 1.587074, 1.591631, 1.595164, 1.597732, 1.599378, 1.600134, 1.600016, 1.599031, 1.597171, 1.594416, 1.590734, 1.586076, 1.580376, 1.573548, 1.565481, 1.556033, 1.545023, 1.532216, 1.517307, 1.499894, 1.479430, 1.455158, 1.425982, 1.412595, 1.398026, 1.382103, 1.364610, 1.345276, 1.323754, 1.299592, 1.272190, 1.240773, 1.204723, 1.125253, 0.938477, 0.838838, 0.734651, 0.622895, 0.562606, 0.497864, 0.470296, 0.441499, 0.411211, 0.379069, 0.646318, 0.573546, 0.492714, 0.447938, 0.398980, 0.344066, 0.313415, 0.279721, 0.241717, 0.233418, 0.224829, 0.215913, 0.206630, 0.196927, 0.175980, 0.152268, 0.138939, 0.124215}};
+  const double imomegaqnm40[8][107] = {{ 1.438671, 1.438539, 1.438690, 1.438687, 1.438772, 1.438797, 1.438817, 1.438842, 1.438873, 1.438904, 1.439041, 1.439182, 1.439321, 1.439601, 1.439882, 1.440163, 1.440728, 1.441295, 1.441865, 1.442438, 1.443013, 1.443590, 1.444170, 1.445632, 1.447109, 1.450111, 1.453172, 1.456292, 1.462688, 1.469264, 1.475970, 1.482750, 1.489541, 1.496283, 1.502917, 1.509394, 1.515673, 1.521727, 1.527534, 1.533082, 1.545796, 1.556882, 1.566435, 1.574574, 1.581418, 1.587074, 1.591631, 1.595164, 1.597732, 1.599378, 1.600134, 1.600016, 1.599031, 1.597171, 0.094147, 0.094096, 0.094010, 0.093888, 0.093727, 0.093524, 0.093276, 0.092977, 0.092621, 0.092200, 0.091703, 0.091116, 0.090423, 0.089598, 0.089224, 0.088822, 0.088389, 0.087921, 0.087414, 0.086864, 0.086265, 0.085611, 0.084894, 0.084105, 0.083233, 0.082264, 0.081737, 0.081180, 0.080588, 0.080279, 0.079960, 0.079829, 0.079697, 0.079563, 0.079427, 0.079290, 0.079151, 0.079010, 0.078938, 0.078867, 0.078793, 0.078755, 0.078713, 0.078663, 0.078651, 0.078639, 0.078626, 0.078613, 0.078601, 0.078589, 0.078624, 0.078591, 0.077756},
+{ 1.438671, 1.438539, 1.438690, 1.438687, 1.438772, 1.438797, 1.438817, 1.438842, 1.438873, 1.438904, 1.439041, 1.439182, 1.439321, 1.439601, 1.439882, 1.440163, 1.440728, 1.441295, 1.441865, 1.442438, 1.443013, 1.443590, 1.444170, 1.445632, 1.447109, 1.450111, 1.453172, 1.456292, 1.462688, 1.469264, 1.475970, 1.482750, 1.489541, 1.496283, 1.502917, 1.509394, 1.515673, 1.521727, 1.527534, 1.533082, 1.545796, 1.556882, 1.566435, 1.574574, 1.581418, 1.587074, 1.591631, 1.595164, 1.597732, 1.599378, 1.600134, 1.600016, 1.599031, 1.597171, 0.284282, 0.284123, 0.283856, 0.283475, 0.282973, 0.282342, 0.281569, 0.280639, 0.279531, 0.278220, 0.276673, 0.274849, 0.272693, 0.270131, 0.268972, 0.267724, 0.266380, 0.264929, 0.263359, 0.261656, 0.259805, 0.257787, 0.255580, 0.253159, 0.250493, 0.247547, 0.245957, 0.244282, 0.242515, 0.241595, 0.240650, 0.240265, 0.239876, 0.239482, 0.239084, 0.238682, 0.238275, 0.237864, 0.237657, 0.237449, 0.237239, 0.237134, 0.237029, 0.236923, 0.236902, 0.236882, 0.236860, 0.236839, 0.236817, 0.236767, 0.236680, 0.236587, 0.236384},
+{ 1.438671, 1.438539, 1.438690, 1.438687, 1.438772, 1.438797, 1.438817, 1.438842, 1.438873, 1.438904, 1.439041, 1.439182, 1.439321, 1.439601, 1.439882, 1.440163, 1.440728, 1.441295, 1.441865, 1.442438, 1.443013, 1.443590, 1.444170, 1.445632, 1.447109, 1.450111, 1.453172, 1.456292, 1.462688, 1.469264, 1.475970, 1.482750, 1.489541, 1.496283, 1.502917, 1.509394, 1.515673, 1.521727, 1.527534, 1.533082, 1.545796, 1.556882, 1.566435, 1.574574, 1.581418, 1.587074, 1.591631, 1.595164, 1.597732, 1.599378, 1.600134, 1.600016, 1.599031, 1.597171, 0.479814, 0.479529, 0.479050, 0.478367, 0.477469, 0.476339, 0.474956, 0.473292, 0.471312, 0.468970, 0.466209, 0.462957, 0.459115, 0.454557, 0.452497, 0.450282, 0.447898, 0.445327, 0.442550, 0.439545, 0.436285, 0.432744, 0.428889, 0.424686, 0.420099, 0.415093, 0.412423, 0.409638, 0.406737, 0.405243, 0.403720, 0.403102, 0.402480, 0.401854, 0.401223, 0.400587, 0.399947, 0.399303, 0.398979, 0.398654, 0.398328, 0.398165, 0.398001, 0.397837, 0.397804, 0.397771, 0.397738, 0.397705, 0.397672, 0.397608, 0.397552, 0.397528, 0.397490},
+{ 1.438671, 1.438539, 1.438690, 1.438687, 1.438772, 1.438797, 1.438817, 1.438842, 1.438873, 1.438904, 1.439041, 1.439182, 1.439321, 1.439601, 1.439882, 1.440163, 1.440728, 1.441295, 1.441865, 1.442438, 1.443013, 1.443590, 1.444170, 1.445632, 1.447109, 1.450111, 1.453172, 1.456292, 1.462688, 1.469264, 1.475970, 1.482750, 1.489541, 1.496283, 1.502917, 1.509394, 1.515673, 1.521727, 1.527534, 1.533082, 1.545796, 1.556882, 1.566435, 1.574574, 1.581418, 1.587074, 1.591631, 1.595164, 1.597732, 1.599378, 1.600134, 1.600016, 1.599031, 1.597171, 0.683779, 0.683339, 0.682598, 0.681544, 0.680158, 0.678415, 0.676283, 0.673720, 0.670673, 0.667075, 0.662838, 0.657852, 0.651974, 0.645014, 0.641874, 0.638502, 0.634878, 0.630978, 0.626774, 0.622239, 0.617340, 0.612046, 0.606325, 0.600151, 0.593508, 0.586401, 0.582682, 0.578863, 0.574955, 0.572971, 0.570970, 0.570165, 0.569358, 0.568549, 0.567738, 0.566925, 0.566110, 0.565293, 0.564885, 0.564476, 0.564066, 0.563861, 0.563657, 0.563452, 0.563411, 0.563370, 0.563329, 0.563288, 0.563247, 0.563164, 0.563077, 0.563036, 0.563014},
+{ 1.438671, 1.438539, 1.438690, 1.438687, 1.438772, 1.438797, 1.438817, 1.438842, 1.438873, 1.438904, 1.439041, 1.439182, 1.439321, 1.439601, 1.439882, 1.440163, 1.440728, 1.441295, 1.441865, 1.442438, 1.443013, 1.443590, 1.444170, 1.445632, 1.447109, 1.450111, 1.453172, 1.456292, 1.462688, 1.469264, 1.475970, 1.482750, 1.489541, 1.496283, 1.502917, 1.509394, 1.515673, 1.521727, 1.527534, 1.533082, 1.545796, 1.556882, 1.566435, 1.574574, 1.581418, 1.587074, 1.591631, 1.595164, 1.597732, 1.599378, 1.600134, 1.600016, 1.599031, 1.597171, 0.898030, 0.897399, 0.896336, 0.894824, 0.892837, 0.890341, 0.887290, 0.883627, 0.879278, 0.874148, 0.868116, 0.861030, 0.852691, 0.842842, 0.838407, 0.833654, 0.828554, 0.823079, 0.817197, 0.810876, 0.804088, 0.796809, 0.789030, 0.780765, 0.772061, 0.763015, 0.758408, 0.753773, 0.749132, 0.746816, 0.744509, 0.743588, 0.742669, 0.741753, 0.740838, 0.739926, 0.739016, 0.738108, 0.737656, 0.737204, 0.736752, 0.736527, 0.736302, 0.736077, 0.736032, 0.735987, 0.735942, 0.735897, 0.735852, 0.735762, 0.735677, 0.735631, 0.735564},
+{ 1.438671, 1.438539, 1.438690, 1.438687, 1.438772, 1.438797, 1.438817, 1.438842, 1.438873, 1.438904, 1.439041, 1.439182, 1.439321, 1.439601, 1.439882, 1.440163, 1.440728, 1.441295, 1.441865, 1.442438, 1.443013, 1.443590, 1.444170, 1.445632, 1.447109, 1.450111, 1.453172, 1.456292, 1.462688, 1.469264, 1.475970, 1.482750, 1.489541, 1.496283, 1.502917, 1.509394, 1.515673, 1.521727, 1.527534, 1.533082, 1.545796, 1.556882, 1.566435, 1.574574, 1.581418, 1.587074, 1.591631, 1.595164, 1.597732, 1.599378, 1.600134, 1.600016, 1.599031, 1.597171, 1.122693, 1.121836, 1.120394, 1.118342, 1.115648, 1.112266, 1.108136, 1.103182, 1.097304, 1.090380, 1.082250, 1.072712, 1.061506, 1.048301, 1.042369, 1.036021, 1.029226, 1.021952, 1.014170, 1.005854, 0.996995, 0.987606, 0.977740, 0.967503, 0.957067, 0.946652, 0.941522, 0.936480, 0.931545, 0.929125, 0.926737, 0.925792, 0.924853, 0.923919, 0.922991, 0.922069, 0.921152, 0.920242, 0.919789, 0.919338, 0.918888, 0.918664, 0.918440, 0.918216, 0.918172, 0.918127, 0.918082, 0.918037, 0.917993, 0.917906, 0.917810, 0.917765, 0.917749},
+{ 1.438671, 1.438539, 1.438690, 1.438687, 1.438772, 1.438797, 1.438817, 1.438842, 1.438873, 1.438904, 1.439041, 1.439182, 1.439321, 1.439601, 1.439882, 1.440163, 1.440728, 1.441295, 1.441865, 1.442438, 1.443013, 1.443590, 1.444170, 1.445632, 1.447109, 1.450111, 1.453172, 1.456292, 1.462688, 1.469264, 1.475970, 1.482750, 1.489541, 1.496283, 1.502917, 1.509394, 1.515673, 1.521727, 1.527534, 1.533082, 1.545796, 1.556882, 1.566435, 1.574574, 1.581418, 1.587074, 1.591631, 1.595164, 1.597732, 1.599378, 1.600134, 1.600016, 1.599031, 1.597171, 1.356319, 1.355212, 1.353349, 1.350699, 1.347220, 1.342855, 1.337528, 1.331141, 1.323569, 1.314654, 1.304196, 1.291938, 1.277556, 1.260642, 1.253060, 1.244963, 1.236319, 1.227100, 1.217291, 1.206897, 1.195961, 1.184586, 1.172958, 1.161345, 1.150044, 1.139303, 1.134195, 1.129278, 1.124555, 1.122267, 1.120028, 1.119146, 1.118271, 1.117404, 1.116544, 1.115692, 1.114847, 1.114010, 1.113594, 1.113180, 1.112768, 1.112563, 1.112358, 1.112153, 1.112112, 1.112071, 1.112030, 1.111990, 1.111950, 1.111865, 1.111791, 1.111758, 1.111672},
+{ 1.438671, 1.438539, 1.438690, 1.438687, 1.438772, 1.438797, 1.438817, 1.438842, 1.438873, 1.438904, 1.439041, 1.439182, 1.439321, 1.439601, 1.439882, 1.440163, 1.440728, 1.441295, 1.441865, 1.442438, 1.443013, 1.443590, 1.444170, 1.445632, 1.447109, 1.450111, 1.453172, 1.456292, 1.462688, 1.469264, 1.475970, 1.482750, 1.489541, 1.496283, 1.502917, 1.509394, 1.515673, 1.521727, 1.527534, 1.533082, 1.545796, 1.556882, 1.566435, 1.574574, 1.581418, 1.587074, 1.591631, 1.595164, 1.597732, 1.599378, 1.600134, 1.600016, 1.599031, 1.597171, 1.596716, 1.595345, 1.593037, 1.589757, 1.585451, 1.580049, 1.573457, 1.565556, 1.556192, 1.545172, 1.532249, 1.517110, 1.499363, 1.478531, 1.469216, 1.459292, 1.448735, 1.437538, 1.425727, 1.413381, 1.400670, 1.387885, 1.375423, 1.363657, 1.352804, 1.342937, 1.338366, 1.334022, 1.329895, 1.327908, 1.325970, 1.325208, 1.324453, 1.323706, 1.322966, 1.322233, 1.321507, 1.320788, 1.320431, 1.320076, 1.319722, 1.319546, 1.319370, 1.319195, 1.319159, 1.319124, 1.319091, 1.319057, 1.319021, 1.318947, 1.318885, 1.318817, 1.318855}};
 
   /* Stuff for interpolating the data */
   gsl_spline    *spline = NULL;

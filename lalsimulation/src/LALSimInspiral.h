@@ -1517,10 +1517,6 @@ typedef struct tagLALSimInspiralSpinTaylorT4Coeffs
   REAL8 dt;                          // sampling in seconds
 } LALSimInspiralSpinTaylorT4Coeffs;
 
-int XLALAppendTS(REAL8TimeSeries *start, REAL8TimeSeries *end, REAL8TimeSeries *out);
-
-int XLALAppendTSandFree(REAL8TimeSeries *start, REAL8TimeSeries *end, REAL8TimeSeries *out);
-
 #if 0
 { /* so that editors will match succeeding brace */
 #elif defined(__cplusplus)

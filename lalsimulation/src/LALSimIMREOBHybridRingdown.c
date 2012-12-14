@@ -104,6 +104,8 @@ static INT4 XLALSimIMREOBHybridRingdownWave(
   t5 = (matchrange->data[0] - matchrange->data[1]) * m;
   rt = -t5 / 5.;
 
+  printf("m-EOBRD: %12.4e  %12.4e  MR: %12.4e  %12.4e\n",mass1,mass2,matchrange->data[0],matchrange->data[1]);
+
   t4 = t5 + rt;
   t3 = t4 + rt;
   t2 = t3 + rt;
@@ -137,6 +139,7 @@ static INT4 XLALSimIMREOBHybridRingdownWave(
   /* Matrix A (2*n by 2*n) has block symmetry. Define half of A here as "coef" */
   /* The half of A defined here corresponds to matrices M1 and -M2 in the DCC document T1100433 */ 
   /* Define y here as "hderivs" */
+  printf(" t1 %12.4e, t2/t1 %12.4e, t3/t1 %12.4e  t4/t1 %12.4e  t5/t1 %12.4e\n",t1,t2/t1,t3/t1,t4/t1,t5/t1);
   for (i = 0; i < nmodes; ++i)
   {
 	gsl_matrix_set(coef, 0, i, 1);
@@ -186,23 +189,17 @@ static INT4 XLALSimIMREOBHybridRingdownWave(
 	}
   }
 
-  #if 0
+  #if 1
   /* print ringdown-matching linear system: coefficient matrix and RHS vector */
   printf("\nRingdown matching matrix:\n");
   for (i = 0; i < 16; ++i)
   {
     for (j = 0; j < 16; ++j)
     {
-      printf("%.12e ",gsl_matrix_get(coef,i,j));
+      printf("%8.1e ",gsl_matrix_get(coef,i,j));
     }
-    printf("\n");
+    printf(" | %8.1e\n",gsl_vector_get(hderivs,i));
   }
-  printf("RHS:  ");
-  for (i = 0; i < 16; ++i)
-  {
-    printf("%.12e   ",gsl_vector_get(hderivs,i));
-  }
-  printf("\n");
   #endif
 
   /* Call gsl LU decomposition to solve the linear system */
@@ -236,6 +233,10 @@ static INT4 XLALSimIMREOBHybridRingdownWave(
   {
 	modeamps->data[i] = gsl_vector_get(x, i);
 	modeamps->data[i + nmodes] = gsl_vector_get(x, i + nmodes);
+  }
+
+  for (int idx=0;idx<(int)nmodes;idx++) {
+    printf("%d  A %12.4e  B %12.4e\n",idx,modeamps->data[idx],modeamps->data[idx+nmodes]);
   }
 
   /* Free all gsl linear algebra objects */

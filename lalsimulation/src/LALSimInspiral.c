@@ -2215,39 +2215,22 @@ int XLALGetHigherModesFromString(const CHAR *inString)
     return  LAL_SIM_INSPIRAL_MODES_CHOICE_3AND4L;
   else if (strstr(inString, "L234"))
     return  LAL_SIM_INSPIRAL_MODES_CHOICE_2AND3AND4L;
+  else if (strstr(inString, "L5"))
+    return  LAL_SIM_INSPIRAL_MODES_CHOICE_5L;
+  else if (strstr(inString, "L25"))
+    return  LAL_SIM_INSPIRAL_MODES_CHOICE_2AND5L;
+  else if (strstr(inString, "L35"))
+    return  LAL_SIM_INSPIRAL_MODES_CHOICE_3AND5L;
+  else if (strstr(inString, "L45"))
+    return  LAL_SIM_INSPIRAL_MODES_CHOICE_4AND5L;
+  else if (strstr(inString, "L235"))
+    return  LAL_SIM_INSPIRAL_MODES_CHOICE_2AND3AND5L;
+  else if (strstr(inString, "L245"))
+    return  LAL_SIM_INSPIRAL_MODES_CHOICE_2AND4AND5L;
+  else if (strstr(inString, "L345"))
+    return  LAL_SIM_INSPIRAL_MODES_CHOICE_3AND4AND5L;
   else if (strstr(inString, "ALL_MODES"))
     return  LAL_SIM_INSPIRAL_MODES_CHOICE_ALL;
   else
     return LAL_SIM_INSPIRAL_MODES_CHOICE_DEFAULT;
 };
-
-/** Appends the start and end time series together, skipping the redundant first
- * sample of end.  Frees end before returning a pointer to the result, which is
- * the resized start series.  
- **/
-
-int XLALAppendTS(REAL8TimeSeries *start, REAL8TimeSeries *end, REAL8TimeSeries *out) 
-{
-  if (out) {
-    XLALPrintError("*** XLALAppendTS ERROR: non-null out time series passed\n");
-#if 1
-    fprintf(stderr,"*** XLALAppendTS ERROR: non-null out time series passed\n");
-#endif
-    return XLAL_EFAULT;
-  }
-  else {
-    unsigned int origlen = start->data->length;
-    out = XLALCreateREAL8TimeSeries( start->name, &(start->epoch), 0., start->deltaT , &(start->sampleUnits), origlen+end->data->length-1);
-    memcpy(out->data->data,           start->data->data, (start->data->length)*sizeof(REAL8));
-    memcpy(out->data->data + origlen, end->data->data+1, (end->data->length-1)*sizeof(REAL8));
-    XLALGPSAdd(&(out->epoch), -end->deltaT*(end->data->length - 1));
-    return XLAL_SUCCESS;
-  }
-}
-
-int XLALAppendTSandFree(REAL8TimeSeries *start, REAL8TimeSeries *end, REAL8TimeSeries *out) {
-  XLALAppendTS(start,end,out);
-  XLALDestroyREAL8TimeSeries(start);
-  XLALDestroyREAL8TimeSeries(end);
-  return XLAL_SUCCESS;
-}
