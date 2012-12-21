@@ -46,6 +46,9 @@ AC_SUBST([LIBREVISION],[0])
 AC_SUBST([LIBAGE],[0])
 AC_SUBST([LIBVERSION],[${LIBCURRENT}:${LIBREVISION}:${LIBAGE}])
 
+# check for git repo
+LALSUITE_CHECK_GIT_REPO
+
 # nightly build
 LALSUITE_ENABLE_NIGHTLY
 
@@ -133,18 +136,17 @@ AC_SUBST_FILE([LAL_HEADER_LINK])
 AC_PROG_MAKE_SET
 AC_OUTPUT
 echo "
-=================================================================
+==================================================
+LALDetChar has now been successfully configured:
 
-        LALDetChar has now been successfully configured:
+* SWIG wrapping module for Octave is $SWIG_OCTAVE_ENABLE_VAL
+* SWIG wrapping module for Python is $SWIG_PYTHON_ENABLE_VAL
 
-            SWIG wrapping module for Octave is $SWIG_OCTAVE_ENABLE_VAL
-            SWIG wrapping module for Python is $SWIG_PYTHON_ENABLE_VAL
+and will be installed under the directory:
 
-        and will be installed under the directory:
+${prefix}
 
-            ${prefix}
-
-        Now run 'make' to build LALDetChar
-        and run 'make install' to install LALDetChar
-
-================================================================="
+Now run 'make' to build LALDetChar,
+and run 'make install' to install LALDetChar.
+==================================================
+"

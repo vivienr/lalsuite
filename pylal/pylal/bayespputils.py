@@ -8,6 +8,7 @@
 #       Will M. Farr <will.farr@ligo.org>,
 #       John Veitch <john.veitch@ligo.org>
 #       Salvatore Vitale <salvatore.vitale@ligo.org>
+#       Vivien Raymond <vivien.raymond@ligo.org>
 #
 #       This program is free software; you can redistribute it and/or modify
 #       it under the terms of the GNU General Public License as published by
@@ -574,7 +575,7 @@ class Posterior(object):
         self._posterior={}
         self._injection=SimInspiralTableEntry
         self._triggers=SnglInpiralList
-        self._loglaliases=['posterior', 'logl','logL','likelihood']
+        self._loglaliases=['posterior', 'logl','logL','likelihood', 'deltalogl']
         self._votfile=votfile
         
         common_output_table_header=[i.lower() for i in common_output_table_header]
@@ -763,13 +764,15 @@ class Posterior(object):
                         'mchirp':lambda inj:inj.mchirp,
                         'chirpmass':lambda inj:inj.mchirp,
                         'mc':lambda inj:inj.mchirp,
-                        'mass1':_inj_m1,
-                        'm1':_inj_m1,
-                        'mass2':_inj_m2,
-                        'm2':_inj_m2,
+                        'mass1':lambda inj:inj.mass1,
+                        'm1':lambda inj:inj.mass1,
+                        'mass2':lambda inj:inj.mass2,
+                        'm2':lambda inj:inj.mass2,
                         'eta':lambda inj:inj.eta,
                         'q':_inj_q,
                         'asym_massratio':_inj_q,
+                        'massratio':lambda inj:inj.eta,
+                        'sym_massratio':lambda inj:inj.eta,
                         'time': lambda inj:float(inj.get_end()),
                         'end_time': lambda inj:float(inj.get_end()),
                         'phi0':lambda inj:inj.phi0,
@@ -801,7 +804,13 @@ class Posterior(object):
                         'costilt2': lambda inj: np.cos(_inj_tilt2),
                         'cos(iota)': lambda inj: np.cos(inj.inclination),
                         'thetas':_inj_thetas,
-                        'beta':_inj_beta
+                        'beta':_inj_beta,
+                        'polarisation':lambda inj:inj.polarization,
+                        'polarization':lambda inj:inj.polarization,
+                        'h1_end_time':lambda inj:float(inj.get_end('H')),
+                        'l1_end_time':lambda inj:float(inj.get_end('L')),
+                        'v1_end_time':lambda inj:float(inj.get_end('V')),
+                        'lal_amporder':lambda inj:inj.amp_order
                        }
 
     def _getinjpar(self,paramname):
@@ -2764,10 +2773,12 @@ def plot_one_param_pdf(posterior,plot1DParams,analyticPDF=None,analyticCDF=None,
     majorFormatterY.format_data=lambda data:'%.6g'%(data)
     majorFormatterX.set_scientific(True)
     majorFormatterY.set_scientific(True)
-    
+    offset=0.0
     if param.find('time')!=-1:
       offset=floor(min(pos_samps))
       pos_samps=pos_samps-offset
+      if injpar:
+        injpar=injpar-offset
       ax1_name=param+' + %i'%(int(offset))
     else: ax1_name=param
 
@@ -2799,7 +2810,7 @@ def plot_one_param_pdf(posterior,plot1DParams,analyticPDF=None,analyticCDF=None,
     if analyticPDF:
         (xmin,xmax)=plt.xlim()
         x = np.linspace(xmin,xmax,2*len(bins))
-        plt.plot(x, analyticPDF(x), color='r', linewidth=2, linestyle='dashed')
+        plt.plot(x, analyticPDF(x+offset), color='r', linewidth=2, linestyle='dashed')
         if analyticCDF:
             D,p = stats.kstest(pos_samps.flatten(), analyticCDF)
             plt.title("%s: ks p-value %.3f"%(param,p))
@@ -3237,7 +3248,7 @@ def fix_axis_names(plt,par1_name,par2_name):
         plt.xticks(newlocs,newticks,rotation=45)
     return plt
 
-def plot_two_param_greedy_bins_contour(posteriors_by_name,greedy2Params,confidence_levels,colors_by_name,line_styles=__default_line_styles,figsize=(7,6),dpi=250,figposition=[0.2,0.2,0.48,0.75],legend='right'):
+def plot_two_param_greedy_bins_contour(posteriors_by_name,greedy2Params,confidence_levels,colors_by_name,line_styles=__default_line_styles,figsize=(4,3),dpi=250,figposition=[0.2,0.2,0.48,0.75],legend='right'):
     """
     Plots the confidence level contours as determined by the 2-parameter
     greedy binning algorithm.
@@ -3298,12 +3309,16 @@ def plot_two_param_greedy_bins_contour(posteriors_by_name,greedy2Params,confiden
         if par1_name.find('time')!=-1:
           offset=floor(min(a))
           a=a-offset
+          if par1_injvalue:
+            par1_injvalue=par1_injvalue-offset
           ax1_name=par1_name+' + %i'%(int(offset))
         else: ax1_name=par1_name
 
         if par2_name.find('time')!=-1:
           offset=floor(min(b))
           b=b-offset
+          if par2_injvalue:
+            par2_injvalue=par2_injvalue-offset
           ax2_name=par2_name+' + %i'%(int(offset))
         else: ax2_name=par2_name
 
@@ -3388,7 +3403,7 @@ def plot_two_param_greedy_bins_contour(posteriors_by_name,greedy2Params,confiden
     	#locatorX.view_limits(bins[0],bins[-1])
     	axes.xaxis.set_major_locator(locatorX)
 
-    plt.title("%s-%s confidence contours (greedy binning)"%(par1_name,par2_name)) # add a title
+    #plt.title("%s-%s confidence contours (greedy binning)"%(par1_name,par2_name)) # add a title
     plt.xlabel(ax2_name)
     plt.ylabel(ax1_name)
 
@@ -3471,6 +3486,10 @@ def plot_two_param_greedy_bins_hist(posterior,greedy2Params,confidence_levels):
     a=np.squeeze(posterior[par1_name].samples)
     b=np.squeeze(posterior[par2_name].samples)
 
+    #Extract injection information
+    par1_injvalue=posterior[par1_name.lower()].injval
+    par2_injvalue=posterior[par2_name.lower()].injval
+    
     #Create 2D bin array
     par1pos_min=a.min()
     par2pos_min=b.min()
@@ -3485,18 +3504,19 @@ def plot_two_param_greedy_bins_hist(posterior,greedy2Params,confidence_levels):
     if par1_name.find('time')!=-1:
       offset=floor(min(a))
       a=a-offset
+      if par1_injvalue:
+        par1_injvalue=par1_injvalue-offset
       ax1_name=par1_name+' + %i'%(int(offset))
     else: ax1_name=par1_name
 
     if par2_name.find('time')!=-1:
       offset=floor(min(b))
       b=b-offset
+      if par2_injvalue:
+        par2_injvalue=par2_injvalue-offset
       ax2_name=par2_name+' + %i'%(int(offset))
     else: ax2_name=par2_name
 
-    #Extract injection information
-    par1_injvalue=posterior[par1_name.lower()].injval
-    par2_injvalue=posterior[par2_name.lower()].injval
 
     #Extract trigger information
     par1_trigvalues=posterior[par1_name.lower()].trigvals
@@ -3965,11 +3985,15 @@ class PEOutputParser(object):
         nskips=self._find_ndownsample(files, logLThreshold, fixedBurnins, nDownsample)
         if nDownsample is None:
             print "Downsampling to take only uncorrelated posterior samples from each file."
-            for i in range(len(nskips)):
-                if nskips[i] is None:
-                    print "%s eliminated since all samples are correlated."
-        else:
-            print "Downsampling by a factor of ", nskips[0], " to achieve approximately ", nDownsample, " posterior samples"
+            if len(nskips) == 1 and np.isnan(nskips[0]):
+                print "WARNING: All samples in chain are correlated.  Downsampling to 10000 samples for inspection!!!"
+                nskips=self._find_ndownsample(files, logLThreshold, fixedBurnins, 10000)
+            else:
+                for i in range(len(nskips)):
+                    if np.isnan(nskips[i]):
+                        print "%s eliminated since all samples are correlated."
+                    else:
+                        print "Downsampling by a factor of ", nskips[0], " to achieve approximately ", nDownsample, " posterior samples"
         if outdir is None:
             outdir=''
         runfileName=os.path.join(outdir,"lalinfmcmc_headers.dat")
@@ -4122,7 +4146,7 @@ class PEOutputParser(object):
 
             finally:
                 infile.close()
-        nskips = np.ones(nfiles,'int')
+        nskips = np.ones(nfiles)
         ntot = sum(ntots)
         if nDownsample is not None:
             if ntot > nDownsample:

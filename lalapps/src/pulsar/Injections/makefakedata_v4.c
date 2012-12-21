@@ -915,6 +915,14 @@ InitMakefakedata (LALStatus *status, ConfigVars_t *cfg, int argc, char *argv[])
         XLALPrintError ("\nERROR: I can't combine --SFToverlap with --noiseSFTs or --timestampsFile, only use with (--startTime, --duration)!\n\n");
         ABORT (status,  MAKEFAKEDATAC_EBAD,  MAKEFAKEDATAC_MSGEBAD);
       }
+    /* don't allow --SFToverlap with generationMode==1 (one timeseries per SFT), as this would
+     * result in independent noise realizations in the overlapping regions
+     */
+    if ( haveOverlap && (uvar_generationMode != 0) )
+      {
+        XLALPrintError ("\nERROR: --SFToverlap can only be used with --generationMode=0, otherwise we'll get overlapping independent noise!\n\n");
+        ABORT (status,  MAKEFAKEDATAC_EBAD,  MAKEFAKEDATAC_MSGEBAD);
+      }
 
     /*-------------------- check special case: Hardware injection ---------- */
     /* don't allow timestamps-file, noise-SFTs or SFT-output */
@@ -1265,7 +1273,7 @@ InitMakefakedata (LALStatus *status, ConfigVars_t *cfg, int argc, char *argv[])
 	{
 	  /* convert MJD peripase to GPS using Matt Pitkins code found at lal/packages/pulsar/src/BinaryPulsarTimeing.c */
 	  REAL8 GPSfloat;
-	  GPSfloat = LALTDBMJDtoGPS(uvar_orbitTpSSBMJD);
+	  GPSfloat = LALTTMJDtoGPS(uvar_orbitTpSSBMJD);
 	  XLALGPSSetREAL8(&(orbit->tp),GPSfloat);
 	}
       else if ((set5 && set6) && !set7)
@@ -1360,7 +1368,7 @@ InitMakefakedata (LALStatus *status, ConfigVars_t *cfg, int argc, char *argv[])
 
       /* convert MJD to GPS using Matt Pitkins code found at lal/packages/pulsar/src/BinaryPulsarTimeing.c */
       REAL8 GPSfloat;
-      GPSfloat = LALTDBMJDtoGPS(uvar_refTimeMJD);
+      GPSfloat = LALTTMJDtoGPS(uvar_refTimeMJD);
       XLALGPSSetREAL8(&(cfg->pulsar.Doppler.refTime),GPSfloat);
     }
   else

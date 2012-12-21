@@ -49,15 +49,19 @@ int main(int argc, char **argv){
   beg = *XLALGPSToUTC( &beg, (int)inputParams.startT );
   fin = *XLALGPSToUTC( &fin, (int)inputParams.endT );
   
-  if( inputParams.et == TT2TEPH ){
-    if( !sprintf(outputfile, "%s/TT2Teph_%d-%d.dat", 
+  /* make sure the year in the filename only covers full years */
+  if ( beg.tm_yday != 0 && beg.tm_hour != 0 && beg.tm_min != 0 && beg.tm_sec != 0 ) beg.tm_year++;
+  if ( fin.tm_yday != 0 && fin.tm_hour != 0 && fin.tm_min != 0 && fin.tm_sec != 0 ) fin.tm_year--;
+  
+  if( inputParams.et == TT2TCB ){
+    if( !sprintf(outputfile, "%s/te405_%d-%d.dat", 
       inputParams.outputpath, beg.tm_year+1900, fin.tm_year+1900) ){
       fprintf(stderr, "Error... problem creating output file name!\n");
       exit(1);
     }
   }
   else if( inputParams.et == TT2TDB ){
-    if( !sprintf(outputfile, "%s/TT2TDB_%d-%d.dat", 
+    if( !sprintf(outputfile, "%s/tdb_%d-%d.dat", 
       inputParams.outputpath, beg.tm_year+1900, fin.tm_year+1900) ){
       fprintf(stderr, "Error... problem creating output file name!\n");
       exit(1);
@@ -77,7 +81,29 @@ int main(int argc, char **argv){
  time steps\n", inputParams.startT,  inputParams.endT, inputParams.interval);
   }
   
-  /* output header info: start time, end time, time step, no. of entries */
+  /* output header information on lines starting with a # comment */
+  fprintf(fp, "# Build information for %s\n", argv[0]);
+  fprintf(fp, "# Author: "LALAPPS_VCS_AUTHOR"\n");
+  fprintf(fp, "# LALApps Commit ID: "LALAPPS_VCS_ID"\n");
+  fprintf(fp, "# LALApps Commit Date: "LALAPPS_VCS_DATE"\n");
+  fprintf(fp, "#\n# Ephemeris creation command:-\n#\t");
+  for( INT4 k=0; k<argc; k++ ) fprintf(fp, "%s ", argv[k]);
+  fprintf(fp, "\n");
+  
+  CHAR *efile = strrchr(inputParams.ephemfile, '/');
+  
+  fprintf(fp, "#\n# Time correction ephemeris file %s from TEMPO2 \
+(http://www.atnf.csiro.au/research/pulsar/tempo2/)\n", efile+1);
+  /* some information about the data */
+  fprintf(fp, "#\n# This file consists of a header line containing:\n");
+  fprintf(fp, "#\tGPS start time, GPS end time, interval between entries \
+(secs), no. of entries\n");
+  fprintf(fp, "# Each entry consists of:\n");
+  fprintf(fp, "#\t dT (secs)\n");
+  fprintf(fp, "# with entries calculated at the Terrestrial Time in MJD via \
+the conversion:\n\
+#    TT(MJD) = 44244 + (GPS + 51.184)/86400\n");
+  
   fprintf(fp, "%lf\t%lf\t%lf\t%d\n", inputParams.startT, inputParams.endT,
     inputParams.interval, ne);
   
@@ -89,7 +115,7 @@ int main(int argc, char **argv){
     /* these basically calculate the einstein delay */
       
     /* using TEMPO2/TT to TCB/Teph file */
-    if( inputParams.et == TT2TEPH ) deltaT = IF_deltaT(mjdtt);
+    if( inputParams.et == TT2TCB ) deltaT = IF_deltaT(mjdtt);
     /* using TEMPO/TT to TDB file */
     else if( inputParams.et == TT2TDB ){
       deltaT = FB_deltaT(mjdtt, inputParams.ephemfile);
@@ -200,13 +226,12 @@ void get_input_args(inputParams_t *inputParams, int argc, char *argv[]){
   }
   /* using TEMPO2/TCB/Teph file */
   else if( !strcmp(inputParams->ephemtype, "TEMPO2") ||
-           !strcmp(inputParams->ephemtype, "TCB") ||
-           !strcmp(inputParams->ephemtype, "Teph") ){
-    inputParams->et = TT2TEPH;
+           !strcmp(inputParams->ephemtype, "TCB") ){
+    inputParams->et = TT2TCB;
     sprintf(inputParams->ephemfile, "%s%s", tempo2path, IFTEPH_FILE);
   
     if( verbose ){
-      fprintf(stdout, "Using TEMPO2-style TT to Teph conversion file: %s\n",
+      fprintf(stdout, "Using TEMPO2-style TT to te405 conversion file: %s\n",
         inputParams->ephemfile); 
     }
     
@@ -395,7 +420,8 @@ void IFTE_init(const char fname[MAXFNAME]) {
   char buf[1024];
   int ncon;
   double double_in;
-
+  size_t rc;
+  
   if( (f = fopen(fname, "r")) == NULL ){
     fprintf(stderr, "Error... opening time ephemeris file '%s'\n",
             fname);
@@ -403,12 +429,12 @@ void IFTE_init(const char fname[MAXFNAME]) {
   }
 
   /* read in header info */
-  fread(buf, 1, 252, f); /* read CHARACTER*6 TTL(14,3) */
-  fread(buf, 1, 12, f); /* read CHARACTER*6 CNAM(2) */
-  fread(&ifte.startJD, 1, 8, f);
-  fread(&ifte.endJD, 1, 8, f);
-  fread(&ifte.stepJD, 1, 8, f);
-  fread(&ncon, 1, 4, f);
+  rc = fread(buf, 1, 252, f); /* read CHARACTER*6 TTL(14,3) */
+  rc = fread(buf, 1, 12, f); /* read CHARACTER*6 CNAM(2) */
+  rc = fread(&ifte.startJD, 1, 8, f);
+  rc = fread(&ifte.endJD, 1, 8, f);
+  rc = fread(&ifte.stepJD, 1, 8, f);
+  rc = fread(&ncon, 1, 4, f);
   
   ifte.swap_endian = (ncon!=2); /* check for endianness */
 
@@ -424,7 +450,7 @@ void IFTE_init(const char fname[MAXFNAME]) {
     IFTswapDouble(&ifte.stepJD); 
   }
 
-  fread(ifte.ipt, 8, 3, f);
+  rc = fread(ifte.ipt, 8, 3, f);
   if (ifte.swap_endian) IFTswapInts(&ifte.ipt[0][0], 6); 
 
   /* figure out the record length */
@@ -432,12 +458,18 @@ void IFTE_init(const char fname[MAXFNAME]) {
   
   /* get the constants from record "2" */
   fseek(f, ifte.reclen, SEEK_SET);
-  fread(&double_in, 8, 1, f);
+  rc = fread(&double_in, 8, 1, f);
   if (ifte.swap_endian) IFTswapDouble(&double_in); 
   ifte.ephver = (int)floor(double_in);
-  fread(&ifte.L_C, 8, 1, f);
+  rc = fread(&ifte.L_C, 8, 1, f);
   if (ifte.swap_endian) IFTswapDouble(&ifte.L_C); 
 
+  if( rc == 0 ){
+    fprintf(stderr, "Error... problem reading header from time ephemeris file \
+'%s'\n", fname);
+    exit(1);
+  }
+  
   ifte.f = f;
   ifte.iinfo.np = 2;
   ifte.iinfo.nv = 3;

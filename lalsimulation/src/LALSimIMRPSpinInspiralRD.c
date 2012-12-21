@@ -34,14 +34,14 @@
 #include <lal/LALAdaptiveRungeKutta4.h>
 #include <lal/LALSimInspiral.h>
 #include <lal/Date.h>
-#include <lal/LALSimIMRPSpinInspiralRD.h>
 
+#include "LALSimIMRPSpinInspiralRD.h"
 #include "LALSimInspiralPNCoefficients.c"
 
 /* Minimum integration length */
 #define minIntLen    16
 /* For turning on debugging messages*/
-#define DEBUG_RD  1
+#define DEBUG_RD  0
 
 #define nModes 8
 #define RD_EFOLDS 10
@@ -793,6 +793,9 @@ static int XLALSimInspiralSpinTaylorT4Engine(REAL8TimeSeries **omega,      /**< 
 
   if (intReturn == XLAL_FAILURE) {
     XLALPrintError("** LALSimIMRPSpinInspiralRD Error **: Adaptive Integrator\n");
+    XLALPrintError("             m:  %12.4e  %12.4e  Mom  %12.4e\n",params->m1ByM*params->M,params->m2ByM*params->M,params->fStart);
+    XLALPrintError("             S1: %12.4e  %12.4e  %12.4e\n",S1x0,S1y0,S1z0);
+    XLALPrintError("             S2: %12.4e  %12.4e  %12.4e\n",S2x0,S2y0,S2z0);
     XLAL_ERROR(XLAL_EFUNC);
   }
   /* End integration*/
@@ -1777,7 +1780,7 @@ int XLALSimIMRPhenSpinInspiralRDGenerator(REAL8TimeSeries **hPlus,	         /**<
     if ( (errcode != LALSIMINSPIRAL_PHENSPIN_TEST_FREQBOUND) ) {
       XLALPrintError("** LALPSpinInspiralRD WARNING **: integration terminated with code %d.\n",errcode);
       XLALPrintError("   1025: Energy increases\n  1026: Omegadot -ve\n 1028: Omega NAN\n 1029: OMega > OmegaMatch\n 1031: Omega -ve\n");
-      XLALPrintError("  Waveform parameters were m1 = %14.6e, m2 = %14.6e, inc = %10.6f,  fref %10.4f Hz\n", m1, m2, iota, f_ref);
+      XLALPrintError("  Waveform parameters were m1 = %14.6e, m2 = %14.6e, inc = %10.6f,  fref %10.4f Hz\n", mass1, mass2, iota, f_ref);
       XLALPrintError("                           S1 = (%10.6f,%10.6f,%10.6f)\n", s1x, s1y, s1z);
       XLALPrintError("                           S2 = (%10.6f,%10.6f,%10.6f)\n", s2x, s2y, s2z);
     }
@@ -1890,10 +1893,17 @@ int XLALSimIMRPhenSpinInspiralRDGenerator(REAL8TimeSeries **hPlus,	         /**<
     idx=intLen;
     do {
       idx--;
-      LNhS1=(LNhatx->data->data[idx]*S1x->data->data[idx]+LNhaty->data->data[idx]*S1y->data->data[idx]+LNhatz->data->data[idx]*S1z->data->data[idx])/m1ByMsq/m1ByMsq;
-      LNhS2=(LNhatx->data->data[idx]*S2x->data->data[idx]+LNhaty->data->data[idx]*S2y->data->data[idx]+LNhatz->data->data[idx]*S2z->data->data[idx])/m2ByMsq/m2ByMsq;
+      LNhS1=(LNhatx->data->data[idx]*S1x->data->data[idx]+LNhaty->data->data[idx]*S1y->data->data[idx]+LNhatz->data->data[idx]*S1z->data->data[idx])/m1ByMsq;
+      LNhS2=(LNhatx->data->data[idx]*S2x->data->data[idx]+LNhaty->data->data[idx]*S2y->data->data[idx]+LNhatz->data->data[idx]*S2z->data->data[idx])/m2ByMsq;
       S1S2=(S1x->data->data[idx]*S2x->data->data[idx]+S1y->data->data[idx]*S2y->data->data[idx]+S1z->data->data[idx]*S2z->data->data[idx])/m1ByMsq/m2ByMsq;
       omegaMatch=OmMatch(LNhS1,LNhS2,S1S1,S1S2,S2S2);
+      if ((omegaMatch<0.)||(omegaMatch>0.1)) {
+	printf(" %d omM %12.4e\n",idx,omegaMatch);
+	printf(" L:  %12.4e  %12.4e  %12.4e\n",LNhatx->data->data[idx],LNhaty->data->data[idx],LNhatz->data->data[idx]);
+	printf(" S1: %12.4e  %12.4e  %12.4e\n",S1x->data->data[idx]/m1ByMsq,S1y->data->data[idx]/m1ByMsq,S1z->data->data[idx]/m1ByMsq);
+	printf(" S2: %12.4e  %12.4e  %12.4e\n",S2x->data->data[idx]/m2ByMsq,S2y->data->data[idx]/m2ByMsq,S2z->data->data[idx]/m2ByMsq);
+	printf(" LS1 %12.4e  LS2 %12.4e  S1S2 %12.4e  S1S1 %12.4e  S2S2 %12.4e\n",LNhS1,LNhS2,S1S2,S1S1,S2S2);
+      }
       if ((omegaMatch>omega->data->data[idx])&&(omega->data->data[idx]<0.1)) {
 	if (omega->data->data[idx-1]<omega->data->data[idx]) iMatch=idx;
 	// The numerical integrator sometimes stops and stores twice the last
@@ -1903,8 +1913,9 @@ int XLALSimIMRPhenSpinInspiralRDGenerator(REAL8TimeSeries **hPlus,	         /**<
     } while ((idx>0)&&(iMatch==0));
 
     INT4 iCpy=0;
-    while ( ((iMatch+iCpy)<(int)intLen)&&(omega->data->data[iMatch+iCpy+1]>omega->data->data[iMatch+iCpy])&&(omega->data->data[iMatch+iCpy+1]<0.1)&&(iCpy<5) ) {
-      iCpy++;
+    while ( (iMatch+iCpy) < ((int)intLen-1) ) {
+      if ((omega->data->data[iMatch+iCpy+1]>omega->data->data[iMatch+iCpy])&&(omega->data->data[iMatch+iCpy+1]<0.1)&&(iCpy<5) ) iCpy++;
+      else break;
     }
 
     //We keep until the point where omega > omegaMatch for better derivative
@@ -1947,7 +1958,7 @@ int XLALSimIMRPhenSpinInspiralRDGenerator(REAL8TimeSeries **hPlus,	         /**<
     for (idx=0;idx<(int)domega->length;idx++)
     if ( (errcode != 0) || (domega->data[jMatch]<0.) || (ddomega->data[jMatch]<0.) ) {
       XLALPrintError("**** LALSimIMRPhenSpinInspiralRD ERROR ****: error generating derivatives");
-      XLALPrintError("                     m:           : %12.5f  %12.5f\n",m1,m2);
+      XLALPrintError("                     m:           : %12.5f  %12.5f\n",mass1,mass2);
       XLALPrintError("              S1:                 : %12.5f  %12.5f  %12.5f\n",s1x,s1y,s1z);
       XLALPrintError("              S2:                 : %12.5f  %12.5f  %12.5f\n",s2x,s2y,s2z);
       XLALPrintError("     omM %12.5f   om[%d] %12.5f\n",omegaMatch,jMatch,omega);
@@ -2018,22 +2029,15 @@ int XLALSimIMRPhenSpinInspiralRDGenerator(REAL8TimeSeries **hPlus,	         /**<
 
       v     = cbrt(om);
       v2    = v*v;
-      REAL8 amp22 = amp22ini*v2;
-      REAL8 amp33,amp44;
-      REAL8 v2old;
 
       do {
 	count++;
         tm += deltaT;
-        v2old = v2;
         om    = om1 / (1. - tm / tAs) + om0;
         Psi   = Psi0 + (- tAs * (om1/Mass-dalpha1*trigAngle.ci) * log(1. - tm / tAs) + (om0/Mass-dalpha0*trigAngle.ci) * (tm - t0) );
         alpha = alpha0 + ( dalpha0 * (tm - t0) - dalpha1 * tAs * log(1. - tm / tAs) );
         v     = cbrt(om);
         v2    = v*v;
-        amp22*= v2 / v2old;
-        amp33 = -amp22 / 4. * sqrt(5. / 42.);
-        amp44 = amp22 * sqrt(5./7.) * 2./9.   * v2;
 
 	errcode=XLALSimSpinInspiralFillL2Modes(hL2tmp,v,eta,dm,Psi,alpha,&trigAngle);
 	for (kdx=0;kdx<5;kdx++) hL2->data->data[5*count+kdx]=hL2tmp->data[kdx]*amp22ini*v2;

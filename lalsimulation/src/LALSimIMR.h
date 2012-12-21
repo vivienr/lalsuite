@@ -198,22 +198,16 @@ int XLALSimIMRSpinAlignedEOBWaveform(
  * Routine to compute the mass and spin of the final black hole given 
  * the masses, spins, binding energy, and orbital angular momentum vector.
  */
-int XLALSimIMRPSpinFinalMassSpin(
-    REAL8 *finalMass,
-    REAL8 *finalSpin,
-    REAL8 m1,
-    REAL8 m2,
-    REAL8 s1x,
-    REAL8 s1y,
-    REAL8 s1z,
-    REAL8 s2x,
-    REAL8 s2y,
-    REAL8 s2z,
-    REAL8 energy,
-    REAL8 LNhvecx,
-    REAL8 LNhvecy,
-    REAL8 LNhvecz
-    );
+int XLALSimIMRPhenSpinFinalMassSpin(REAL8 *finalMass,
+				    REAL8 *finalSpin,
+				    REAL8 m1,
+				    REAL8 m2,
+				    REAL8 s1s1,
+				    REAL8 s2s2,
+				    REAL8 s1L,
+				    REAL8 s2L,
+				    REAL8 s1s2,
+				    REAL8 energy);
 
 int XLALSimSpinInspiralGenerator(REAL8TimeSeries **hPlus,	        /**< +-polarization waveform [returned] */
 				 REAL8TimeSeries **hCross,	        /**< x-polarization waveform [returned] */

@@ -61,6 +61,53 @@ __author__="Ben Aylott <benjamin.aylott@ligo.org>, Ben Farr <bfarr@u.northwester
 __version__= "git id %s"%git_version.id
 __date__= git_version.date
 
+def email_notify(address,path):
+    import smtplib
+    import subprocess
+    address=address.split(',')
+    SERVER="localhost"
+    USER=os.environ['USER']
+    HOST=subprocess.check_output(["hostname","-f"]).strip()
+    FROM=USER+'@'+HOST
+    SUBJECT="LALInference result is ready at "+HOST+"!"
+    # Guess the web space path for the clusters
+    fslocation=os.path.abspath(path)
+    webpath='posplots.html'
+    if 'public_html' in fslocation:
+        k='public_html'
+    elif 'WWW' in fslocation:
+        k='WWW'
+    else:
+        k=None
+    if k is not None:
+        (a,b)=(fslocation,'')
+        while a!=k:
+            (a,b)=fslocation.split(a)
+            webpath=os.path.join(b,webpath)
+    else: webpath=os.path.join(fslocation,'posplots.html')
+
+    if 'atlas.aei.uni-hannover.de' in HOST:
+        url="https://atlas1.atlas.aei.uni-hannover.de/"
+    elif 'ligo.caltech.edu' in HOST:
+        url="https://ldas-jobs.ligo.caltech.edu/"
+    elif 'ligo-wa.caltech.edu' in HOST:
+        url="https://ldas-jobs.ligo-wa.caltech.edu/"
+    elif 'ligo-la.caltech.edu' in HOST:
+        url="https://ldas-jobs.ligo-la.caltech.edu/"
+    elif 'phys.uwm.edu' in HOST:
+        url="https://ldas-jobs.phys.uwm.edu/"
+    elif 'phy.syr.edu' in HOST:
+        url="https://sugar-jobs.phy.syr.edu/"
+    else:
+        url=HOST+':'
+    url=url+webpath
+
+    TEXT="Hi "+USER+",\nYou have a new parameter estimation result on "+HOST+".\nYou can view the result at "+url
+    message="From: %s\nTo: %s\nSubject: %s\n\n%s"%(FROM,', '.join(address),SUBJECT,TEXT)
+    server=smtplib.SMTP(SERVER)
+    server.sendmail(FROM,address,message)
+    server.quit()
+
 
 class LIGOLWContentHandlerExtractSimInspiralTable(ligolw.LIGOLWContentHandler):
     def __init__(self,document):
@@ -98,15 +145,29 @@ def oneD_dict_to_file(dict,fname):
 
 def multipleFileCB(opt, opt_str, value, parser):
     args=[]
+
+    def floatable(str):
+      try:
+        float(str)
+        return True
+      except ValueError:
+        return False
+
     for arg in parser.rargs:
-        if arg[0] != "-":
-            args.append(arg)
-        else:
-            del parser.rargs[:len(args)]
-            break
+      # stop on --foo like options
+      if arg[:2] == "--" and len(arg) > 2:
+        break
+      # stop on -a, but not on -3 or -3.0
+      if arg[:1] == "-" and len(arg) > 1 and not floatable(arg):
+        break
+      args.append(arg)
+
+    del parser.rargs[:len(args)]
     #Append new files to list if some already specified
     if getattr(parser.values, opt.dest):
-        args.extend(getattr(parser.values, opt.dest))
+        oldargs = getattr(parser.values, opt.dest)
+        oldargs.extend(args)
+        args = oldargs
     setattr(parser.values, opt.dest, args)
 
 def cbcBayesPostProc(
@@ -203,7 +264,7 @@ def cbcBayesPostProc(
     
     #Select injections using tc +/- 0.1s if it exists or eventnum from the injection file
     injection=None
-    if injfile and eventnum:
+    if injfile and eventnum is not None:
         print 'Looking for event %i in %s\n'%(eventnum,injfile)
         xmldoc = utils.load_filename(injfile,contenthandler=LIGOLWContentHandlerExtractSimInspiralTable)
         siminspiraltable=table.get_table(xmldoc,lsctables.SimInspiralTable.tableName)
@@ -318,6 +379,10 @@ def cbcBayesPostProc(
 
         pos.append_mapping(('m1','m2'),bppu.q2ms,(mchirp_name,q_name))
         pos.append_mapping('eta',bppu.q2eta,(mchirp_name,q_name))
+
+    if ('spin1' in pos.names and 'm1' in pos.names) and \
+     ('spin2' in pos.names and 'm2' in pos.names):
+       pos.append_mapping('chi', lambda m1,s1z,m2,s2z: (m1*s1z + m2*s2z) / (m1 + m2), ('m1','spin1','m2','spin2'))
 
     if('a_spin1' in pos.names): pos.append_mapping('a1',lambda a:a,'a_spin1')
     if('a_spin2' in pos.names): pos.append_mapping('a2',lambda a:a,'a_spin2')
@@ -748,8 +813,8 @@ def cbcBayesPostProc(
             if not ("chain" in pos.names):
                 data=pos_samps[:,0]
                 try:
-		    (Neff, acl, acf) = bppu.effectiveSampleSize(data, Nskip)
-		    lines=plt.plot(acf, 'k,', marker=',',linewidth=0.0, markeredgewidth=0, figure=acffig)
+                    (Neff, acl, acf) = bppu.effectiveSampleSize(data, Nskip)
+                    lines=plt.plot(acf, 'k,', marker=',',linewidth=0.0, markeredgewidth=0, figure=acffig)
                     # Give ACL info if not already downsampled according to it
                     if nDownsample is None:
                         plt.title('Autocorrelation Function')
@@ -1108,7 +1173,7 @@ if __name__=='__main__':
     parser.add_option("--lalinfmcmc",action="store_true",default=False,help="(LALInferenceMCMC) Parse input from LALInferenceMCMC.")
     parser.add_option("--downsample",action="store",default=None,help="(LALInferenceMCMC) approximate number of samples to record in the posterior",type="int")
     parser.add_option("--deltaLogL",action="store",default=None,help="(LALInferenceMCMC) Difference in logL to use for convergence test.",type="float")
-    parser.add_option("--fixedBurnin",action="append",default=None,help="(LALInferenceMCMC) Fixed number of iteration for burnin.",type="int")
+    parser.add_option("--fixedBurnin",dest="fixedBurnin",action="callback",callback=multipleFileCB,help="(LALInferenceMCMC) Fixed number of iteration for burnin.")
     parser.add_option("--oldMassConvention",action="store_true",default=False,help="(LALInferenceMCMC) if activated, m2 > m1; otherwise m1 > m2 in PTMCMC.output.*.00")
     #FM
     parser.add_option("--fm",action="store_true",default=False,help="(followupMCMC) Parse input as if it was output from followupMCMC.")
@@ -1121,6 +1186,7 @@ if __name__=='__main__':
     parser.add_option("--nopdfs",action="store_false",default=True,dest="nopdfs")
     parser.add_option("-c","--covarianceMatrix",dest="covarianceMatrices",action="append",default=None,help="CSV file containing covariance (must give accompanying mean vector CSV. Can add more than one matrix.")
     parser.add_option("-m","--meanVectors",dest="meanVectors",action="append",default=None,help="Comma separated list of locations of the multivariate gaussian described by the correlation matrix.  First line must be list of params in the order used for the covariance matrix.  Provide one list per covariance matrix.")
+    parser.add_option("--email",action="store",default=None,type="string",metavar="user@ligo.org",help="Send an e-mail to the given address with a link to the finished page.")
     (opts,args)=parser.parse_args()
 
     datafiles=[]
@@ -1129,6 +1195,10 @@ if __name__=='__main__':
     if opts.data:
       datafiles=datafiles + opts.data
     
+    if opts.fixedBurnin:
+      fixedBurnins = [int(fixedBurnin) for fixedBurnin in opts.fixedBurnin]
+    else:
+      fixedBurnins = None
 
     #List of parameters to plot/bin . Need to match (converted) column names.
     massParams=['mtotal','m1','m2','chirpmass','mchirp','mc','eta','q','massratio','asym_massratio']
@@ -1239,7 +1309,7 @@ if __name__=='__main__':
                         #spinspiral/mcmc options
                         ss_flag=opts.ss,ss_spin_flag=opts.spin,
                         #LALInferenceMCMC options
-                        li_flag=opts.lalinfmcmc,deltaLogL=opts.deltaLogL,fixedBurnins=opts.fixedBurnin,nDownsample=opts.downsample,oldMassConvention=opts.oldMassConvention,
+                        li_flag=opts.lalinfmcmc,deltaLogL=opts.deltaLogL,fixedBurnins=fixedBurnins,nDownsample=opts.downsample,oldMassConvention=opts.oldMassConvention,
                         #followupMCMC options
                         fm_flag=opts.fm,
                         # Turn of ACF?
@@ -1257,4 +1327,13 @@ if __name__=='__main__':
                         #header file for parameter names in posterior samples
                         header=opts.header
                     )
+
+    # Send an email, useful for keeping track of dozens of jobs!
+    # Will only work if the local host runs a mail daemon
+    # that can send mail to the internet
+    if opts.email:
+        try:
+            email_notify(opts.email,opts.outpath)
+        except:
+            print 'Unable to send notification email'
 #

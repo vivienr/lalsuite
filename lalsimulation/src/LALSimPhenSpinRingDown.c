@@ -24,7 +24,8 @@
 #include <gsl/gsl_spline.h>
 #include <lal/LALStdlib.h>
 #include <lal/LALConstants.h>
-#include <lal/LALSimIMRPSpinInspiralRD.h>
+
+#include "LALSimIMRPSpinInspiralRD.h"
 
 int XLALSimIMRPhenSpinGenerateQNMFreq(COMPLEX16Vector *modefreqs,
 				      UINT4 l,
