@@ -334,8 +334,6 @@ int main (int argc , char **argv) {
                 difftime(time(NULL), start_time));
     if (((params->domain == GSDomain_FD) && !htilde) ||
         ((params->domain == GSDomain_TD) && (!hplus || !hcross))) {
-        if (params->domain == GSDomain_TD)
-	  printf(" Waveform T domain, vero?\n");
         XLALPrintError("Error: waveform generation failed\n");
         goto fail;
     }
