@@ -1897,12 +1897,12 @@ int XLALSimIMRPhenSpinInspiralRDGenerator(REAL8TimeSeries **hPlus,	         /**<
       LNhS2=(LNhatx->data->data[idx]*S2x->data->data[idx]+LNhaty->data->data[idx]*S2y->data->data[idx]+LNhatz->data->data[idx]*S2z->data->data[idx])/m2ByMsq;
       S1S2=(S1x->data->data[idx]*S2x->data->data[idx]+S1y->data->data[idx]*S2y->data->data[idx]+S1z->data->data[idx]*S2z->data->data[idx])/m1ByMsq/m2ByMsq;
       omegaMatch=OmMatch(LNhS1,LNhS2,S1S1,S1S2,S2S2);
-      if ((omegaMatch<0.)||(omegaMatch>0.1)) {
+      /*if ((omegaMatch<0.)||(omegaMatch>0.1)) {
 	printf(" %d omM %12.4e\n",idx,omegaMatch);
 	printf(" L:  %12.4e  %12.4e  %12.4e\n",LNhatx->data->data[idx],LNhaty->data->data[idx],LNhatz->data->data[idx]);
 	printf(" S1: %12.4e  %12.4e  %12.4e\n",S1x->data->data[idx]/m1ByMsq,S1y->data->data[idx]/m1ByMsq,S1z->data->data[idx]/m1ByMsq);
 	printf(" S2: %12.4e  %12.4e  %12.4e\n",S2x->data->data[idx]/m2ByMsq,S2y->data->data[idx]/m2ByMsq,S2z->data->data[idx]/m2ByMsq);
-	printf(" LS1 %12.4e  LS2 %12.4e  S1S2 %12.4e  S1S1 %12.4e  S2S2 %12.4e\n",LNhS1,LNhS2,S1S2,S1S1,S2S2);
+	printf(" LS1 %12.4e  LS2 %12.4e  S1S2 %12.4e  S1S1 %12.4e  S2S2 %12.4e\n",LNhS1,LNhS2,S1S2,S1S1,S2S2);*/
       }
       if ((omegaMatch>omega->data->data[idx])&&(omega->data->data[idx]<0.1)) {
 	if (omega->data->data[idx-1]<omega->data->data[idx]) iMatch=idx;
