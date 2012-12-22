@@ -1760,7 +1760,7 @@ int XLALSimIMRPhenSpinInspiralRDGenerator(REAL8TimeSeries **hPlus,	         /**<
     errcodeInt=XLALSimInspiralSpinTaylorT4Engine(&omega,&Phi,&LNhatx,&LNhaty,&LNhatz,&S1x,&S1y,&S1z,&S2x,&S2y,&S2z,&Energy,yinit,lengthH,PhenSpinTaylorRD,&params);
     intLen=Phi->data->length;
   }
-  else {
+  else /* do both forward and backward integration*/ {
     REAL8TimeSeries *Phi1, *omega1, *LNhatx1, *LNhaty1, *LNhatz1;
     REAL8TimeSeries *S1x1, *S1y1, *S1z1, *S2x1, *S2y1, *S2z1, *Energy1;
     errcode=XLALSimIMRPhenSpinInitialize(mass1,mass2,yinit,f_ref,f_start,deltaT,phaseO,&params,waveFlags,testGRparams);
@@ -1823,7 +1823,7 @@ int XLALSimIMRPhenSpinInspiralRDGenerator(REAL8TimeSeries **hPlus,	         /**<
     intLen=Phi->data->length;
     for (idx=0;idx<(int)intLen;idx++) Phi->data->data[idx]-=phiRef;
 
-  }
+  } /* End of int forward + integration backward*/
 
   /* report on abnormal termination*/
   if ( (errcodeInt != LALSIMINSPIRAL_PHENSPIN_TEST_OMEGAMATCH) ) {
@@ -1897,13 +1897,6 @@ int XLALSimIMRPhenSpinInspiralRDGenerator(REAL8TimeSeries **hPlus,	         /**<
       LNhS2=(LNhatx->data->data[idx]*S2x->data->data[idx]+LNhaty->data->data[idx]*S2y->data->data[idx]+LNhatz->data->data[idx]*S2z->data->data[idx])/m2ByMsq;
       S1S2=(S1x->data->data[idx]*S2x->data->data[idx]+S1y->data->data[idx]*S2y->data->data[idx]+S1z->data->data[idx]*S2z->data->data[idx])/m1ByMsq/m2ByMsq;
       omegaMatch=OmMatch(LNhS1,LNhS2,S1S1,S1S2,S2S2);
-      /*if ((omegaMatch<0.)||(omegaMatch>0.1)) {
-	printf(" %d omM %12.4e\n",idx,omegaMatch);
-	printf(" L:  %12.4e  %12.4e  %12.4e\n",LNhatx->data->data[idx],LNhaty->data->data[idx],LNhatz->data->data[idx]);
-	printf(" S1: %12.4e  %12.4e  %12.4e\n",S1x->data->data[idx]/m1ByMsq,S1y->data->data[idx]/m1ByMsq,S1z->data->data[idx]/m1ByMsq);
-	printf(" S2: %12.4e  %12.4e  %12.4e\n",S2x->data->data[idx]/m2ByMsq,S2y->data->data[idx]/m2ByMsq,S2z->data->data[idx]/m2ByMsq);
-	printf(" LS1 %12.4e  LS2 %12.4e  S1S2 %12.4e  S1S1 %12.4e  S2S2 %12.4e\n",LNhS1,LNhS2,S1S2,S1S1,S2S2);*/
-      }
       if ((omegaMatch>omega->data->data[idx])&&(omega->data->data[idx]<0.1)) {
 	if (omega->data->data[idx-1]<omega->data->data[idx]) iMatch=idx;
 	// The numerical integrator sometimes stops and stores twice the last
@@ -1990,6 +1983,20 @@ int XLALSimIMRPhenSpinInspiralRDGenerator(REAL8TimeSeries **hPlus,	         /**<
     REAL8 Psi0;
     REAL8 alpha0,energy;
 
+    XLALDestroyREAL8Vector(omega_s);
+    XLALDestroyREAL8Vector(LNhx_s);
+    XLALDestroyREAL8Vector(LNhy_s);
+    XLALDestroyREAL8Vector(LNhz_s);
+    XLALDestroyREAL8Vector(domega);
+    XLALDestroyREAL8Vector(dLNhx);
+    XLALDestroyREAL8Vector(dLNhy);
+    XLALDestroyREAL8Vector(dLNhz);
+    XLALDestroyREAL8Vector(diota);
+    XLALDestroyREAL8Vector(dalpha);
+    XLALDestroyREAL8Vector(ddomega);
+    XLALDestroyREAL8Vector(ddiota);
+    XLALDestroyREAL8Vector(ddalpha);
+
     if ((tAs < t0) || (om1 < 0.)) {
       XLALPrintError("**** LALSimIMRPhenSpinInspiralRD ERROR ****: Could not attach phen part for:\n");
       XLALPrintError(" tAs %12.6e  t0 %12.6e  om1 %12.6e\n",tAs,t0,om1);
@@ -1998,7 +2005,7 @@ int XLALSimIMRPhenSpinInspiralRDGenerator(REAL8TimeSeries **hPlus,	         /**<
       XLALPrintError("   S2 = (%10.6f,%10.6f,%10.6f)\n", s2x, s2y, s2z);
       XLAL_ERROR(XLAL_EFAILED);
     }
-    else {
+    else /*if Phen part is sane go for this*/ {
       XLALSimInspiralComputeInclAngle(LNhatz->data->data[iMatch],&trigAngle);
       om     = omega->data->data[iMatch];
       Psi    = Phi->data->data[iMatch] - 2. * om * log(om);
@@ -2230,7 +2237,7 @@ int XLALSimIMRPhenSpinInspiralRDGenerator(REAL8TimeSeries **hPlus,	         /**<
       XLALDestroyREAL8VectorSequence( inspWaveI );
       if (errcode) XLAL_ERROR( XLAL_EFUNC );
 
-    } /* End of if phen part not sane*/
+    } /* End of: if phen part not sane*/
 
   } /*End of if intreturn==LALPSIRDPN_TEST_OMEGAMATCH*/
 
@@ -2251,7 +2258,7 @@ int XLALSimIMRPhenSpinInspiralRDGenerator(REAL8TimeSeries **hPlus,	         /**<
     }
   }
   else {
-    //XLALGPSAdd(&tStart,-tPeak);
+    XLALGPSAdd(&tStart,-tPeak);
     *hPlus  = XLALCreateREAL8TimeSeries("H+", &tStart, 0.0, deltaT, &lalDimensionlessUnit, count);
     *hCross = XLALCreateREAL8TimeSeries("Hx", &tStart, 0.0, deltaT, &lalDimensionlessUnit, count);
     if(*hPlus == NULL || *hCross == NULL)
