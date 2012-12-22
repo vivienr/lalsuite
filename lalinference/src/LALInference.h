@@ -3,7 +3,8 @@
  *  LALInference:             Bayesian Followup        
  *  include/LALInference.h:   main header file
  *
- *  Copyright (C) 2009 Ilya Mandel, Vivien Raymond, Christian Roever, Marc van der Sluys and John Veitch
+ *  Copyright (C) 2009,2012 Ilya Mandel, Vivien Raymond, Christian
+ *  Roever, Marc van der Sluys, John Veitch, and Will M. Farr
  *
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -93,7 +94,7 @@ struct tagLALInferenceIFOData;
  * types are supported as well as others.
 */
 typedef enum {
-  LALINFERENCE_INT4_t, 		
+  LALINFERENCE_INT4_t,
   LALINFERENCE_INT8_t,
   LALINFERENCE_UINT4_t,
   LALINFERENCE_REAL4_t, 
@@ -387,6 +388,8 @@ tagLALInferenceIFOData
   LALDetector               *detector;          /** LALDetector structure for where this data came from */
   BarycenterInput           *bary;              /** Barycenter information */
   EphemerisData             *ephem;             /** Ephemeris data */
+  TimeCorrectionData        *tdat; /** Einstein delay time correction data */
+  TimeCorrectionType        ttype; /** The time correction type e.g. TDB, TCB */
   LIGOTimeGPS		    epoch;              /** The epoch of this observation (the time of the first sample) */
   REAL8                     SNR;                /** IF INJECTION ONLY, E(SNR) of the injection in the detector.*/
   REAL8                     STDOF;              /** Degrees of freedom for IFO to be used in Student-T Likelihood. */

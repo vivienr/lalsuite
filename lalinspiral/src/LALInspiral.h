@@ -373,7 +373,7 @@ tagInspiralTemplate
   REAL4  qmParameter[2];
   LALSimInspiralInteraction	interaction;
 
-  FrameAxis axisChoice;
+  LALSimInspiralFrameAxis axisChoice;
   UINT4 fixedStep;
   UINT4 inspiralOnly;
 
@@ -718,6 +718,14 @@ int XLALInspiralSetup (
      expnCoeffs *ak,
      InspiralTemplate *params);
 
+
+/*
+ * FIXME: The current SWIG wrappings remove LAL and XLAL prefixes from
+ *        functions such that the InspiralInit struct collides with
+ *        XLALInspiralInit. Since many places refer to the struct, let's
+ *        make {XLAL,LAL}InspiralInit invisible to SWIG.
+ */
+#ifndef SWIG
 void
 LALInspiralInit(
 	LALStatus        *status,
@@ -728,6 +736,7 @@ int
 XLALInspiralInit(
 	InspiralTemplate *params,
 	InspiralInit     *paramsInit);
+#endif /* SWIG */
 
 /**
  * Generate the plus and cross polarizations for a waveform
@@ -1245,11 +1254,6 @@ void LALBBHPhenWaveTimeDom (
     REAL4Vector      *signalvec,
     InspiralTemplate *insp_template);
 
-void LALBBHPhenWaveFreqDomTemplates(
-    LALStatus        *status,
-    REAL4Vector      *signalvec1,
-    REAL4Vector      *signalvec2,
-    InspiralTemplate *params);
 void LALBBHPhenWaveTimeDomTemplates(
     LALStatus        *status,
     REAL4Vector      *signalvec1,
@@ -1799,11 +1803,12 @@ INT4 XLALGenerateQNMFreqV2(
         UINT4                   nmodes
         );
 
-INT4 XLALFinalMassSpin(
+/* made static in LALInspiralRingdownWave.c */
+/* INT4 XLALFinalMassSpin(
 	REAL8			*finalMass,
 	REAL8			*finalSpin,
 	InspiralTemplate	*params
-	);
+	); */
 
 INT4 XLALInspiralHybridAttachRingdownWave (
         REAL4Vector 	 *signalvec1,
@@ -1913,6 +1918,14 @@ int XLALInspiralCalculateIIRSetInnerProduct(
 	REAL8Vector        *psd,
 	double             *ip
 	);
+
+int
+XLALNRInjectionFromSimInspiral(
+    REAL8TimeSeries **hplus,
+    REAL8TimeSeries **hcross,
+    SimInspiralTable *thisRow,
+    REAL8 deltaT
+);
 
 void XLALSimInjectNinjaSignals(
         REAL4TimeSeries* chan,

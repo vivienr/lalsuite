@@ -164,7 +164,6 @@ specified then the fake data containing the signal, and a fake signal-only data
 set, will be output.
  */
 
-#define LAL_USE_OLD_COMPLEX_STRUCTS
 #include "pulsar_parameter_estimation_nested.h"
 #include "ppe_models.h"
 #include "ppe_likelihood.h"
@@ -213,6 +212,7 @@ LALStringVector *corlist = NULL;
                      their upper and lower ranges\n"\
 " --ephem-earth       Earth ephemeris file\n"\
 " --ephem-sun         Sun ephemeris file\n"\
+" --ephem-timecorr    Einstein delay time correction ephemeris file\n"\
 " --model-type        (CHAR) the signal model that you want to use. Currently\n\
                      this can only be 'triaxial', which is the default\n\
                      value.\n"\
@@ -234,6 +234,8 @@ LALStringVector *corlist = NULL;
 " --kDTree            (REAL8) relative weigth of using a k-D tree of the live\n\
                      points to use as a proposal (DEFAULT = 3, e.g. 15%%)\n"\
 " --kDNCell           (INT4) maximum number of samples in a k-D tree cell\n"\
+" --kDUpdateFactor    (REAL8) how often the k-D tree gets updated as a\n\
+                     factor of the number of live points\n"\
 " --diffev            (REAL8) relative weight of using differential evolution\n\
                      of the live points as the proposal (DEFAULT = 3, e.g.\n\
                      15%%)\n"\
@@ -272,19 +274,21 @@ LALStringVector *corlist = NULL;
                      scale the injection. This is 1 by default.\n"\
 "\n"\
 " Flags for using a Nested sampling file as a prior:\n"\
-" --sample-file      a file containing the nested samples from a previous run\n\
-                    of the code (this should contain samples in ascending\n\
-                    likelihood order and be accompanied by a file containg a\n\
-                    list of the parameter names for each column with the\n\
-                    suffix _params.txt). If this is set this WILL be used as\n\
-                    the only prior, but the prior ranges set in the\n\
-                    --prior-file and --par-file are still needed (and\n\
-                    should be consistent with variable parameters in the\n\
-                    nested sample file).\n"\
-" --sample-nlive     The number of live point that where used when creating\n\
-                    the nested sample file.\n"\
+" --sample-files     a list of (comma separated) file containing the nested\n\
+                    samples from a previous run of the code (these should\n\
+                    contain samples in ascending likelihood order and be\n\
+                    accompanied by a file containg a list of the parameter\n\
+                    names for each column with the suffix _params.txt). If\n\
+                    this is set this WILL be used as the only prior, but the\n\
+                    prior ranges set in the --prior-file and --par-file are\n\
+                    still needed (and should be consistent with the variable\n\
+                    parameters in the nested sample file).\n"\
+" --sample-nlives    a list (comma separated) of the number of live point\n\
+                    that where used when creating each nested sample file.\n"\
 " --prior-cell       The number of samples to use in a k-d tree cell for the\n\
-                    prior (the default will be 32).\n"\
+                    prior (the default will be 8).\n"\
+" --Npost            The (approxiamate) number of posterior samples to be\n\
+                    generated from each nested sample file (default = 1000)\n"\
 "\n"\
 " Phase parameter search speed-up factors:\n"\
 " --mismatch          Maximum allowed phase mismatch between consecutive\n\
@@ -306,7 +310,7 @@ INT4 main( INT4 argc, CHAR *argv[] ){
   
   /* set error handler to abort in main function */
   //lalDebugLevel = 7;
-  XLALSetErrorHandler(XLALAbortErrorHandler);
+  XLALSetErrorHandler( XLALExitErrorHandler );
   
   /* Get ProcParamsTable from input arguments */
   param_table = LALInferenceParseCommandLine( argc, argv );
@@ -357,6 +361,9 @@ INT4 main( INT4 argc, CHAR *argv[] ){
   /* Create live points array and fill initial parameters */
   LALInferenceSetupLivePointsArray( &runState );
 
+  /* output the live points sampled from the prior */
+  outputPriorSamples( &runState );
+  
   /* Initialise the MCMC proposal distribution */
   initialiseProposal( &runState );
   
@@ -580,8 +587,8 @@ void readPulsarData( LALInferenceRunState *runState ){
   
   CHAR *filestr = NULL;
   
-  CHAR efile[1024];
-  CHAR sfile[1024];
+  CHAR *efile = NULL, *sfile = NULL, *tfile = NULL;
+  TimeCorrectionType ttype;
   
   CHAR *tempdets = NULL;
   CHAR *tempdet = NULL;
@@ -605,6 +612,9 @@ void readPulsarData( LALInferenceRunState *runState ){
   REAL8Vector *modelFreqFactors = NULL;
   INT4 ml = 1, downs = 1;
   
+  CHAR *parFile = NULL;
+  BinaryPulsarParams pulsar;
+  
   runState->data = NULL;
   
   /* check pulsar model required */
@@ -616,7 +626,7 @@ void readPulsarData( LALInferenceRunState *runState ){
     /* default model type is triaxial */
     modeltype = XLALStringDuplicate( "triaxial" );
   }
-  
+
   /* set parameters to read in data for different models - if adding a new
      model different parameters may be required. Different models may use sets
      of data at multiple frequencies. */
@@ -640,11 +650,20 @@ void readPulsarData( LALInferenceRunState *runState ){
     exit(0);
   }
   
+  ppt = LALInferenceGetProcParamVal( runState->commandLine, "--par-file" );
+  if( ppt == NULL ) { 
+    fprintf(stderr,"Must specify --par-file!\n"); exit(1);
+  }
+  parFile = XLALStringDuplicate( ppt->value );
+        
+  /* get the pulsar parameters to give a value of f */
+  XLALReadTEMPOParFile( &pulsar, parFile );
+  
   /* get the detectors - must */
   ppt = LALInferenceGetProcParamVal( commandLine, "--detectors" );
   ppt2 = LALInferenceGetProcParamVal( commandLine, "--fake-data" );
   if( ppt && !ppt2 ){
-   detectors = XLALStringDuplicate( ppt->value );
+    detectors = XLALStringDuplicate( ppt->value );
       
     /* count the number of detectors from command line argument of comma
        separated vales and set their names */
@@ -717,18 +736,7 @@ void readPulsarData( LALInferenceRunState *runState ){
     }
     /*------------------------------------------------------------------------*/
     else{ /* get PSDs from model functions and set detectors */
-      CHAR *parFile = NULL;
-      BinaryPulsarParams pulsar;
       REAL8 pfreq = 0.;
-      
-      ppt = LALInferenceGetProcParamVal( runState->commandLine, "--par-file" );
-      if( ppt == NULL ) { 
-        fprintf(stderr,"Must specify --par-file!\n"); exit(1);
-      }
-      parFile = XLALStringDuplicate( ppt->value );
-        
-      /* get the pulsar parameters to give a value of f */
-      XLALReadTEMPOParFile( &pulsar, parFile );
       
       /* putting in pulsar frequency at f here */
       pfreq = pulsar.f0;
@@ -934,10 +942,10 @@ given must be %d times the number of detectors specified (no. dets =\%d)\n",
     CHAR *datafile = NULL;
     REAL8 times = 0;
     LIGOTimeGPS gpstime;
-    COMPLEX16 dataVals;
+    REAL8 dataValsRe = 0., dataValsIm = 0.;
     REAL8Vector *temptimes = NULL;
     INT4 j = 0, k = 0, datalength = 0;
-    ProcessParamsTable *ppte = NULL, *ppts = NULL;
+    ProcessParamsTable *ppte = NULL, *ppts = NULL, *pptt = NULL;
     
     FILE *fp = NULL;
     
@@ -1011,7 +1019,7 @@ given must be %d times the number of detectors specified (no. dets =\%d)\n",
       REAL8 tnow = 0., tprev = 0.;
       
       /* read in data */
-      while(fscanf(fp, "%lf%lf%lf", &times, &dataVals.re, &dataVals.im) != EOF){
+      while(fscanf(fp, "%lf%lf%lf", &times, &dataValsRe, &dataValsIm) != EOF){
         j++;
         
         tnow = times;
@@ -1020,8 +1028,8 @@ given must be %d times the number of detectors specified (no. dets =\%d)\n",
         if ( j%downs != 0 ){
           if ( j > 1 ) dtcur = tnow - tprev;
 
-          tmpre += dataVals.re;
-          tmpim += dataVals.im;
+          tmpre += dataValsRe;
+          tmpim += dataValsIm;
           timetmp += times;
           tprev = tnow;
           
@@ -1030,8 +1038,8 @@ given must be %d times the number of detectors specified (no. dets =\%d)\n",
              spacings */
           if ( j > 2 && dtcur != dtprev ){
             timetmp = times;
-            tmpre = dataVals.re;
-            tmpim = dataVals.im;
+            tmpre = dataValsRe;
+            tmpim = dataValsIm;
             dtcur = dtprev = 0.;
             j = 1;
           }
@@ -1043,8 +1051,8 @@ given must be %d times the number of detectors specified (no. dets =\%d)\n",
         else{
           /* if downsampling is not occuring just set individual values */
           if ( !tmpre && !tmpim && !timetmp ){
-            tmpre = dataVals.re;
-            tmpim = dataVals.im;
+            tmpre = dataValsRe;
+            tmpim = dataValsIm;
             timetmp = times;
           }
           else{ /* if downsampling get averages */
@@ -1053,16 +1061,16 @@ given must be %d times the number of detectors specified (no. dets =\%d)\n",
             /* check for contiguous segments */
             if( j > 2 && dtcur != dtprev ){
               timetmp = times;
-              tmpre = dataVals.re;
-              tmpim = dataVals.im;
+              tmpre = dataValsRe;
+              tmpim = dataValsIm;
               dtcur = dtprev = 0.;
               j = 1;
               continue;
             }
             
             /* add on final point and average */
-            tmpre = (tmpre + dataVals.re) / (REAL8)downs;
-            tmpim = (tmpim + dataVals.im ) / (REAL8)downs;
+            tmpre = (tmpre + dataValsRe) / (REAL8)downs;
+            tmpim = (tmpim + dataValsIm ) / (REAL8)downs;
             timetmp = (timetmp + times) / (REAL8)downs;
           }
         }
@@ -1079,8 +1087,7 @@ given must be %d times the number of detectors specified (no. dets =\%d)\n",
         temptimes = XLALResizeREAL8Vector( temptimes, counter );
 
         temptimes->data[counter-1] = timetmp;
-        ifodata->compTimeData->data->data[counter-1].re = tmpre;
-        ifodata->compTimeData->data->data[counter-1].im = tmpim;
+        ifodata->compTimeData->data->data[counter-1] = tmpre + I*tmpim;
         
         tmpre = tmpim = timetmp = 0.;
         dtcur = dtprev = 0.;
@@ -1142,10 +1149,9 @@ given must be %d times the number of detectors specified (no. dets =\%d)\n",
         XLALGPSSetREAL8( &ifodata->dataTimes->data[k], 
                          fstarts[i] + fdt[i] * (REAL8)k );
         
-        ifodata->compTimeData->data->data[k].re = (REAL8)realdata->data[k] *
-          psdscale;
-        ifodata->compTimeData->data->data[k].im = (REAL8)imagdata->data[k] *
-          psdscale;
+        ifodata->compTimeData->data->data[k] = 
+          (REAL8)realdata->data[k] * psdscale + 
+          I * (REAL8)imagdata->data[k] * psdscale;
       }
       
       ifodata->compTimeData->epoch = ifodata->dataTimes->data[0];
@@ -1161,14 +1167,31 @@ given must be %d times the number of detectors specified (no. dets =\%d)\n",
     /* get ephemeris files */
     ppte = LALInferenceGetProcParamVal( commandLine, "--ephem-earth" );
     ppts = LALInferenceGetProcParamVal( commandLine, "--ephem-sun" );
+    pptt = LALInferenceGetProcParamVal( commandLine, "--ephem-timecorr" );
     if( ppte && ppts ){
-      XLALStringCopy( efile, ppte->value, sizeof(efile) );
-      XLALStringCopy( sfile, ppts->value, sizeof(sfile) );
+      efile = XLALStringDuplicate( ppte->value );
+      sfile = XLALStringDuplicate( ppts->value );
+      
+      if ( pptt ){
+        tfile = XLALStringDuplicate( pptt->value );
+      
+        if ( pulsar.units != NULL ){
+          if( !strcmp(pulsar.units, "TDB") )
+            ttype = TIMECORRECTION_TDB;
+          else ttype = TIMECORRECTION_TCB; /* default to TCB otherwise */
+        }
+        else
+          ttype = TIMECORRECTION_TCB;
+      }
+      else{
+        tfile = NULL;
+        ttype = TIMECORRECTION_ORIGINAL;
+      }
     }
     else{ /* try getting files automatically */
-      if( XLALAutoSetEphemerisFiles( efile, sfile,
-        ifodata->dataTimes->data[0].gpsSeconds,
-        ifodata->dataTimes->data[datalength-1].gpsSeconds ) ){
+      if( !( ttype = XLALAutoSetEphemerisFiles( efile, sfile, tfile,
+            pulsar, ifodata->dataTimes->data[0].gpsSeconds,
+            ifodata->dataTimes->data[datalength-1].gpsSeconds ) ) ){
         fprintf(stderr, "Error... not been able to set ephemeris files!\n");
         exit(3);
       }
@@ -1182,7 +1205,15 @@ defined!\n");
     }
     
     /* set up ephemeris information */
-    ifodata->ephem = XLALInitBarycenter( efile, sfile );
+    XLAL_CHECK_VOID( (ifodata->ephem = XLALInitBarycenter( efile, sfile ) )
+                     != NULL, XLAL_EFUNC );
+    if( tfile ){
+      XLAL_CHECK_VOID( (ifodata->tdat = XLALInitTimeCorrections( tfile ) ) 
+                       != NULL, XLAL_EFUNC );
+    }
+    else ifodata->tdat = NULL;
+    ifodata->ttype = ttype;
+    
     XLALDestroyRandomParams( randomParams );
     
     /* get maximum data length */
@@ -1301,23 +1332,23 @@ void setupFromParFile( LALInferenceRunState *runState )
   while( data ){
     REAL8Vector *freqFactors = NULL;
     UINT4 j = 0;
-    
+
     freqFactors = *(REAL8Vector **)LALInferenceGetVariable( data->dataParams, 
                                                             "freqfactors" );
-    
+
     for( j = 0; j < freqFactors->length; j++ ){
       UINT4 i = 0;
       LALInferenceVariableItem *scaleitem = scaletemp->head;
       REAL8Vector *dts = NULL, *bdts = NULL;
 
-      dts = get_ssb_delay( pulsar, data->dataTimes, data->ephem, data->detector,
-                           0. );
-      
+      dts = get_ssb_delay( pulsar, data->dataTimes, data->ephem, data->tdat,
+                           data->ttype, data->detector, 0. );
+
       LALInferenceAddVariable( data->dataParams, "ssb_delays", &dts,
                               LALINFERENCE_REAL8Vector_t, 
                               LALINFERENCE_PARAM_FIXED );
-     
-      bdts = get_bsb_delay( pulsar, data->dataTimes, dts );
+      
+      bdts = get_bsb_delay( pulsar, data->dataTimes, dts, data->ephem );
       
       LALInferenceAddVariable( data->dataParams, "bsb_delays", &bdts,
                               LALINFERENCE_REAL8Vector_t, 
@@ -2575,26 +2606,23 @@ injection\n", signalonly);
     
     /* add the signal to the data */
     for ( i = 0; i < length; i++ ){
-      data->compTimeData->data->data[i].re +=
-        data->compModelData->data->data[i].re;
-      data->compTimeData->data->data[i].im +=
-        data->compModelData->data->data[i].im;
-        
+      data->compTimeData->data->data[i] += data->compModelData->data->data[i];
+
       /* write out injection to file */
       if( fp != NULL && fpso != NULL ){
         /* print out data - time stamp, real and imaginary parts of data
            (injected signal + noise) */
         fprintf(fp, "%.5lf\t%le\t%le\n", 
                 XLALGPSGetREAL8( &data->dataTimes->data[i] ),
-                data->compTimeData->data->data[i].re, 
-                data->compTimeData->data->data[i].im );
+                creal(data->compTimeData->data->data[i]), 
+                cimag(data->compTimeData->data->data[i]) );
         
         /* print signal only data - time stamp, real and imaginary parts of
            signal */
         fprintf(fpso, "%.5lf\t%le\t%le\n", 
                 XLALGPSGetREAL8( &data->dataTimes->data[i] ),
-                data->compModelData->data->data[i].re, 
-                data->compModelData->data->data[i].im );
+                creal(data->compModelData->data->data[i]), 
+                cimag(data->compModelData->data->data[i]) );
       }
     }
 
@@ -2795,8 +2823,8 @@ COMPLEX16Vector *subtract_running_median( COMPLEX16Vector *data ){
   submed = XLALCreateCOMPLEX16Vector( length );
   
   for ( i = 1; i < length+1; i++ ){
-    double *dre = NULL;
-    double *dim = NULL;
+    REAL8 *dre = NULL;
+    REAL8 *dim = NULL;
     
     /* get median of data within RANGE */
     if ( i < N ){
@@ -2812,12 +2840,12 @@ COMPLEX16Vector *subtract_running_median( COMPLEX16Vector *data ){
       sidx = i-N;
     }
     
-    dre = XLALCalloc( n, sizeof(double) );
-    dim = XLALCalloc( n, sizeof(double) );
+    dre = XLALCalloc( n, sizeof(REAL8) );
+    dim = XLALCalloc( n, sizeof(REAL8) );
     
     for ( j = 0; j < n; j++ ){
-      dre[j] = data->data[j+sidx].re;
-      dim[j] = data->data[j+sidx].im;
+      dre[j] = creal(data->data[j+sidx]);
+      dim[j] = cimag(data->data[j+sidx]);
     }
     
     /* sort data */
@@ -2825,10 +2853,10 @@ COMPLEX16Vector *subtract_running_median( COMPLEX16Vector *data ){
     gsl_sort( dim, 1, n );
     
     /* get median and subtract from data*/
-    submed->data[i-1].re = data->data[i-1].re
-      - gsl_stats_median_from_sorted_data( dre, 1, n );
-    submed->data[i-1].im = data->data[i-1].im
-      - gsl_stats_median_from_sorted_data( dim, 1, n );
+    submed->data[i-1] = ( creal(data->data[i-1])
+      - gsl_stats_median_from_sorted_data( dre, 1, n ) )
+      + I * ( cimag(data->data[i-1])
+      - gsl_stats_median_from_sorted_data( dim, 1, n ) );
       
     XLALFree( dre );
     XLALFree( dim );
@@ -2981,10 +3009,7 @@ UINT4 find_change_point( COMPLEX16Vector *data, REAL8 *logodds,
   }
   
   /* calculate the sum of the data squared */
-  for (i = 0; i < length; i++){
-    datasum += SQUARE( data->data[i].re );
-    datasum += SQUARE( data->data[i].im );
-  }
+  for (i = 0; i < length; i++) datasum += SQUARE( cabs(data->data[i]) );
   
   /* calculate the evidence that the data consists of a Gaussian data with a
      single standard deviation */
@@ -3000,20 +3025,14 @@ UINT4 find_change_point( COMPLEX16Vector *data, REAL8 *logodds,
   
   for ( i = 0; i < length - minlength; i++ ){    
     if ( i < (UINT4)minlength ){
-      sumforward->data[0] += SQUARE( data->data[i].re );
-      sumforward->data[0] += SQUARE( data->data[i].im );
-      
-      sumback->data[0] += SQUARE( data->data[length-(i+1)].re );
-      sumback->data[0] += SQUARE( data->data[length-(i+1)].im );
+      sumforward->data[0] += SQUARE( cabs(data->data[i]) );
+      sumback->data[0] += SQUARE( cabs(data->data[length-(i+1)]) );
     }
-    else{
+    else{      
       sumforward->data[i+1-minlength] = sumforward->data[i-minlength] + 
-        SQUARE( data->data[i].re );
-      sumforward->data[i+1-minlength] += SQUARE( data->data[i].im );
-      
+        SQUARE( cabs(data->data[i]) );  
       sumback->data[i+1-minlength] = sumback->data[i-minlength] +
-        SQUARE( data->data[length-(i+1)].re );
-      sumback->data[i+1-minlength] += SQUARE( data->data[length-(i+1)].im );
+        SQUARE( cabs(data->data[length-(i+1)]) );
     }
   }
   
@@ -3173,15 +3192,11 @@ void merge_data( COMPLEX16Vector *data, UINT4Vector *segs ){
       n2 = cellends2 - cellstarts2;
       nm = cellends2 - cellstarts1;
       
-      for( i = cellstarts1; i < cellends1; i++ ){
-        sum1 += SQUARE( data->data[i].re );
-        sum1 += SQUARE( data->data[i].im );
-      }
-      
-      for( i = cellstarts2; i < cellends2; i++ ){
-        sum2 += SQUARE( data->data[i].re );
-        sum2 += SQUARE( data->data[i].im );
-      }
+      for( i = cellstarts1; i < cellends1; i++ ) 
+        sum1 += SQUARE( cabs(data->data[i]) );
+
+      for( i = cellstarts2; i < cellends2; i++ )
+        sum2 += SQUARE( cabs(data->data[i]) );
       
       summerged = sum1 + sum2;
       
@@ -3250,11 +3265,10 @@ void sumData( LALInferenceRunState *runState ){
       sumdat->data[count] = 0.;
     
       for( j = i ; j < i + chunkLength ; j++){
-        B.re = data->compTimeData->data->data[j].re;
-        B.im = data->compTimeData->data->data[j].im;
+        B = data->compTimeData->data->data[j];
 
         /* sum up the data */
-        sumdat->data[count] += (B.re*B.re + B.im*B.im);
+        sumdat->data[count] += (creal(B)*creal(B) + cimag(B)*cimag(B));
       }
 
       count++;
@@ -3680,7 +3694,7 @@ REAL8 calculate_time_domain_snr( LALInferenceIFOData *data ){
   length = data->compTimeData->data->length;
   
   for ( i = 0; i < length; i+=chunkLength ){
-    COMPLEX16 snrc = {0., 0.}, vari = {0., 0.};
+    REAL8 snrcRe = 0., snrcIm = 0., variRe = 0., variIm = 0.;
     
     chunkLength = (REAL8)chunkLengths->data[count];
     
@@ -3694,19 +3708,19 @@ REAL8 calculate_time_domain_snr( LALInferenceIFOData *data ){
     cl = i + (INT4)chunkLength;
     
     for( j = i ; j < cl ; j++ ){
-      vari.re += SQUARE(meddata->data[j].re);
-      vari.im += SQUARE(meddata->data[j].im);
-      
+      variRe += SQUARE( creal(meddata->data[j]) );
+      variIm += SQUARE( cimag(meddata->data[j]) );
+
       /* calculate optimal signal power */
-      snrc.re += SQUARE(data->compModelData->data->data[j].re);
-      snrc.im += SQUARE(data->compModelData->data->data[j].im);
+      snrcRe += SQUARE( creal(data->compModelData->data->data[j]) );
+      snrcIm += SQUARE( cimag(data->compModelData->data->data[j]) );
     }
     
-    vari.re /= (chunkLength - 1.);
-    vari.im /= (chunkLength - 1.);
+    variRe /= (chunkLength - 1.);
+    variIm /= (chunkLength - 1.);
     
     /* add SNRs for each chunk in quadrature */
-    snrval += (snrc.re/vari.re) + (snrc.im/vari.im);
+    snrval += ( snrcRe/variRe ) + ( snrcIm/variIm );
     
     count++;
   }
@@ -3830,39 +3844,34 @@ void get_loudest_snr( LALInferenceRunState *runState ){
  * LALPULSAR_PREFIX variable is set, which should mean that ephemeris files are
  * installed in the directory \c ${LALPULSAR_PREFIX}/share/lalpulsar/.
  *
- * Within this directory the should be ephemeris files of the format 
- * earthXX-YY.dat, or earthXX.dat, where XX are two digit years e.g.
- * earth11.dat and represent the year or years for which the ephemeris is
- * valid. The function will find the appropriate ephemeris files that cover the 
- * time range (in GPS seconds) required. If no files exist errors will be
- * returned.
- * 
- * The function requires <code>dirent.h</code> and <code>time.h</code>. 
- * 
- * NOTE: This may want to be moved into LAL at some point.
  * 
  * \param efile [in] a string that will return the Earth ephemeris file
- * \param sfile [in] a string that will return the Sun ephemeris file 
+ * \param sfile [in] a string that will return the Sun ephemeris file
+ * \param tfile [in] a string that will return the time correction file
+ * \param pulsar [in] the pulsar parameters read from a .par file
  * \param gpsstart [in] the GPS time of the start of the data
  * \param gpsend [in] the GPS time of the end of the data
  * 
- * \return Zero will be return on successful completion
+ * \return The TimeCorrectionType e.g. TDB or TCB
  */
-INT4 XLALAutoSetEphemerisFiles( CHAR *efile, CHAR *sfile, 
-                                INT4 gpsstart, INT4 gpsend ){
-  struct tm utcstart,  utcend;
-  CHAR *eftmp = NULL, *sftmp = NULL;
-  INT4 buf = 3;
-  CHAR yearstart[buf], yearend[buf]; /* the two digit year i.e. 11 for 2011*/
-  INT4 ys = 0, ye = 0;
+TimeCorrectionType XLALAutoSetEphemerisFiles( CHAR *efile, CHAR *sfile,
+                                              CHAR *tfile,
+                                              BinaryPulsarParams pulsar,
+                                              INT4 gpsstart, INT4 gpsend ){
+  /* set the times that the ephemeris files span */
+  INT4 ephemstart = 630720013; /* GPS time of Jan 1, 2000, 00:00:00 UTC */
+  INT4 ephemend = 1261872015; /* GPS time of Jan 1, 2020, 00:00:00 UTC */
+  CHAR *eftmp = NULL, *sftmp = NULL, *tftmp = NULL;
+  TimeCorrectionType ttype = TIMECORRECTION_NONE;
+  
   CHAR *lalpath = NULL, *lalpulsarpath = NULL;
   
-  INT4 yr1 = 0, yr2 = 0, i = 0;
-    
-  CHAR tmpyr[6];
-    
-  struct dirent *entry;
-  DIR *dp;
+  if( gpsstart < ephemstart || gpsend < ephemstart || gpsstart > ephemend ||
+      gpsend > ephemend ){
+    XLALPrintError("Start and end times are outside the ephemeris file \
+ranges!\n");
+    XLAL_ERROR(XLAL_EFUNC);
+  }
   
   /* first check that the path to the Ephemeris files is available in the
      environment variables */
@@ -3872,90 +3881,45 @@ automatically generate ephemeris files!\n");
     XLAL_ERROR(XLAL_EFUNC);
   }
   
-  /* get the utc times of the start and end GPS times */
-  if( !XLALGPSToUTC( &utcstart, gpsstart ) )
-    XLAL_ERROR(XLAL_EFUNC);
-  if( !XLALGPSToUTC( &utcend, gpsend ) )
-    XLAL_ERROR(XLAL_EFUNC);
-  
-  /* get years */
-  if( strftime(yearstart, buf, "%y", &utcstart) != 2 )
-    XLAL_ERROR(XLAL_EFUNC);
-  
-  if( strftime(yearend, buf, "%y", &utcend) != 2 )
-    XLAL_ERROR(XLAL_EFUNC);
-  
-  ys = atoi(yearstart);
-  ye = atoi(yearend);
-  
   lalpulsarpath = XLALStringDuplicate( lalpath );
   
   if ( (lalpulsarpath = XLALStringAppend(lalpulsarpath, "/share/lalpulsar/")) ==
-NULL )
+    NULL )
     XLAL_ERROR(XLAL_EFUNC);
   
   eftmp = XLALStringDuplicate(lalpulsarpath);
   sftmp = XLALStringDuplicate(lalpulsarpath);
+  tftmp = XLALStringDuplicate(lalpulsarpath);
   
-  eftmp = XLALStringAppend(eftmp, "earth");
-  sftmp = XLALStringAppend(sftmp, "sun");
- 
-  /* find the ephemeris file that bounds the required range */
-  if ( ( dp = opendir(lalpulsarpath) ) == NULL ){
-    XLALPrintError("Error... cannot open directory path %s!\n", lalpulsarpath);
-    XLAL_ERROR(XLAL_EFUNC);
+  eftmp = XLALStringAppend(eftmp, "earth00-19-");
+  sftmp = XLALStringAppend(sftmp, "sun00-19-");
+
+  if( pulsar.ephem == NULL ){
+    /* default to use DE405 */
+    eftmp = XLALStringAppend(eftmp, "DE405");
+    sftmp = XLALStringAppend(sftmp, "DE405");
   }
-    
-  while( (entry = readdir(dp) ) ){
-    /* just use "earth" files rather than doubling up */
-    if ( strstr(entry->d_name, "earth") != NULL ){
-      /* get current set of ranges - filenames are of the format
-         earthXX-YY.dat, so find the '-' and extract two characters either
-         side */
-      if ( strchr(entry->d_name, '-') ){
-        sscanf(entry->d_name, "earth%d-%d.dat", &yr1, &yr2);
-        
-        if ( ys >= yr1 && ye <= yr2 ) {
-          snprintf(tmpyr, 6, "%02d-%02d", yr1, yr2);
-          
-          eftmp = XLALStringAppend(eftmp, tmpyr);
-          sftmp = XLALStringAppend(sftmp, tmpyr);
-          i++;
-          break;
-        }
-      }
-      /* get the single year value ephemeris file e.g. earthXX.dat */
-      else{
-        sscanf(entry->d_name, "earth%d.dat", &yr1);
-        
-        if ( ys == yr1 && ye == yr1 ){
-          snprintf(tmpyr, 3, "%02d", yr1);
-          eftmp = XLALStringAppend(eftmp, tmpyr);
-          sftmp = XLALStringAppend(sftmp, tmpyr);
-          i++;
-          break;
-        }
-      }
+  else{
+    if( !strcmp(pulsar.ephem, "DE405") || !strcmp(pulsar.ephem, "DE200") ||
+        !strcmp(pulsar.ephem, "DE414") ){
+      eftmp = XLALStringAppend(eftmp, pulsar.ephem);
+      sftmp = XLALStringAppend(sftmp, pulsar.ephem);
+    }
+    else{
+      XLALPrintError("Unknown ephemeris %s in par file\n", pulsar.ephem);
+      XLAL_ERROR(XLAL_EFUNC);
     }
   }
-    
-  closedir(dp);
-    
-  if( i == 0 ){
-    XLALPrintError("No ephemeris files in the time range %02d-%02d found!\n",
-                   ys, ye);
-    XLAL_ERROR(XLAL_EFUNC);
-  }
-
+  
   /* add .dat extension */
-  eftmp = XLALStringAppend(eftmp, ".dat");
-  sftmp = XLALStringAppend(sftmp, ".dat");
+  eftmp = XLALStringAppend(eftmp, ".dat.gz");
+  sftmp = XLALStringAppend(sftmp, ".dat.gz");
   
   if ( eftmp == NULL || sftmp == NULL )
     XLAL_ERROR(XLAL_EFUNC);
-
-  XLALStringCopy( efile, eftmp, 1024 );
-  XLALStringCopy( sfile, sftmp, 1024 );
+  
+  efile = XLALStringDuplicate( eftmp );
+  sfile = XLALStringDuplicate( sftmp );
   
   /* double check that the files exist */
   if( fopen(sfile, "r") == NULL || fopen(efile, "r") == NULL ){
@@ -3963,7 +3927,33 @@ NULL )
     XLAL_ERROR(XLAL_EFUNC);
   }
   
-  return 0;
+  if( pulsar.units == NULL ){
+    /* default to using TCB units */
+    tftmp = XLALStringAppend(sftmp, "te405_2000-2019.dat.gz");
+    ttype = TIMECORRECTION_TCB;
+  }
+  else{
+    if ( !strcmp( pulsar.units, "TDB" ) ){
+      tftmp = XLALStringAppend(sftmp, "tdb_2000-2019.dat.gz");
+      ttype = TIMECORRECTION_TDB;
+    }
+    else{
+      XLALPrintError("Error... unknown units %s in par file!\n", pulsar.units);
+      XLAL_ERROR(XLAL_EFUNC);
+    }
+  }
+  
+  if ( tftmp == NULL ) XLAL_ERROR(XLAL_EFUNC);
+    
+  tfile = XLALStringDuplicate( tftmp );
+    
+  if( fopen(tfile, "r") == NULL ){
+    XLALPrintError("Error... time ephemeris files not, or incorrectly, \
+defined!\n");
+    XLAL_ERROR(XLAL_EFUNC);
+  }
+  
+  return ttype;
 }
 
 /** \brief Convert \f$\phi_0\f$ and \f$\psi\f$ to a new coordinate system
@@ -4117,29 +4107,64 @@ void inverse_phi0_psi_transform( REAL8 phi0prime, REAL8 psiprime,
 void samples_prior( LALInferenceRunState *runState ){
   ProcessParamsTable *ppt = NULL;
   
-  UINT4 Ncell = 32; /* default prior cell size */
+  UINT4 Ncell = 8; /* default prior cell size */
   
-  UINT4 i = 0, k = 0, nlive = 0;
+  UINT4 i = 0, k = 0, nsamps = 0, nnlive = 0, n = 0;
+  UINT4Vector *nlive = NULL, *Nsamps = NULL;
+  CHAR *nlivevals = NULL, *templives = NULL, *templive = NULL;
   
-  CHAR *sampfile = NULL, *namefile = NULL, name[256];
-  LALStringVector *paramNames = NULL;
+  CHAR *sampfile = NULL;
+  CHAR *tempsamps = NULL, *tempsamp = NULL;
   
-  LALInferenceVariables **params = NULL;
+  LALStringVector *sampfilenames = NULL;
+  
+  LALInferenceVariables ***params = NULL;
   
   FILE *fp = NULL;
   
   const CHAR *fn = __func__;
   
   /* get names of nested sample file columns */
-  ppt = LALInferenceGetProcParamVal( runState->commandLine, "--sample-file" );
-  if ( ppt != NULL ) sampfile = XLALStringDuplicate( ppt->value );
+  ppt = LALInferenceGetProcParamVal( runState->commandLine, "--sample-files" );
+  if ( ppt != NULL ){ 
+    sampfile = XLALStringDuplicate( ppt->value );
+       
+    /* count the number of sample files from the comma
+       separated vales and set their names */
+    tempsamps = XLALStringDuplicate( sampfile );
+    
+    nsamps = count_csv( tempsamps );
+    
+    for( i = 0; i < nsamps; i++ ){
+      tempsamp = strsep( &tempsamps, "," );
+      sampfilenames = XLALAppendString2Vector( sampfilenames, tempsamp );
+    }
+  }
   else return; /* no file so we don't use this function */
     
-  ppt = LALInferenceGetProcParamVal( runState->commandLine, "--sample-nlive" );
+  ppt = LALInferenceGetProcParamVal( runState->commandLine, "--sample-nlives" );
   if ( ppt != NULL ){
-    nlive = atoi( ppt->value );
+    nlivevals = XLALStringDuplicate( ppt->value );
+    
+    templives = XLALStringDuplicate( nlivevals );
+    
+    nnlive = count_csv( templives );
+    
+    if( nnlive != nsamps ){
+      XLALPrintError("%s: Number of live points not equal to number of \
+posterior files!\n", fn, sampfile);
+      XLAL_ERROR_VOID(XLAL_EIO);
+    }
+    
+    for( i = 0; i < nnlive; i++ ){
+      templive = strsep( &templives, "," );
+      nlive = XLALResizeUINT4Vector( nlive, i+1 );
+      nlive->data[i] = atoi( templive );
+    }
+    
     LALInferenceAddVariable( runState->algorithmParams, "numberlive", &nlive,
-                             LALINFERENCE_UINT4_t, LALINFERENCE_PARAM_FIXED );
+                             LALINFERENCE_UINT4Vector_t,
+                             LALINFERENCE_PARAM_FIXED );
   }
   else{
     fprintf(stderr, "Must set the number of live points used in the input \
@@ -4148,88 +4173,110 @@ nested samples file.\n\n");
     exit(0);
   }
   
-  namefile = XLALStringDuplicate( sampfile );
-  namefile = XLALStringAppend( namefile, "_params.txt" );
-    
-  /* check file exists */
-  if ( fopen(namefile, "r") == NULL || fopen(sampfile, "r") == NULL ){
-    XLALPrintError("%s: Cannot access either %s or %s!\n", fn, namefile,
-                   sampfile);
-    XLAL_ERROR_VOID(XLAL_EIO);
-  }
+  /* allocate memory for nested samples */
+  params = XLALCalloc( nsamps, sizeof(LALInferenceVariables**) );
   
-  /* read in parameter names */
-  fp = fopen( namefile, "r" );
-  while( fscanf(fp, "%s", name) != EOF )
-    paramNames = XLALAppendString2Vector( paramNames, name );
+  /* loop over files, convert to posterior samples and combine them */
+  for ( n = 0; n < nsamps; n++ ){
+    CHAR *namefile = NULL, name[256];
+    LALStringVector *paramNames = NULL;
+    
+    i = 0;
+    
+    /* initialise array as NULL */
+    params[n] = NULL;
+    
+    namefile = XLALStringDuplicate( sampfilenames->data[n] );
+    namefile = XLALStringAppend( namefile, "_params.txt" );
+    
+    /* check file exists */
+    if ( fopen(namefile, "r") == NULL || 
+         fopen(sampfilenames->data[n], "r") == NULL ){
+      XLALPrintError("%s: Cannot access either %s or %s!\n", fn, namefile,
+                     sampfilenames->data[n]);
+      XLAL_ERROR_VOID(XLAL_EIO);
+    }
+  
+    /* read in parameter names */
+    fp = fopen( namefile, "r" );
+    while( fscanf(fp, "%s", name) != EOF )
+      paramNames = XLALAppendString2Vector( paramNames, name );
 
-  fclose(fp);
+    fclose(fp);
   
-  /* read in parameter values */
-  fp = fopen( sampfile, "r" );
-  while( !feof(fp) ){
-    REAL8 ps[paramNames->length];
-    UINT4 j = 0;
+    /* read in parameter values */
+    fp = fopen( sampfilenames->data[n], "r" );
+    while( !feof(fp) ){
+      REAL8 ps[paramNames->length];
+      UINT4 j = 0;
     
-    for( j=0; j<paramNames->length; j++ )
-      if( fscanf(fp, "%lf", &ps[j]) == EOF ) break;
+      for( j=0; j<paramNames->length; j++ )
+        if( fscanf(fp, "%lf", &ps[j]) == EOF ) break;
    
-    if( feof(fp) ) break;
+      if( feof(fp) ) break;
 
-    /* dynamically alloacte memory */
-    params = XLALRealloc( params, (i+1)*sizeof(LALInferenceVariables*) );
-    params[i] = XLALCalloc( 1, sizeof(LALInferenceVariables) );
+      /* dynamically allocate memory */
+      params[n] = XLALRealloc( params[n], 
+                               (i+1)*sizeof(LALInferenceVariables*) );
+      params[n][i] = NULL;
+      params[n][i] = XLALCalloc( 1, sizeof(LALInferenceVariables) );
     
-    /* add variables */
-    for( j=0; j<paramNames->length; j++ ){
-      /* use vary type of this analyses parameters i.e. those set by the prior
-         and par file, otherwise set the parameter to fixed */
-      LALInferenceParamVaryType vary;
+      /* add variables */
+      for( j=0; j<paramNames->length; j++ ){
+        /* use vary type of this analyses parameters i.e. those set by the prior
+           and par file, otherwise set the parameter to fixed */
+        LALInferenceParamVaryType vary;
       
-      if ( LALInferenceCheckVariable( runState->currentParams,
-                                      paramNames->data[j] ) ){
-        vary = LALInferenceGetVariableVaryType( runState->currentParams,
-                                                paramNames->data[j] );
+        if ( LALInferenceCheckVariable( runState->currentParams,
+                                        paramNames->data[j] ) ){
+          vary = LALInferenceGetVariableVaryType( runState->currentParams,
+                                                  paramNames->data[j] );
+        }
+        else vary = LALINFERENCE_PARAM_FIXED;
+
+        LALInferenceAddVariable( params[n][i], paramNames->data[j], &ps[j],
+                                 LALINFERENCE_REAL8_t, vary );
       }
-      else vary = LALINFERENCE_PARAM_FIXED;
-
-      LALInferenceAddVariable( params[i], paramNames->data[j], &ps[j],
-        LALINFERENCE_REAL8_t, vary );
-    }
     
-    i++;
-  }
+      i++;
+    }
   
-  LALInferenceAddVariable( runState->algorithmParams, "nestedsamples", &params,
-                           LALINFERENCE_void_ptr_t, LALINFERENCE_PARAM_FIXED );
-  LALInferenceAddVariable( runState->algorithmParams, "Nsamp", &i,
-                           LALINFERENCE_UINT4_t, LALINFERENCE_PARAM_FIXED );
+    /* check that non-fixed, or output parameters actually do vary, otherwise
+      complain */
+    LALInferenceVariableItem *item1 = params[n][0]->head;
   
-  /* check that non-fixed, or output parameters actually do vary, otherwise
-     complain */
-  LALInferenceVariableItem *item1 = params[0]->head;
-  
-  while ( item1 ){
-    UINT4 allsame = 0;
+    while ( item1 ){
+      UINT4 allsame = 0;
      
-    for ( k=1; k<i; k++ ){
-      LALInferenceVariableItem *item2 = LALInferenceGetItem( params[k],
-                                                             item1->name );
+      for ( k=1; k<i; k++ ){
+        LALInferenceVariableItem *item2 = LALInferenceGetItem( params[n][k],
+                                                               item1->name );
       
-      if( item1->vary != LALINFERENCE_PARAM_FIXED && item1->vary !=
-        LALINFERENCE_PARAM_OUTPUT )
-        if ( *(REAL8*)item1->value != *(REAL8*)item2->value ) allsame++;
-    }
+        if( item1->vary != LALINFERENCE_PARAM_FIXED && item1->vary !=
+          LALINFERENCE_PARAM_OUTPUT )
+          if ( *(REAL8*)item1->value != *(REAL8*)item2->value ) allsame++;
+      }
     
-    if( ( item1->vary != LALINFERENCE_PARAM_FIXED && item1->vary !=
-      LALINFERENCE_PARAM_OUTPUT ) && allsame == 0 ){
-      XLALPrintError("%s: Apparently variable parameter %s does not vary!\n",
-                     fn, item1->name );
-      XLAL_ERROR_VOID(XLAL_EFUNC);
-    }
+      if( ( item1->vary != LALINFERENCE_PARAM_FIXED && item1->vary !=
+        LALINFERENCE_PARAM_OUTPUT ) && allsame == 0 ){
+        XLALPrintError("%s: Apparently variable parameter %s does not vary!\n",
+                      fn, item1->name );
+        XLAL_ERROR_VOID(XLAL_EFUNC);
+      }
 
-    item1 = item1->next;
+      item1 = item1->next;
+    }
+  
+    Nsamps = XLALResizeUINT4Vector( Nsamps, n+1 );
+    Nsamps->data[n] = i;
   }
+  
+  LALInferenceAddVariable( runState->algorithmParams, "nestedsamples",
+                           &params, LALINFERENCE_void_ptr_t,
+                           LALINFERENCE_PARAM_FIXED );
+  LALInferenceAddVariable( runState->algorithmParams, "Nsamps", &Nsamps,
+                           LALINFERENCE_UINT4Vector_t, 
+                           LALINFERENCE_PARAM_FIXED );
   
   /* get cell size */
   ppt = LALInferenceGetProcParamVal( runState->commandLine, "--prior-cell" );
@@ -4240,7 +4287,7 @@ nested samples file.\n\n");
   
   /* convert samples to posterior */
   ns_to_posterior( runState );
-  
+   
   /* create k-d tree of the samples for use as a prior */
   create_kdtree_prior( runState );
 }

@@ -711,7 +711,7 @@ int main( int argc, char *argv[] )
               fqChanName[0] );
     sieve.srcRegEx = ifoRegExPattern;
     sieve.dscRegEx = frInType;
-    LAL_CALL( LALFrCacheSieve( &status, &frInCache, frGlobCache, &sieve ),
+    LAL_CALL( LALFrSieveCache( &status, &frInCache, frGlobCache, &sieve ),
         &status );
 
     /* check we got at least one frame file back after the sieve */
@@ -1985,6 +1985,7 @@ int main( int argc, char *argv[] )
       case PadeT1:
       case EOB:
       case EOBNR:
+      case EOBNRv2:
       case FindChirpPTF:
       case IMRPhenomB:
       case PhenSpinTaylorRD:
@@ -2272,6 +2273,7 @@ int main( int argc, char *argv[] )
           case PadeT1:
           case EOB:
           case EOBNR:
+          case EOBNRv2:
           case IMRPhenomB:
           case PhenSpinTaylorRD:
             LAL_CALL( LALFindChirpTDTemplate( &status, fcFilterInput->fcTmplt,
@@ -2463,6 +2465,7 @@ int main( int argc, char *argv[] )
               case PadeT1:
               case EOB:
               case EOBNR:
+              case EOBNRv2:
               case IMRPhenomB:
               case PhenSpinTaylorRD:
                 /* construct normalization for time domain templates... */
@@ -2607,6 +2610,7 @@ int main( int argc, char *argv[] )
               case PadeT1:
               case EOB:
               case EOBNR:
+              case EOBNRv2:
               case IMRPhenomB:
               case PhenSpinTaylorRD:
                 /* recompute the template norm since it has been over written */
@@ -2852,6 +2856,7 @@ int main( int argc, char *argv[] )
         case PadeT1:
         case EOB:
         case EOBNR:
+        case EOBNRv2:
         case FindChirpSP:
         case IMRPhenomB:
         case PhenSpinTaylorRD:
@@ -3680,7 +3685,7 @@ fprintf( a, "  --dynamic-range-exponent X   set dynamic range scaling to 2^X\n")
 fprintf( a, "\n");\
 fprintf( a, "  --approximant APPROX         set approximant of the waveform to APPROX\n");\
 fprintf( a, "                               (FindChirpSP|BCV|BCVC|BCVSpin|TaylorT1|TaylorT2|IMRPhenomB\n");\
-fprintf( a, "                                  TaylorT3|PadeT1|EOB|GeneratePPN|FindChirpPTF|PhenSpinTaylorRD) \n");\
+fprintf( a, "                                  TaylorT3|PadeT1|EOB|EOBNR|EOBNRv2|GeneratePPN|FindChirpPTF|PhenSpinTaylorRD) \n");\
 fprintf( a, "  --order ORDER                set the pN order of the waveform to ORDER\n");\
 fprintf( a, "                               (twoPN|twoPointFivePN|threePN|threePointFivePN|\n");\
 fprintf( a, "                                  pseudoFourPN) \n");\
@@ -3747,7 +3752,7 @@ fprintf( a, "  --enable-bank-sim-max        compute the maximum match over the b
 fprintf( a, "  --disable-bank-sim-max       do not maximize the match over the bank\n");\
 fprintf( a, "  --sim-approximant APX        set approximant of the injected waveform to APX\n");\
 fprintf( a, "                                 (TaylorT1|TaylorT2|TaylorT3|PadeT1|EOB|\n");\
-fprintf( a, "                                  GeneratePPN|FrameFile|PhenSpinTaylorRD) \n");\
+fprintf( a, "                                  EOBNR|EOBNRv2|GeneratePPN|FrameFile|PhenSpinTaylorRD) \n");\
 fprintf( a, "  --sim-frame-file F           read the bank sim waveform from frame named F\n");\
 fprintf( a, "  --sim-frame-channel C        read the bank sim waveform from frame channel C\n");\
 fprintf( a, "  --sim-minimum-mass M         set minimum mass of bank injected signal to M\n");\
@@ -4438,6 +4443,9 @@ int arg_parse_check( int argc, char *argv[], MetadataTable procparams )
         {
           approximant = EOBNR;
         }
+        else if ( ! strcmp( "EOBNRv2", optarg ) )
+        {
+          approximant = EOBNRv2;
         else if ( ! strcmp( "PhenSpinTaylorRD", optarg ) )
         {
           approximant = PhenSpinTaylorRD;
@@ -4472,8 +4480,8 @@ int arg_parse_check( int argc, char *argv[], MetadataTable procparams )
           fprintf( stderr, "invalid argument to --%s:\n"
               "unknown approximant specified: "
               "%s (must be either FindChirpSP, BCV, BCVC, BCVSpin, \n"
-              "FindChirpPTF, TaylorT1, TaylorT2, TaylorT3, GeneratePPN, \n"
-	      "IMRPhenomB, PadeT1, EOB, EOBNR or PhenSpinTaylorRD)\n",
+              "FindChirpPTF,TaylorT1, TaylorT2, TaylorT3, GeneratePPN,\n"
+              "IMRPhenomB, PadeT1, EOB, EOBNR, EOBNRv2 or PhenSpinTaylorRD)\n",
               long_options[option_index].name, optarg );
           exit( 1 );
         }
@@ -5749,13 +5757,13 @@ int arg_parse_check( int argc, char *argv[], MetadataTable procparams )
                         "AdvLIGO, mean or median\n");
       exit( 1 );
     }
-    if (specType == specType_LIGO && colorSpec == 4)
+    if (specType == specType_LIGO && colorSpec == colorSpec_AdvLIGO)
     {
       fprintf(stderr,"Error: if "
         "--colored-gaussian is AdvLIGO --spectrum-type cannot be LIGO\n");
       exit( 1 );
     }
-    if (specType == specType_AdvLIGO && colorSpec == 3)
+    if (specType == specType_AdvLIGO && colorSpec == colorSpec_LIGO)
     {
       fprintf(stderr,"Error: if "
         "--colored-gaussian is LIGO --spectrum-type cannot be AdvLIGO\n");

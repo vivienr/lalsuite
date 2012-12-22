@@ -41,6 +41,9 @@
 LALInferenceRunState *initialize(ProcessParamsTable *commandLine);
 void initializeNS(LALInferenceRunState *runState);
 void initVariables(LALInferenceRunState *state);
+void initVariablesReviewEvidence(LALInferenceRunState *state);
+void initVariablesReviewEvidence_bimod(LALInferenceRunState *state);
+void initVariablesReviewEvidence_banana(LALInferenceRunState *state);
 void initStudentt(LALInferenceRunState *state);
 void initializeTemplate(LALInferenceRunState *runState);
 // static void mc2masses(double mc, double eta, double *m1, double *m2);
@@ -162,7 +165,7 @@ Initialisation arguments:\n\
 			ifoPtr = ifoPtr->next;
 		}
 		irs->currentLikelihood=LALInferenceNullLogLikelihood(irs->data);
-		printf("Injection Null Log Likelihood: %g\n", irs->currentLikelihood);
+		printf("Null Log Likelihood: %g\n", irs->currentLikelihood);
 	}
 	else
 	{
@@ -247,6 +250,7 @@ void initializeNS(LALInferenceRunState *runState)
 Nested sampling arguments:\n\
  --Nlive N\tNumber of live points to use\n\
 (--Nmcmc M)\tOver-ride auto chain length determination and use this number of MCMC samples.\n\
+(--maxmcmc M)\tUse at most this number of MCMC points when autodetermining the chain (5000).\n\
 (--sloppyratio S)\tNumber of sub-samples of the prior for every sample from the limited prior\n\
 (--Nruns R)\tNumber of parallel samples from logt to use(1)\n\
 (--tolerance dZ)\tTolerance of nested sampling algorithm (0.1)\n\
@@ -257,7 +261,8 @@ Nested sampling arguments:\n\
 (--differential-evolution)\tPTMCMC:Use differential evolution jumps\n\
 (--prior_distr )\t Set the prior to use (for the moment the only possible choice is SkyLoc which will use the sky localization project prior. All other values or skipping this option select LALInferenceInspiralPriorNormalised)\n\
 (--correlatedgaussianlikelihood)\tUse analytic, correlated Gaussian for Likelihood.\n\
-(--bimodalgaussianlikelihood)\tUse analytic, bimodal correlated Gaussian for Likelihood.\n";
+(--bimodalgaussianlikelihood)\tUse analytic, bimodal correlated Gaussian for Likelihood.\n\
+(--rosenbrocklikelihood \tUse analytic, Rosenbrock banana for Likelihood.\n";
 //(--tdlike)\tUse time domain likelihood.\n";
 
 	ProcessParamsTable *ppt=NULL;
@@ -285,10 +290,6 @@ Nested sampling arguments:\n\
     /* use the ptmcmc proposal to sample prior */
     runState->proposal=&NSWrapMCMCLALProposal;
     REAL8 temp=1.0;
-    UINT4 dummy=0;
-    LALInferenceAddVariable(runState->proposalArgs, "adaptableStep", &dummy, LALINFERENCE_INT4_t, LALINFERENCE_PARAM_OUTPUT);
-    LALInferenceAddVariable(runState->proposalArgs, "proposedVariableNumber", &dummy, LALINFERENCE_INT4_t, LALINFERENCE_PARAM_OUTPUT);
-    LALInferenceAddVariable(runState->proposalArgs, "proposedArrayNumber", &dummy, LALINFERENCE_INT4_t, LALINFERENCE_PARAM_OUTPUT);
     LALInferenceAddVariable(runState->proposalArgs,"temperature",&temp,LALINFERENCE_REAL8_t,LALINFERENCE_PARAM_FIXED);
 	
 	/* Default likelihood is the frequency domain one */
@@ -312,6 +313,11 @@ Nested sampling arguments:\n\
         	runState->likelihood=&LALInferenceBimodalCorrelatedAnalyticLogLikelihood;
 		runState->prior=LALInferenceAnalyticNullPrior;
 	}
+        if(LALInferenceGetProcParamVal(commandLine,"--rosenbrocklikelihood")){
+                runState->likelihood=&LALInferenceRosenbrockLogLikelihood;
+                runState->prior=LALInferenceAnalyticNullPrior;
+        }
+
 //	if(LALInferenceGetProcParamVal(commandLine,"--tdlike")){
 //		fprintf(stderr, "Computing likelihood in the time domain.\n");
 //		runState->likelihood=&LALInferenceTimeDomainLogLikelihood;
@@ -359,6 +365,15 @@ Nested sampling arguments:\n\
     	LALInferenceAddVariable(runState->algorithmParams,"sloppyfraction",&tmp,
                     LALINFERENCE_REAL8_t,LALINFERENCE_PARAM_OUTPUT);
 
+        /* Maximum number of points in MCMC chain */
+        ppt=LALInferenceGetProcParamVal(commandLine,"--maxmcmc");
+        if(ppt){
+          tmpi=atoi(ppt->value);
+          LALInferenceAddVariable(runState->algorithmParams,"maxmcmc",&tmpi,
+                                LALINFERENCE_INT4_t,LALINFERENCE_PARAM_FIXED);
+        }
+
+
 	printf("set number of parallel runs.\n");
 	/* Optionally specify number of parallel runs */
 	ppt=LALInferenceGetProcParamVal(commandLine,"--Nruns");
@@ -396,7 +411,6 @@ Nested sampling arguments:\n\
 /* Setup the variable for the evidence calculation test for review */
 /* 5-sigma ranges for analytic likeliood function */
 /* https://www.lsc-group.phys.uwm.edu/ligovirgo/cbcnote/LALInferenceReviewAnalyticGaussianLikelihood */
-void initVariablesReviewEvidence(LALInferenceRunState *state);
 void initVariablesReviewEvidence(LALInferenceRunState *state)
 {
     ProcessParamsTable *commandLine=state->commandLine;
@@ -459,6 +473,8 @@ void initVariables(LALInferenceRunState *state)
 	LALInferenceVariables *priorArgs=state->priorArgs;
 	state->currentParams=XLALCalloc(1,sizeof(LALInferenceVariables));
 	LALInferenceVariables *currentParams=state->currentParams;
+  LALInferenceIFOData *dataPtr;
+  LALInferenceDomain modelDomain;
 	ProcessParamsTable *commandLine=state->commandLine;
 	REAL8 endtime;
 	ProcessParamsTable *ppt=NULL;
@@ -476,6 +492,7 @@ void initVariables(LALInferenceRunState *state)
 	REAL8 phi_spin1_max=2.0*LAL_PI;
 	REAL8 theta_spin1_min=0.0;
 	REAL8 theta_spin1_max=LAL_PI;
+	REAL8 fRef=0.; /* freq. at which precessing "initial" cond. specified */
 	REAL8 etaMin=0.01;
 	REAL8 etaMax=0.25;
 	REAL8 dt=0.1;            /* Width of time prior */
@@ -515,6 +532,7 @@ Parameter arguments:\n\
 (--approx ApproximantphaseOrderPN)\tSet approximant (PhenSpin implicitly enables spin)\n\
 (--s1max SPIN)\tMax magnitude of spin (on both bodies!)\n\
 (--s1min SPIN)\tMin magnitude of spin (on both bodies!)\n\
+(--fref fRef)\tSpecify a reference frequency at which parameters are defined (default 0).\n\
 (--mcq)\tUse chirp mass and asymmetric mass ratio (m1/m2) as variables\n\
 (--crazyinjectionhlsign)\tFlip the sign of HL signal in likelihood function\n\
 (--pinparams [mchirp,asym_massratio,etc])\n\tList of parameters to set to injected values\n\
@@ -546,12 +564,16 @@ Parameter arguments:\n\
 		endtime=XLALGPSGetREAL8(&(injTable->geocent_end_time));
         fprintf(stderr,"Read trig time %lf from injection XML file\n",endtime);
 		AmpOrder=injTable->amp_order;
-		PhaseOrder = XLALGetOrderFromString(injTable->waveform);
-		if( (int) PhaseOrder == XLAL_FAILURE)
-		  ABORTXLAL(&status);
-		approx = XLALGetApproximantFromString(injTable->waveform);
-		if( (int) approx == XLAL_FAILURE)
-		  ABORTXLAL(&status);
+		/* Only check this if the user has not specified an approximant */
+		if(!LALInferenceGetProcParamVal(commandLine,"--approx") && !LALInferenceGetProcParamVal(commandLine,"--approximant"))
+		{
+			PhaseOrder = XLALGetOrderFromString(injTable->waveform);
+			if( (int) PhaseOrder == XLAL_FAILURE)
+		  		ABORTXLAL(&status);
+			approx = XLALGetApproximantFromString(injTable->waveform);
+			if( (int) approx == XLAL_FAILURE)
+		  		ABORTXLAL(&status);
+		}
 		/* See if there are any parameters pinned to injection values */
 		if((ppt=LALInferenceGetProcParamVal(commandLine,"--pinparams"))){
 			pinned_params=ppt->value;
@@ -567,7 +589,7 @@ Parameter arguments:\n\
 				char *name=strings[N];
 				node=LALInferenceGetItem(&tempParams,name);
 				if(node) LALInferenceAddVariable(currentParams,node->name,node->value,node->type,node->vary);
-				else {fprintf(stderr,"Error: Cannot pin parameter %s. No such parameter found in injection!\n",node->name);}
+				else {fprintf(stderr,"Error: Cannot pin parameter %s. No such parameter found in injection!\n",name);}
 			}
 		}
 	}
@@ -605,7 +627,7 @@ Parameter arguments:\n\
 		case SpinTaylorFrameless:
 		case PhenSpinTaylorRD:
 		case NumRel:
-			state->data->modelDomain=LALINFERENCE_DOMAIN_TIME;
+			modelDomain=LALINFERENCE_DOMAIN_TIME;
 			break;
 		case TaylorF1:
 		case TaylorF2:
@@ -613,13 +635,20 @@ Parameter arguments:\n\
 		case TaylorF2RedSpinTidal:
 		case IMRPhenomA:
 		case IMRPhenomB:
-			state->data->modelDomain=LALINFERENCE_DOMAIN_FREQUENCY;
+			modelDomain=LALINFERENCE_DOMAIN_FREQUENCY;
 			break;
 		default:
 			fprintf(stderr,"ERROR. Unknown approximant number %i. Unable to choose time or frequency domain model.",approx);
 			exit(1);
 			break;
 	}
+
+  /* Set model domain for all IFOs */
+  dataPtr = state->data;
+  while (dataPtr != NULL) {
+    dataPtr->modelDomain = modelDomain;
+    dataPtr = dataPtr->next;
+  }
 
 	/* Over-ride end time if specified */
 	ppt=LALInferenceGetProcParamVal(commandLine,"--trigtime");
@@ -693,7 +722,7 @@ Parameter arguments:\n\
 
     ppt=LALInferenceGetProcParamVal(commandLine,"--mtotalmax");
     if(ppt) mtot_max=atof(ppt->value);
-    else mtot_max=2.*(mMax-mMin);
+    else mtot_max=2.*mMax;
     LALInferenceAddVariable(priorArgs,"MTotMax",&mtot_max,LALINFERENCE_REAL8_t,LALINFERENCE_PARAM_FIXED);
 
     /* Set the minimum and maximum chirp mass, using user values if specified */
@@ -786,7 +815,21 @@ Parameter arguments:\n\
  	if(!LALInferenceCheckVariable(currentParams,"inclination")) LALInferenceAddVariable(currentParams, "inclination",     &tmpVal,            LALINFERENCE_REAL8_t, LALINFERENCE_PARAM_LINEAR);
 	tmpMin=0.0; tmpMax=LAL_PI;
 	LALInferenceAddMinMaxPrior(priorArgs, "inclination",     &tmpMin, &tmpMax,   LALINFERENCE_REAL8_t);
-	
+
+	/* 
+	 * fRef used by SpinTaylorT4 to determine which frequency the reference
+	 * phase and "initial" values of spin components refer to.
+	 * fRef=0 is the standard behavior consistent with other approximants.
+	 * it means the spin components are at the initial frequency and phiRef
+	 * is the "phase at coalescence" (the last sample)
+	 * fRef > 0 means the provided phiRef and spin components will be the
+	 * values when the binary has GW frequency fRef.
+	 */
+	ppt=LALInferenceGetProcParamVal(commandLine,"--fref");
+	if(ppt) fRef = atof(ppt->value);
+	else fRef = 0.;
+	LALInferenceAddVariable(currentParams, "fRef", &fRef, LALINFERENCE_REAL8_t, LALINFERENCE_PARAM_FIXED);
+
 	/* Additional parameters for spinning waveforms */
 	ppt=LALInferenceGetProcParamVal(commandLine,"--template");
 	if(ppt) if(!strcmp("PhenSpin",ppt->value)){ enable_spin=1;}
@@ -918,8 +961,12 @@ Arguments for each section follow:\n\n";
 
 	/* Set up currentParams with variables to be used */
 	/* Review task needs special priors */
-	if(LALInferenceGetProcParamVal(procParams,"--correlatedgaussianlikelihood") || LALInferenceGetProcParamVal(procParams,"--bimodalgaussianlikelihood"))
+	if(LALInferenceGetProcParamVal(procParams,"--correlatedgaussianlikelihood"))
 		initVariablesReviewEvidence(state);
+        else if(LALInferenceGetProcParamVal(procParams,"--bimodalgaussianlikelihood"))
+                initVariablesReviewEvidence_bimod(state);
+        else if(LALInferenceGetProcParamVal(procParams,"--rosenbrocklikelihood"))
+                initVariablesReviewEvidence_banana(state);
 	else
 		initVariables(state);
 	
@@ -945,3 +992,108 @@ Arguments for each section follow:\n\n";
 	/* end */
 	return(0);
 }
+
+void initVariablesReviewEvidence_bimod(LALInferenceRunState *state)
+{
+    ProcessParamsTable *commandLine=state->commandLine;
+    ProcessParamsTable *ppt=NULL;
+    char **strings=NULL;
+    char *pinned_params=NULL;
+    UINT4 N=0,i,j;
+    if((ppt=LALInferenceGetProcParamVal(commandLine,"--pinparams"))){
+            pinned_params=ppt->value;
+            LALInferenceVariables tempParams;
+            memset(&tempParams,0,sizeof(tempParams));
+            LALInferenceParseCharacterOptionString(pinned_params,&strings,&N);
+    }
+        LALInferenceVariables *priorArgs=state->priorArgs;
+        state->currentParams=XLALCalloc(1,sizeof(LALInferenceVariables));
+        LALInferenceVariables *currentParams=state->currentParams;
+        i=0;
+
+        struct varSettings {const char *name; REAL8 val, min, max;};
+
+        struct varSettings setup[]=
+        {
+                {.name="time", .val=0.05589, .min=-0.1373625, .max=0.2491425},
+                {.name="m1", .val=16.857828, .min=14.927715, .max=18.787941},
+                {.name="m2", .val=7.93626, .min=5.829675, .max=10.042845},
+                {.name="distance", .val=34.6112, .min=12.986, .max=56.2364},
+                {.name="inclination", .val=0.9176809634, .min=0.6200446634, .max=1.2153172634},
+                {.name="phase", .val=1.7879487268, .min=1.2993558268, .max=2.2765416268},
+                {.name="polarisation", .val=0.9311901634, .min=0.6031581634, .max=1.2592221634},
+                {.name="rightascension", .val=1.8336303268, .min=1.2422538268, .max=2.4250068268},
+                {.name="declination", .val=-0.5448389634, .min=-1.0860971634, .max=-0.0035807634},
+                {.name="a_spin1", .val=0.2972348, .min=0.0784565, .max=0.5160131},
+                {.name="a_spin2", .val=0.2625048, .min=0.121869, .max=0.4031406},
+                {.name="theta_spin1", .val=0.9225153634, .min=0.6140016634, .max=1.2310290634},
+                {.name="theta_spin2", .val=0.9151425634, .min=0.6232176634, .max=1.2070674634},
+                {.name="phi_spin1", .val=1.8585883268, .min=1.2110563268, .max=2.5061203268},
+                {.name="phi_spin2", .val=1.8622979268, .min=1.2064193268, .max=2.5181765268},
+                {.name="END", .val=0., .min=0., .max=0.}
+        };
+
+        while(strcmp("END",setup[i].name))
+        {
+        LALInferenceParamVaryType type=LALINFERENCE_PARAM_CIRCULAR;
+        /* Check if it is to be fixed */
+        for(j=0;j<N;j++) if(!strcmp(setup[i].name,strings[j])) {type=LALINFERENCE_PARAM_FIXED; printf("Fixing parameter %s\n",setup[i].name); break;}
+                LALInferenceAddVariable(currentParams,setup[i].name, &(setup[i].val) ,LALINFERENCE_REAL8_t, type);
+            LALInferenceAddMinMaxPrior(priorArgs, setup[i].name,    &(setup[i].min),    &(setup[i].max),    LALINFERENCE_REAL8_t);
+                i++;
+        }
+        return;
+}
+
+void initVariablesReviewEvidence_banana(LALInferenceRunState *state)
+{
+    ProcessParamsTable *commandLine=state->commandLine;
+    ProcessParamsTable *ppt=NULL;
+    char **strings=NULL;
+    char *pinned_params=NULL;
+    UINT4 N=0,i,j;
+    if((ppt=LALInferenceGetProcParamVal(commandLine,"--pinparams"))){
+            pinned_params=ppt->value;
+            LALInferenceVariables tempParams;
+            memset(&tempParams,0,sizeof(tempParams));
+            LALInferenceParseCharacterOptionString(pinned_params,&strings,&N);
+    }
+        LALInferenceVariables *priorArgs=state->priorArgs;
+        state->currentParams=XLALCalloc(1,sizeof(LALInferenceVariables));
+        LALInferenceVariables *currentParams=state->currentParams;
+        i=0;
+
+        struct varSettings {const char *name; REAL8 val, min, max;};
+
+        struct varSettings setup[]=
+        {
+                {.name="time", .val=0.0, .min=-2., .max=2.},
+                {.name="m1", .val=16., .min=14., .max=18.},
+                {.name="m2", .val=7., .min=5., .max=9.},
+                {.name="distance", .val=50., .min=48., .max=52.},
+                {.name="inclination", .val=LAL_PI/2., .min=-0.429203673, .max=3.570796327},
+                {.name="phase", .val=LAL_PI, .min=1.141592654, .max=5.141592654},
+                {.name="polarisation", .val=LAL_PI/2., .min=-0.429203673, .max=3.570796327},
+                {.name="rightascension", .val=LAL_PI, .min=1.141592654, .max=5.141592654},
+                {.name="declination", .val=0., .min=-2., .max=2.},
+                {.name="a_spin1", .val=0.5, .min=-1.5, .max=2.5},
+                {.name="a_spin2", .val=0.5, .min=-1.5, .max=2.5},
+                {.name="theta_spin1", .val=LAL_PI/2., .min=-0.429203673, .max=3.570796327},
+                {.name="theta_spin2", .val=LAL_PI/2., .min=-0.429203673, .max=3.570796327},
+                {.name="phi_spin1", .val=LAL_PI, .min=1.141592654, .max=5.141592654},
+                {.name="phi_spin2", .val=LAL_PI, .min=1.141592654, .max=5.141592654},
+                {.name="END", .val=0., .min=0., .max=0.}
+        };
+
+        while(strcmp("END",setup[i].name))
+        {
+        LALInferenceParamVaryType type=LALINFERENCE_PARAM_CIRCULAR;
+        /* Check if it is to be fixed */
+        for(j=0;j<N;j++) if(!strcmp(setup[i].name,strings[j])) {type=LALINFERENCE_PARAM_FIXED; printf("Fixing parameter %s\n",setup[i].name); break;}
+                LALInferenceAddVariable(currentParams,setup[i].name, &(setup[i].val) ,LALINFERENCE_REAL8_t, type);
+            LALInferenceAddMinMaxPrior(priorArgs, setup[i].name,    &(setup[i].min),    &(setup[i].max),    LALINFERENCE_REAL8_t);
+                i++;
+        }
+        return;
+}
+

@@ -2339,7 +2339,7 @@ static int XLALPSpinInspiralRDEngine(
 
   switch (params->axisChoice) {
 
-  case OrbitalL:
+  case LAL_SIM_INSPIRAL_FRAME_AXIS_ORBITAL_L:
     //printf("*** OrbitalL ***\n");
     initLNh[0] = 0.;
     initLNh[1] = 0.;
@@ -2347,7 +2347,7 @@ static int XLALPSpinInspiralRDEngine(
     inc = params->inclination;
     break;
 
-  case TotalJ:
+  case LAL_SIM_INSPIRAL_FRAME_AXIS_TOTAL_J:
     //printf("*** TotalJ ***\n");
     for (j=0;j<3;j++) {
       iS1[j] = initS1[j];
@@ -2393,7 +2393,7 @@ static int XLALPSpinInspiralRDEngine(
     inc = params->inclination;
     break;
 
-  case View:
+  case LAL_SIM_INSPIRAL_FRAME_AXIS_VIEW:
   default:
     //printf("*** View ***\n");
     initLNh[0] = sin(params->inclination);
