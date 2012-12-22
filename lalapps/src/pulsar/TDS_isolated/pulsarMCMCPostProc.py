@@ -295,6 +295,67 @@ def corrcoef(pos):
   
   return cc, header_string
 
+  
+# a function that attempt to load an MCMC chain file: first it tries using 
+# numpy.loadtxt; if it fails it tries reading line by line and checking
+# for consistent line numbers, skipping lines that are inconsistent; if this
+# fails it returns None
+def readmcmcfile(cf):
+  cfdata = None
+  
+  # first try reading in with loadtxt (skipping lines starting with %)
+  try:
+    cfdata = np.loadtxt(cf, comments='%')
+  except:
+    try:
+      fc = open(cf, 'r')
+      
+      # read in header lines and count how many values each line should have
+      headers = fc.readline()
+      headers = fc.readline() # column names are on the second line
+      # remove % from start
+      headers = re.sub('%', '', headers)
+      # remove rads
+      headers = re.sub('rads', '', headers)
+      # remove other brackets e.g. around (iota)
+      headers = re.sub('[()]', '', headers)
+      
+      lh = len(headers.split())
+      
+      cfdata = np.array([])
+      
+      lines = cf.readlines()
+      
+      for i, line in enumerate(lines):
+        if '%' in line: # skip lines containing %
+          continue
+        
+        lvals = line.split()
+        
+        # skip line if number of values isn't consistent with header
+        if len(lvals) != lh:
+          continue
+        
+        # convert values to floats
+        try:
+          lvalsf = map(float, lvals)
+        except:
+          continue
+        
+        # add values to array
+        if i==0:
+          cfdata = np.array(lvalsf)
+        else:
+          cfdata = np.vstack((cfdata, lvalsf))
+      
+      if cfdata.size == 0:
+        cfdata = None
+    except:
+      cfdata = None
+
+  return cfdata
+          
+      
 # list of parameters to display (in this order)
 paramdisplist = ['RAJ', 'DECJ', 'F0', 'F1', 'F2', 'PEPOCH', 'X' 'E' \
 'EPS1', 'EPS2', 'OM', 'T0', 'TASC', 'PB']
@@ -468,6 +529,11 @@ performed for two interferometers (H1 and L1):
   parser.add_option("-w", "--hw-inj", dest="hwinj", help="Set if the " \
                     "pulsars are hardware injections", action="store_true", \
                     default=False)
+                    
+  # say if you want to compile the latex table (default to False)
+  parser.add_option("-l", "--latex", dest="compilelatex", help="Set if you " \
+                    "want to compile the latex results table",
+                    action="store_true", default=False)
   
   p_args=''
   for arg in sys.argv:
@@ -626,7 +692,8 @@ performed for two interferometers (H1 and L1):
   sdlist = []
   
   firstpsr = True
-  
+  iscorlatex = None
+
   # loop through par files to produce plots
   for parfile in param_files:
     # read data from par file
@@ -686,8 +753,10 @@ performed for two interferometers (H1 and L1):
     # ATNF catalogue
     ages = None
     dists = None
-    try:
-      atnfurl = \
+    
+    if not swinj and not hwinj:
+      try:
+        atnfurl = \
 'http://www.atnf.csiro.au/people/pulsar/psrcat/proc_form.php?Dist=Dist&Age_i=\
 Age_i&startUserDefined=true&c1_val=&c2_val=&c3_val=&c4_val=&sort_attr=&\
 sort_order=asc&condition=&pulsar_names=' + re.sub('\+', '%2B', pname) + \
@@ -695,21 +764,21 @@ sort_order=asc&condition=&pulsar_names=' + re.sub('\+', '%2B', pname) + \
 submit_ephemeris=Get+Ephemeris&coords_unit=raj%2Fdecj&radius=&coords_1=\
 &coords_2=&style=Long+with+last+digit+error&no_value=*&fsize=3&x_axis=&x_scale=\
 linear&y_axis=&y_scale=linear&state=query' 
-      soup = bs(urllib2.urlopen(atnfurl).read())
-      pdat = soup.pre # data exists in the pre html environment
+        soup = bs(urllib2.urlopen(atnfurl).read())
+        pdat = soup.pre # data exists in the pre html environment
       
-      for line in pdat:
-        vals = line.split('\n') # split at any new lines
+        for line in pdat:
+          vals = line.split('\n') # split at any new lines
         
-        for row in vals:
-          if 'DIST' in row:
-            dists = row.split() # split row at whitespace
+          for row in vals:
+            if 'DIST' in row:
+              dists = row.split() # split row at whitespace
             
-          if 'AGE_I' in row:
-            ages = row.split()
-    except:
-      print >> sys.stderr, 'Problem accessing ATNF!'
-      sys.exit(1)
+            if 'AGE_I' in row:
+              ages = row.split()
+      except:
+        print >> sys.stderr, 'Problem accessing ATNF!'
+        sys.exit(1)
     
     if ages:
       if len(ages) > 1:
@@ -746,7 +815,21 @@ linear&y_axis=&y_scale=linear&state=query'
     
     # if on first available pulsars create the output page table header
     if firstpsr:
-      htmltext.append('<tr>\n<th class="bottomborder" colspan="5"></th>')
+      if not swinj and not hwinj:
+        numprepars = 5
+        htmlsdtxt = '<th class="bottomborder">Spin-down limit</th>'
+        htmldisttxt = '<th class="bottomborder">Distance (kpc)</th>\n'
+        latexsdtxt = '& \colhead{spin-down limit}'
+        latexdisttxt = '& \colhead{distance (kpc)}'
+      else:
+        numprepars = 3
+        htmlsdtxt = ''
+        htmldisttxt = ''
+        latexsdtxt = ''
+        latexdisttxt = ''
+
+      htmltext.append('<tr>\n<th class="bottomborder" colspan="%d"></th>' % \
+numprepars)
       latextext.append( \
 """\
 \clearpage
@@ -757,8 +840,8 @@ linear&y_axis=&y_scale=linear&state=query'
 \\tabletypesize{\\footnotesize}
 \\tablewidth{0pt}
 \\tablecaption{Limits on the gravitational wave amplitude for known pulsars}
-\\tablehead{\multicolumn{5}{c}{~} \
-""" % ' '.join(['c']*(5+3*len(ifosNew))) )
+\\tablehead{\multicolumn{%d}{c}{~} \
+""" % (' '.join(['c']*(numprepars+3*len(ifosNew))), numprepars) )
 
       for ifo in ifosNew:
         htmltext.append( \
@@ -773,14 +856,12 @@ solid #000; border-bottom:1px solid #000">%s</th>""" % (ifo, ifo))
     <th class="bottomborder">Pulsar</th>
     <th class="bottomborder">Frequency (Hz)</th>
     <th class="bottomborder">Spin-down (Hz/s)</th>
-    <th class="bottomborder">Distance (kpc)</th>
-    <th class="bottomborder">Spin-down limit</th>
-""" )
+    %s %s
+""" % (htmldisttxt, htmlsdtxt) )
       latextext.append( \
 """\\\\
-\colhead{Pulsar} & \colhead{$\\nu$ (Hz)} & \colhead{$\dot{\\nu}$ (Hz/s)} & \
-\colhead{distance (kpc)} & \colhead{spin-down limit} \
-""" )
+\colhead{Pulsar} & \colhead{$\\nu$ (Hz)} & \colhead{$\dot{\\nu}$ (Hz/s)} %s %s \
+""" % (latexdisttxt, latexsdtxt) )
       
       for ifo in ifosNew:
         htmltext.append( \
@@ -827,6 +908,21 @@ solid #000; border-bottom:1px solid #000">%s</th>""" % (ifo, ifo))
     
     htmlptext.append('<body>')
     
+    # add in javascript to allow text toggling
+    htmlptext.append( \
+"""
+<script language="javascript"> 
+function toggle(id) {
+  var ele = document.getElementById(id);
+  if(ele.style.display == "block"){
+    ele.style.display = "none";
+  }
+  else
+    ele.style.display = "block";
+}
+</script>
+""" )
+    
     # print out pulsar name to file
     pheadertext = []
     if not swinj and not hwinj:
@@ -869,15 +965,29 @@ query'
     partext.append('</table></a>')
     
     # get spin-down upper limit
-    sdlim = pppu.spin_down_limit(f0, f1sd, dist)
+    if not swinj and not hwinj:
+      sdlim = pppu.spin_down_limit(f0, f1sd, dist)
+    else:
+      sdlim = None
     sdlist.append(sdlim)
     
     # print out info to the main table
     iscor = ''
-    iscorlatex = ''
+    iscorlatex = ''    
     if f1sd != f1:
       iscor = '<sup>&dagger;</sup>'
       iscorlatex = '^{\dagger}'
+    
+    if not swinj and not hwinj:
+      sdlimtxthtml = '<td>%s%s</td>' % (exp_str(sdlim), iscor)
+      sdlimtxtlatex = '& $%s$$%s$' % (exp_latex_str(sdlim), iscorlatex)
+      disthtml = '<td>%.1f</td>\n' % dist
+      distlatex = '& %.1f' % dist
+    else:
+      sdlimtxthtml = ''
+      sdlimtxtlatex = ''
+      disthtml = ''
+      distlatex = ''
     
     htmltext.append( \
 """
@@ -885,15 +995,14 @@ query'
   <td><a href="%s/">%s</a></td>
   <td>%.2f</td>
   <td>%s</td>
-  <td>%.1f</td>
-  <td>%s%s</td>
-""" % (pname, pname, f0, exp_str(f1,2), dist, exp_str(sdlim), iscor) )
+  %s %s
+""" % (pname, pname, f0, exp_str(f1,2), disthtml, sdlimtxthtml) )
 
     latextext.append( \
 """\
-%s & $%.2f$ & $%s$ & $%.1f$ & $%s$$%s$ \
-""" % (re.sub('\-', '\\textminus', pname), f0, exp_latex_str(f1, 2), dist, \
-exp_latex_str(sdlim), iscorlatex) )
+%s & $%.2f$ & $%s$ %s %s \
+""" % (re.sub('\-', '\\textminus', pname), f0, exp_latex_str(f1, 2), distlatex, \
+sdlimtxtlatex) )
     
     # get time series and PSD plots
     Bkdata = []
@@ -941,6 +1050,8 @@ asdtime, plotpsds=plotpsds, plotfscan=plotfscan, removeoutlier=8 )
     corrcoefs = []
     corrcoefsheader = []
     
+    erridx = False
+    
     for i, ifo in enumerate(ifosNew):
       # read in MCMC chains
       mcmc = []
@@ -952,7 +1063,17 @@ asdtime, plotpsds=plotpsds, plotfscan=plotfscan, removeoutlier=8 )
         
         if os.path.isfile(cfile):
           # load MCMC chain
-          mcmcChain = np.loadtxt(cfile, comments='%')
+          mcmcChain = readmcmcfile(cfile)
+          
+          # if no chain was returned write out an error message and skip this
+          # pulsar
+          if mcmcChain == None:
+            outerrfile = os.path.join(outpath, 'mcmc_chain_errors.txt')
+            errfile = open(outerrfile, 'a') # append to file
+            errfile.write('MCMC file %s could not be read in\n' % cfile)
+            errfile.close()
+            erridx = True
+            break
           
           # find number of effective samples for the chain
           neffstmp = []
@@ -971,6 +1092,9 @@ asdtime, plotpsds=plotpsds, plotfscan=plotfscan, removeoutlier=8 )
         else:
           print >> sys.stderr, "File %s does not exist!" % cfile
           sys.exit(1)
+      
+      if erridx:
+        break
       
       nefflist.append(math.fsum(neffs))
       chainlens.append(np.mean(cl))
@@ -1062,7 +1186,18 @@ asdtime, plotpsds=plotpsds, plotfscan=plotfscan, removeoutlier=8 )
       medvals.append(md)
       corrcoefs.append(cc)
       corrcoefsheader.append(hn)
+    
+    # if error occured in reading in MCMC chains then move to next pulsar
+    if erridx:
+      # remove directory for that pulsar
+      shutil.rmtree(puldir)
       
+      # remove parts from main html and latex tables
+      del htmltext[-1]
+      del latextext[-1]
+      
+      continue
+    
     # set whether to attempt to output injection parameter on plot
     parinj = None
     if swinj or hwinj:
@@ -1086,37 +1221,54 @@ asdtime, plotpsds=plotpsds, plotfscan=plotfscan, removeoutlier=8 )
     ullist.append(ulvals)
     
     limittable = []
+    
+    if sdlim == None:
+      sdlimtxt = ''
+    else:
+      sdlimtxt = \
+"""\
+<tr>
+  <td colspan="4" style="text-align: center;">h<sub>0</sub> spin-down = %s</td>
+</tr>\
+""" % exp_str(sdlim)
+
     limittable.append( \
 """
 <table>
-<tr>
-  <td colspan="4" style="text-align: center;">h<sub>0</sub> spin-down = %s</td>
-</tr>
+%s
 <tr>
   <th>&nbsp;</th>
   <th>h<sub>0</sub><sup>95%%</sup></th>
   <th>&#949;</th>
   <th>ratio</th>
 </tr>
-""" % exp_str(sdlim) )
+""" % sdlimtxt )
 
     for i, ifo in enumerate(ifosNew):
-      ell.append(pppu.h0_to_ellipticity(ulvals[i], f0, dist))
-      sdrat.append(ulvals[i]/sdlim)
+      if not swinj and not hwinj:
+        ell.append(pppu.h0_to_ellipticity(ulvals[i], f0, dist))
+        ellhtmlstr = '%s' % exp_str(ell[i])
+        elllatexstr = '$%s$' % exp_latex_str(ell[i])
+        sdrat.append('%.2f' % (ulvals[i]/sdlim))
+      else:
+        ell.append(None)
+        ellhtmlstr = 'N/A'
+        elllatexstr ='N/A'
+        sdrat.append('N/A')
     
       # output values to main page table
       htmltext.append( \
 """
 <td class="leftborder">%s</td>
 <td>%s</td>
-<td>%.2f</td>
-""" % (exp_str(ulvals[i]), exp_str(ell[i]), sdrat[i]) )
+<td>%s</td>
+""" % (exp_str(ulvals[i]), ellhtmlstr, sdrat[i]) )
 
       # output values to the main LaTeX table
       latextext.append( \
 """\
-& $%s$ & $%s$ & $%.2f$ \
-""" % (exp_latex_str(ulvals[i]), exp_latex_str(ell[i]), sdrat[i]))
+& $%s$ & %s & $%s$ \
+""" % (exp_latex_str(ulvals[i]), elllatexstr, sdrat[i]))
 
       # output values to pulsar page table
       limittable.append( \
@@ -1125,9 +1277,9 @@ asdtime, plotpsds=plotpsds, plotfscan=plotfscan, removeoutlier=8 )
   <td class="%s">%s</td>
   <td class="%s">%s</td>
   <td class="%s">%s</td>
-  <td class="%s">%.2f</td>
+  <td class="%s">%s</td>
 </tr>
-""" % (ifo, ifo, ifo, exp_str(ulvals[i]), ifo, exp_str(ell[i]), ifo, sdrat[i]) )
+""" % (ifo, ifo, ifo, exp_str(ulvals[i]), ifo, ellhtmlstr, ifo, sdrat[i]) )
 
     htmltext.append('</tr>')
     latextext.append('\\\\')
@@ -1299,6 +1451,13 @@ fscanfigname[i]['png']) )
     
     # output info on the parameters (std dev, mean, max posterior etc)
     poststatstext = []
+    poststatstext.append( \
+"""\
+<h2>
+<a href="javascript:toggle('toggleText');">Posterior statistics</a>
+</h2>\
+""" )
+    poststatstext.append('<div id="toggleText" style="display: none;">')
     poststatstext.append('<table>')
     
     poststatstext.append( \
@@ -1342,7 +1501,7 @@ dispfunc(str(stddevvals[i][param])))
         
         poststatstext.append('</tr>')
         
-    poststatstext.append('</table>')
+    poststatstext.append('</table>\n</div>')
     
     # output footer giving how the file was made
     pfootertext = []
@@ -1435,8 +1594,9 @@ corrected for proper motion effects}")
   latexout.close()
   
   # compile the LaTeX table
-  sp.call(['latex', latexpage])
-  sp.call(['latex', latexpage])
-  sp.call(['dvips', re.sub('tex', 'dvi', latexpage)])
-  sp.call(['ps2pdf', re.sub('tex', 'ps', latexpage)])
+  if opts.compilelatex:
+    sp.call(['latex', latexpage])
+    sp.call(['latex', latexpage])
+    sp.call(['dvips', re.sub('tex', 'dvi', latexpage)])
+    sp.call(['ps2pdf', re.sub('tex', 'ps', latexpage)])
   

@@ -3,7 +3,7 @@ import unittest
 import random
 import os
 
-from ligo.gracedb.rest import GraceDb, HTTPError
+from ligo.gracedb.rest import GraceDb
 
 # Test the GraceDb REST API class.
 #
@@ -28,6 +28,7 @@ from ligo.gracedb.rest import GraceDb, HTTPError
 #          cbc-mbta.gwf
 #          upload2.data
 #          upload.data
+#          upload.data.gz
 #
 #     X509_USER_PROXY
 #
@@ -83,13 +84,7 @@ class TestGracedb(unittest.TestCase):
         """Upload and re-upload a file"""
 
         uploadFile = os.path.join(testdatadir, "upload.data")
-        try:
-            r = gracedb.writeFile(eventId, uploadFile)
-        except HTTPError, e:
-            f = open('error.html', 'w')
-            f.write(e.message)
-            f.close()
-            raise
+        r = gracedb.writeFile(eventId, uploadFile)
         self.assertEqual(r.status, 201) # CREATED
         r_content = r.json()
         link = r_content['permalink']
@@ -189,6 +184,35 @@ class TestGracedb(unittest.TestCase):
         self.assertEqual(new_event['analysisType'], "LowMass")
         self.assertEqual(new_event['gpstime'], 971609249)
 
+    def test_upload_binary(self):
+        """
+        Test workaround for Python bug
+        http://bugs.python.org/issue11898
+        Raises exception if workaround fails.
+        """
+        uploadFile = os.path.join(testdatadir, "upload.data.gz")
+        r = gracedb.writeFile(eventId, uploadFile)
+        self.assertEqual(r.status, 201) # CREATED
+
+    def test_logger(self):
+        import logging
+        import ligo.gracedb.rest
+        import ligo.gracedb.logger
+     
+        logging.basicConfig()
+        log = logging.getLogger('testing')
+        log.propagate = False   # Don't write to console
+
+        #gracedb = ligo.gracedb.rest.GraceDb()
+        graceid = eventId
+     
+        log.addHandler(ligo.gracedb.logger.GraceDbLogHandler(gracedb, graceid))
+
+        message = "Message is {0}".format(random.random())
+        log.warn(message)
+
+        event_logs = gracedb.logs(graceid).read()
+        self.assertTrue(message in event_logs)
 
 if __name__ == "__main__":
 
