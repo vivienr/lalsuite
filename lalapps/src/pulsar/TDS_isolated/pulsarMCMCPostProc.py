@@ -104,7 +104,7 @@ h2 {
   border-top: 1px solid #999;
   padding: 15px;
   font-family: monospace;
-  text-align: center;
+  text-align: left;
 }
   
 /* create link style */
@@ -373,7 +373,7 @@ paramtextdisp = {'RAJ': '&alpha;', 'DECJ': '&delta;', \
                  'EPS2': '&epsilon;<sub>2</sub>', \
                  'T0': 'T<sub>0</sub> (MJD)', \
                  'TASC': 'T<sub>asc</sub> (MJD)', \
-                 'OM': '&omega;<sub>0</sub>$deg;',
+                 'OM': '&omega;<sub>0</sub> (deg)',
                  'PB': 'Period (days)', 'H0': 'h<sub>0</sub>', \
                  'COSIOTA': 'cos&iota;', 'PSI': '&psi; (rad)', \
                  'PHI0': '&phi;<sub>0</sub> (rad)', \
@@ -759,7 +759,8 @@ performed for two interferometers (H1 and L1):
     ages = None
     dists = None
     assoc = None
-    
+    notinatnf = False # flag to check if pulsar is in the ATNF catalogue or not    
+
     if not swinj and not hwinj:
       try:
         atnfurl = \
@@ -773,11 +774,35 @@ linear&y_axis=&y_scale=linear&state=query'
         
         soup = bs(urllib2.urlopen(atnfurl).read())
         pdat = soup.pre # data exists in the pre html environment
-      
+        
+        for line in pdat:
+          vals = line.split('\n') # split at any new lines
+
+          for row in vals:
+            if 'WARNING' in row or 'not in catalogue' in row:
+              # try instead with PSR name 'J' removed
+              atnfurl = \
+'http://www.atnf.csiro.au/people/pulsar/psrcat/proc_form.php?Dist=Dist&Assoc=\
+Assoc&Age_i=Age_i&startUserDefined=true&c1_val=&c2_val=&c3_val=&c4_val=&\
+sort_attr=&sort_order=asc&condition=&pulsar_names=' + \
+re.sub('J', '', re.sub('\+', '%2B',pname)) + '&ephemeris=selected&submit_ephemeris=\
+Get+Ephemeris&coords_unit=raj%2Fdecj&radius=&coords_1=\
+&coords_2=&style=Long+with+last+digit+error&no_value=*&fsize=3&x_axis=&x_scale=\
+linear&y_axis=&y_scale=linear&state=query'
+              
+              soup = bs(urllib2.urlopen(atnfurl).read())
+              pdat = soup.pre
+
+              break
+
         for line in pdat:
           vals = line.split('\n') # split at any new lines
         
           for row in vals:
+            if 'WARNING' in row or 'not in catalogue' in row and notinatnf == False:
+              notinatnf = True
+              break
+
             if 'DIST' in row:
               dists = row.split() # split row at whitespace
             
@@ -786,10 +811,11 @@ linear&y_axis=&y_scale=linear&state=query'
               
             if 'ASSOC' in row:
               assoc = row.split()
+
       except:
         print >> sys.stderr, 'Problem accessing ATNF!'
         sys.exit(1)
-    
+ 
     if ages:
       if len(ages) > 1:
         try:
@@ -812,6 +838,12 @@ linear&y_axis=&y_scale=linear&state=query'
    
     # first try getting a distance from a par file
     dist = par['DIST']
+
+    # if pulsar is not in atnf and there's not distance in the par file then skip it
+    if notinatnf and not dist:
+      print >> sys.stderr, "No distance available for %s" % pname
+      continue 
+
     # if not available look in download value
     if not dist:
       # see if it was in the ATNF catalogue
@@ -1095,11 +1127,12 @@ asdtime, plotpsds=plotpsds, plotfscan=plotfscan, removeoutlier=8 )
             neffstmp.append(neff)
             
           # get the minimum effective sample size
-          #neffs.append(min(neffstmp))
+          neffs.append(min(neffstmp))
           # get the mean effective sample size
-          neffs.append(math.floor(np.mean(neffstmp)))
-          
+          #neffs.append(math.floor(np.mean(neffstmp)))
+         
           nskip = math.ceil(mcmcChain.shape[0]/min(neffstmp))
+          #nskip = math.ceil(mcmcChain.shape[0]/np.mean(neffstmp))
           
           # output every nskip (independent) value
           mcmc.append(mcmcChain[::nskip,:])
@@ -1428,7 +1461,7 @@ fscanfigname[i]['png']) )
     <th>&nbsp;</th>
     <th>no. of chains</th>
     <th>chain length</th>
-    <th>mean effective sample size</th>
+    <th>effective sample size</th>
   </tr>
 """ )
     for i, ifo in enumerate(ifosNew):
@@ -1527,6 +1560,7 @@ dispfunc(str(stddevvals[i][param])))
     pfootertext.append( \
 """<div id="footer">
 %s - %s <br>
+<br>
 Command lines used:<br>
 %s<br>
 %s<br>
