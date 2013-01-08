@@ -135,7 +135,7 @@ def get_zerolag_pipedown(database_connection, dumpfile=None, gpsstart=None, gpse
 		FROM sngl_inspiral join coinc_event_map on (coinc_event_map.table_name=='sngl_inspiral' and coinc_event_map.event_id ==\
 		sngl_inspiral.event_id) join coinc_event on (coinc_event.coinc_event_id==coinc_event_map.coinc_event_id) \
 		join coinc_inspiral on (coinc_event.coinc_event_id==coinc_inspiral.coinc_event_id) \
-		WHERE coinc_event.time_slide_id==0\
+		WHERE coinc_event.time_slide_id=='time_slide:time_slide_id:10049'\
 		"
 	if gpsstart is not None:
 		get_coincs=get_coincs+' and sngl_inspiral.end_time+sngl_inspiral.end_time_ns*1.0e-9 > %f'%(gpsstart)
@@ -144,20 +144,21 @@ def get_zerolag_pipedown(database_connection, dumpfile=None, gpsstart=None, gpse
 	if max_cfar !=-1:
 		get_coincs=get_coincs+' and coinc_inspiral.combined_far < %f'%(max_cfar)
 	db_out=database_connection.cursor().execute(get_coincs)
+    	extra={}
 	for (sngl_time, ifo, coinc_id, snr, chisq, cfar) in db_out:
-          coinc_id=int(coinc_id.split(":")[-1])
-	  if not coinc_id in output.keys():
-	    output[coinc_id]=Event(trig_time=slid_time,timeslide_dict={})
-            extra[coinc_id]={}
-	  output[coinc_id].timeslides[ifo]=0
-	  output[coinc_id].ifos.append(ifo)
-          extra[coinc_id][ifo]={'snr':snr,'chisq':chisq,'cfar':cfar}
-        if dumpfile is not None:
-          fh=open(dumpfile,'w')
-          for co in output.keys():
-            for ifo in output[co].ifos:
-              fh.write('%s %s %s %s %s %s %s\n'%(str(co),ifo,str(output[co].trig_time),str(output[co].timeslides[ifo]),str(extra[co][ifo]['snr']),str(extra[co][ifo]['chisq']),str(extra[co][ifo]['cfar'])))
-          fh.close()
+      		coinc_id=int(coinc_id.split(":")[-1])
+	  	if not coinc_id in output.keys():
+			output[coinc_id]=Event(trig_time=sngl_time,timeslide_dict={})
+			extra[coinc_id]={}
+		output[coinc_id].timeslides[ifo]=0
+		output[coinc_id].ifos.append(ifo)
+		extra[coinc_id][ifo]={'snr':snr,'chisq':chisq,'cfar':cfar}
+      	if dumpfile is not None:
+        	fh=open(dumpfile,'w')
+        	for co in output.keys():
+          		for ifo in output[co].ifos:
+            			fh.write('%s %s %s %s %s %s %s\n'%(str(co),ifo,str(output[co].trig_time),str(output[co].timeslides[ifo]),str(extra[co][ifo]['snr']),str(extra[co][ifo]['chisq']),str(extra[co][ifo]['cfar'])))
+        	fh.close()
 	return output.values()
 	
 
@@ -182,7 +183,7 @@ def get_timeslides_pipedown(database_connection, dumpfile=None, gpsstart=None, g
 		    FROM sngl_inspiral join coinc_event_map on (coinc_event_map.table_name == 'sngl_inspiral' and coinc_event_map.event_id \
 		    == sngl_inspiral.event_id) join coinc_event on (coinc_event.coinc_event_id==coinc_event_map.coinc_event_id) join time_slide\
 		    on (time_slide.time_slide_id == coinc_event.time_slide_id and time_slide.instrument==sngl_inspiral.ifo)\
-		    join coinc_inspiral on (coinc_inspiral.coinc_event_id==coinc_event.coinc_event_id)"
+		    join coinc_inspiral on (coinc_inspiral.coinc_event_id==coinc_event.coinc_event_id) where coinc_event.time_slide_id!='time_slide:time_slide_id:10049'"
 	if gpsstart is not None:
 		get_coincs=get_coincs+ ' where sngl_inspiral.end_time+sngl_inspiral.end_time_ns*1e-9 > %f'%(gpsstart)
 		joinstr=' and '
