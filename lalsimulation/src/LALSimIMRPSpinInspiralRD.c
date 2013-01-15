@@ -96,14 +96,13 @@ static REAL8 fracRD(REAL8 LNhS1, REAL8 LNhS2, REAL8 S1S1, REAL8 S1S2, REAL8 S2S2
 /**
  * Convenience function to set up XLALSimInspiralSpinTaylotT4Coeffs struct
  */
-
 static int XLALSimIMRPhenSpinParamsSetup(LALSimInspiralSpinTaylorT4Coeffs  *params,  /** PN params [returned] */
 					 REAL8 dt,                                   /** Sampling in secs */
 					 REAL8 fStart,                               /** Starting frequency of integration*/
 					 REAL8 fEnd,                                 /** Ending frequency of integration*/
 					 REAL8 mass1,                                /** Mass 1 in solar mass units */
 					 REAL8 mass2,                                /** Mass 2 in solar mass units */
-					 LALSimInspiralInteraction interFlags,       /** Spin interaction */
+					 LALSimInspiralSpinOrder spinO,              /** Spin interaction */
 					 LALSimInspiralTestGRParam *testGR,          /** Test GR param */
 					 UINT4 order                                 /** twice PN Order in Phase */
 					 )
@@ -144,52 +143,42 @@ static int XLALSimIMRPhenSpinParamsSetup(LALSimInspiralSpinTaylorT4Coeffs  *para
       params->Ecoeff[6]     = XLALSimInspiralEnergy_6PNCoeff(params->eta);
       params->wdotcoeff[6]  = XLALSimInspiralTaylorT4Phasing_6PNCoeff(params->eta);
       params->wdotlogcoeff  = XLALSimInspiralTaylorT4Phasing_6PNLogCoeff(params->eta);
-      if( (interFlags & LAL_SIM_INSPIRAL_INTERACTION_SPIN_ORBIT_3PN) == LAL_SIM_INSPIRAL_INTERACTION_SPIN_ORBIT_3PN ) {
-	params->wdotSO3s1   = XLALSimInspiralTaylorT4Phasing_6PNSLCoeff(params->m1ByM);
-	params->wdotSO3s2   = XLALSimInspiralTaylorT4Phasing_6PNSLCoeff(params->m1ByM);
-      }
+      params->wdotSO3s1   = XLALSimInspiralTaylorT4Phasing_6PNSLCoeff(params->m1ByM);
+      params->wdotSO3s2   = XLALSimInspiralTaylorT4Phasing_6PNSLCoeff(params->m1ByM);
 
     case 5:
       params->Ecoeff[5]     = 0.;
       params->wdotcoeff[5]  = XLALSimInspiralTaylorT4Phasing_5PNCoeff(params->eta);
-      if( (interFlags & LAL_SIM_INSPIRAL_INTERACTION_SPIN_ORBIT_25PN) == LAL_SIM_INSPIRAL_INTERACTION_SPIN_ORBIT_25PN ) {
-	params->ESO25s1     = XLALSimInspiralEnergy_5PNSOCoeffs1(params->eta, params->m1Bym2);
-	params->ESO25s2     = XLALSimInspiralEnergy_5PNSOCoeffs1(params->eta, 1./params->m1Bym2);
-	params->wdotSO25s1  = XLALSimInspiralTaylorT4Phasing_5PNSLCoeff(params->eta, params->m1Bym2);
-	params->wdotSO25s2  = XLALSimInspiralTaylorT4Phasing_5PNSLCoeff(params->eta, 1./params->m1Bym2);
-	params->S1dot25     = XLALSimInspiralSpinDot_5PNCoeff(params->eta,params->dmByM);
-	params->S2dot25     = XLALSimInspiralSpinDot_5PNCoeff(params->eta,-params->dmByM);
-      }
+      params->ESO25s1     = XLALSimInspiralEnergy_5PNSOCoeffs1(params->eta, params->m1Bym2);
+      params->ESO25s2     = XLALSimInspiralEnergy_5PNSOCoeffs1(params->eta, 1./params->m1Bym2);
+      params->wdotSO25s1  = XLALSimInspiralTaylorT4Phasing_5PNSLCoeff(params->eta, params->m1Bym2);
+      params->wdotSO25s2  = XLALSimInspiralTaylorT4Phasing_5PNSLCoeff(params->eta, 1./params->m1Bym2);
+      params->S1dot25     = XLALSimInspiralSpinDot_5PNCoeff(params->eta,params->dmByM);
+      params->S2dot25     = XLALSimInspiralSpinDot_5PNCoeff(params->eta,-params->dmByM);
 
     case 4:
       params->wdotcoeff[4]  = XLALSimInspiralTaylorT4Phasing_4PNCoeff(params->eta)+phi4;
       params->Ecoeff[4]   = XLALSimInspiralEnergy_4PNCoeff(params->eta);
-      if( (interFlags & LAL_SIM_INSPIRAL_INTERACTION_SPIN_SPIN_2PN) ==  LAL_SIM_INSPIRAL_INTERACTION_SPIN_SPIN_2PN ) {
-	params->wdotSS2     = XLALSimInspiralTaylorT4Phasing_4PNSSCoeff(params->eta);
-	params->wdotSSO2    = XLALSimInspiralTaylorT4Phasing_4PNSSOCoeff(params->eta);
-	params->ESS2        = XLALSimInspiralEnergy_4PNSSCoeff(params->eta);
-	params->ESSO2       = XLALSimInspiralEnergy_4PNSSOCoeff(params->eta);
-      }
-      if( (interFlags & LAL_SIM_INSPIRAL_INTERACTION_SPIN_SPIN_SELF_2PN) == LAL_SIM_INSPIRAL_INTERACTION_SPIN_SPIN_SELF_2PN ) {
-	params->wdotSelfSS2 = XLALSimInspiralTaylorT4Phasing_4PNSelfSSCoeff(params->eta);
-	params->wdotSelfSSO2= XLALSimInspiralTaylorT4Phasing_4PNSelfSSOCoeff(params->eta);
-	params->ESelfSS2s1  = XLALSimInspiralEnergy_4PNSelfSSCoeff(params->m1Bym2);
-	params->ESelfSS2s2  = XLALSimInspiralEnergy_4PNSelfSSCoeff(1./params->m1Bym2);
-	params->ESelfSSO2s1 = XLALSimInspiralEnergy_4PNSelfSSOCoeff(params->m1Bym2);
-	params->ESelfSSO2s2 = XLALSimInspiralEnergy_4PNSelfSSOCoeff(1./params->m1Bym2);
-      }
-
+      params->wdotSS2     = XLALSimInspiralTaylorT4Phasing_4PNSSCoeff(params->eta);
+      params->wdotSSO2    = XLALSimInspiralTaylorT4Phasing_4PNSSOCoeff(params->eta);
+      params->ESS2        = XLALSimInspiralEnergy_4PNSSCoeff(params->eta);
+      params->ESSO2       = XLALSimInspiralEnergy_4PNSSOCoeff(params->eta);
+      params->wdotSelfSS2 = XLALSimInspiralTaylorT4Phasing_4PNSelfSSCoeff(params->eta);
+      params->wdotSelfSSO2= XLALSimInspiralTaylorT4Phasing_4PNSelfSSOCoeff(params->eta);
+      params->ESelfSS2s1  = XLALSimInspiralEnergy_4PNSelfSSCoeff(params->m1Bym2);
+      params->ESelfSS2s2  = XLALSimInspiralEnergy_4PNSelfSSCoeff(1./params->m1Bym2);
+      params->ESelfSSO2s1 = XLALSimInspiralEnergy_4PNSelfSSOCoeff(params->m1Bym2);
+      params->ESelfSSO2s2 = XLALSimInspiralEnergy_4PNSelfSSOCoeff(1./params->m1Bym2);
+ 
     case 3:
       params->Ecoeff[3]      = 0.;
       params->wdotcoeff[3]   = XLALSimInspiralTaylorT4Phasing_3PNCoeff(params->eta)+phi3;
-      if( (interFlags & LAL_SIM_INSPIRAL_INTERACTION_SPIN_ORBIT_15PN) == LAL_SIM_INSPIRAL_INTERACTION_SPIN_ORBIT_15PN ) {
-	  params->wdotSO15s1 = XLALSimInspiralTaylorT4Phasing_3PNSOCoeff(params->m1Bym2);
-	  params->wdotSO15s2 = XLALSimInspiralTaylorT4Phasing_3PNSOCoeff(1./params->m1Bym2);
-	  params->ESO15s1    = XLALSimInspiralEnergy_3PNSOCoeff(params->m1Bym2);
-	  params->ESO15s2    = XLALSimInspiralEnergy_3PNSOCoeff(1./params->m1Bym2);
-	  params->S1dot15    = XLALSimInspiralSpinDot_3PNCoeff(params->eta,params->m1Bym2);
-	  params->S2dot15    = XLALSimInspiralSpinDot_3PNCoeff(params->eta,1./params->m1Bym2);
-      }
+      params->wdotSO15s1 = XLALSimInspiralTaylorT4Phasing_3PNSOCoeff(params->m1Bym2);
+      params->wdotSO15s2 = XLALSimInspiralTaylorT4Phasing_3PNSOCoeff(1./params->m1Bym2);
+      params->ESO15s1    = XLALSimInspiralEnergy_3PNSOCoeff(params->m1Bym2);
+      params->ESO15s2    = XLALSimInspiralEnergy_3PNSOCoeff(1./params->m1Bym2);
+      params->S1dot15    = XLALSimInspiralSpinDot_3PNCoeff(params->eta,params->m1Bym2);
+      params->S2dot15    = XLALSimInspiralSpinDot_3PNCoeff(params->eta,1./params->m1Bym2);
 
     case 2:
       params->Ecoeff[2]  = XLALSimInspiralEnergy_2PNCoeff(params->eta);
@@ -215,6 +204,50 @@ static int XLALSimIMRPhenSpinParamsSetup(LALSimInspiralSpinTaylorT4Coeffs  *para
       break;
   }
 
+  switch (spinO) {
+
+    case LAL_SIM_INSPIRAL_SPIN_ORDER_0PN:
+    case LAL_SIM_INSPIRAL_SPIN_ORDER_05PN:
+    case LAL_SIM_INSPIRAL_SPIN_ORDER_1PN:
+      /*This kills all spin effects in the phase. Still there are spin effects
+	in the waveform due to orbital plane precession*/      
+      params->ESO15s1     = 0.;
+      params->ESO15s2     = 0.;
+      params->wdotSO15s1  = 0.;
+      params->wdotSO15s1  = 0.;
+      params->S1dot15     = 0.;
+      params->S2dot15     = 0.;
+
+    case LAL_SIM_INSPIRAL_SPIN_ORDER_15PN:
+      /* This keeps only the leading spin-orbit interactions*/
+      params->wdotSS2     = 0.;
+      params->ESelfSS2s1  = 0.;
+      params->ESelfSS2s2  = 0.;
+      params->ESelfSSO2s1 = 0.;
+      params->ESelfSSO2s2 = 0.;
+      params->Sdot20S     = 0.;
+
+    case LAL_SIM_INSPIRAL_SPIN_ORDER_2PN:
+      /* This kills all spin interaction intervening at 2.5PN order or higher*/
+      params->ESO25s1       = 0.;
+      params->ESO25s2       = 0.;
+      params->wdotSO25s1    = 0.;
+      params->wdotSO25s1    = 0.;
+      params->S1dot25       = 0.;
+      params->S2dot25       = 0.;
+
+    case LAL_SIM_INSPIRAL_INTERACTION_QUAD_MONO_2PN:
+
+    case LAL_SIM_INSPIRAL_SPIN_ORDER_25PN:
+      /* This kills all spin interaction intervening at 3PN order or higher*/
+      params->wdotSO3s1   = 0.;
+      params->wdotSO3s2   = 0.;
+
+    case LAL_SIM_INSPIRAL_SPIN_ORDER_3PN:
+    case LAL_SIM_INSPIRAL_SPIN_ORDER_ALL:
+    default:
+      break;
+  }
   return XLAL_SUCCESS;
 } /* End of XLALSimIMRPhenSpinParamsSetup */
 
@@ -1133,7 +1166,7 @@ static int XLALSimIMRPhenSpinInitialize(REAL8 mass1,                            
   }
 
   /* setup coefficients for PN equations */
-  if(XLALSimIMRPhenSpinParamsSetup(params,deltaT,fStart,fEnd,mass1,mass2,XLALSimInspiralGetInteraction(waveFlags),testGRparams,phaseO)) {
+  if(XLALSimIMRPhenSpinParamsSetup(params,deltaT,fStart,fEnd,mass1,mass2,XLALSimInspiralGetSpinOrder(waveFlags),testGRparams,phaseO)) {
     XLAL_ERROR(XLAL_ENOMEM);
   }
 
