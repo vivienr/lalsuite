@@ -24,8 +24,8 @@
 #include <lal/LALAdaptiveRungeKutta4.h>
 #include <lal/TimeSeries.h>
 #include "check_series_macros.h"
+#include "LALSimInspiralPNCoefficients.c"
 
-#define UNUSED(expr) do { (void)(expr); } while (0)
 /*
 #ifdef __GNUC__
 #define UNUSED __attribute__ ((unused))
@@ -219,36 +219,36 @@ int XLALSimInspiralPNEvolveOrbitSpinTaylorT4(
         case 8:
         /* case LAL_PNORDER_THREE_POINT_FIVE: */
         case 7:
-	  params->wdotcoeff[7]  = XLALSimInspiralTaylorT4Phasing_7PNCoeff(params->eta);
-	  params->Ecoeff[7] = 0.;
+	  params.wdotcoeff[7]  = XLALSimInspiralTaylorT4Phasing_7PNCoeff(eta);
+	  params.Ecoeff[7] = 0.;
         /* case LAL_PNORDER_THREE_POINT_FIVE: */
         case 6:
-	  params->Ecoeff[6]     = XLALSimInspiralEnergy_6PNCoeff(params->eta);
-	  params->wdotcoeff[6]  = XLALSimInspiralTaylorT4Phasing_6PNCoeff(params->eta);
-	  params->wdotlogcoeff  = XLALSimInspiralTaylorT4Phasing_6PNLogCoeff(params->eta);
+	  params.Ecoeff[6]     = XLALSimInspiralEnergy_6PNCoeff(eta);
+	  params.wdotcoeff[6]  = XLALSimInspiralTaylorT4Phasing_6PNCoeff(eta);
+	  params.wdotlogcoeff  = XLALSimInspiralTaylorT4Phasing_6PNLogCoeff(eta);
         /* case LAL_PNORDER_THREE: */
         case 5:
-	  params->Ecoeff[5]     = 0.;
-	  params->wdotcoeff[5]  = XLALSimInspiralTaylorT4Phasing_5PNCoeff(params->eta);
+	  params.Ecoeff[5]     = 0.;
+	  params.wdotcoeff[5]  = XLALSimInspiralTaylorT4Phasing_5PNCoeff(eta);
 	  /* case LAL_PNORDER_TWO_POINT_FIVE: */
         case 4:
-	  params->wdotcoeff[4]  = XLALSimInspiralTaylorT4Phasing_4PNCoeff(params->eta)+phi4;
-	  params->Ecoeff[4]   = XLALSimInspiralEnergy_4PNCoeff(params->eta);
+	  params.wdotcoeff[4]  = XLALSimInspiralTaylorT4Phasing_4PNCoeff(eta);
+	  params.Ecoeff[4]   = XLALSimInspiralEnergy_4PNCoeff(eta);
 	  /* case LAL_PNORDER_TWO: */
         case 3:
-	  params->Ecoeff[3]      = 0.;
-	  params->wdotcoeff[3]   = XLALSimInspiralTaylorT4Phasing_3PNCoeff(params->eta)+phi3;
+	  params.Ecoeff[3]      = 0.;
+	  params.wdotcoeff[3]   = XLALSimInspiralTaylorT4Phasing_3PNCoeff(eta);
 	  /* case LAL_PNORDER_ONE_POINT_FIVE: */
         case 2:
-	  params->Ecoeff[2]  = XLALSimInspiralEnergy_2PNCoeff(params->eta);
-	  params->wdotcoeff[2] = XLALSimInspiralTaylorT4Phasing_2PNCoeff(params->eta)+phi2;
+	  params.Ecoeff[2]  = XLALSimInspiralEnergy_2PNCoeff(eta);
+	  params.wdotcoeff[2] = XLALSimInspiralTaylorT4Phasing_2PNCoeff(eta);
 	  /* case LAL_PNORDER_ONE: */
         case 1:
-	  params->Ecoeff[1]  = 0.;
-	  params->wdotcoeff[1] = phi1;
+	  params.Ecoeff[1]  = 0.;
+	  params.wdotcoeff[1] = 0.;
         case 0:
-	  params->Ecoeff[0]  = 1.;
-	  params->wdotcoeff[0] = 1.;
+	  params.Ecoeff[0]  = 1.;
+	  params.wdotcoeff[0] = 1.;
 	  break;
         default: 
             XLALPrintError("XLAL Error - %s: Invalid phase. PN order %s\n", 
@@ -266,13 +266,13 @@ int XLALSimInspiralPNEvolveOrbitSpinTaylorT4(
         case LAL_SIM_INSPIRAL_SPIN_ORDER_ALL:
         case LAL_SIM_INSPIRAL_SPIN_ORDER_3PN:
         case LAL_SIM_INSPIRAL_SPIN_ORDER_25PN:
-	  params->ESO25s1     = XLALSimInspiralEnergy_5PNSOCoeffs1(eta, m1m2);
-	  params->ESO25s2     = XLALSimInspiralEnergy_5PNSOCoeffs1(eta, m2m1);
-	  params->wdotSO25s1  = XLALSimInspiralTaylorT4Phasing_5PNSLCoeff(eta, m1m2);
-	  params->wdotSO25s2  = XLALSimInspiralTaylorT4Phasing_5PNSLCoeff(eta, m2m1);
+	  params.ESO25s1     = XLALSimInspiralEnergy_5PNSOCoeffs1(eta, m1m2);
+	  params.ESO25s2     = XLALSimInspiralEnergy_5PNSOCoeffs1(eta, m2m1);
+	  params.wdotSO25s1  = XLALSimInspiralTaylorT4Phasing_5PNSLCoeff(eta, m1m2);
+	  params.wdotSO25s2  = XLALSimInspiralTaylorT4Phasing_5PNSLCoeff(eta, m2m1);
         case LAL_SIM_INSPIRAL_SPIN_ORDER_2PN:
-	  params->wdotcoeff[4]  = XLALSimInspiralTaylorT4Phasing_4PNCoeff(eta);
-	  params->Ecoeff[4]   = XLALSimInspiralEnergy_4PNCoeff(eta);
+	  params.wdotcoeff[4]  = XLALSimInspiralTaylorT4Phasing_4PNCoeff(eta);
+	  params.Ecoeff[4]   = XLALSimInspiralEnergy_4PNCoeff(eta);
 	  // 2PN spin-spin terms
 	  params.LNhatSS2 	= -1.5 / eta;
 	  // 2PN quadrupole-monopole terms
@@ -287,12 +287,12 @@ int XLALSimInspiralPNEvolveOrbitSpinTaylorT4(
         case LAL_SIM_INSPIRAL_SPIN_ORDER_15PN:
           params.LNhatSO15s1 	= 2. + 3./2. * m2m1;
           params.LNhatSO15s2	= 2. + 3./2. * m1m2;
-	  params->wdotSO15s1 = XLALSimInspiralTaylorT4Phasing_3PNSOCoeff(m1m2);
-	  params->wdotSO15s2 = XLALSimInspiralTaylorT4Phasing_3PNSOCoeff(m2m1);
-	  params->ESO15s1    = XLALSimInspiralEnergy_3PNSOCoeff(m1m2);
-	  params->ESO15s2    = XLALSimInspiralEnergy_3PNSOCoeff(m2m1);
-	  params->S1dot15    = XLALSimInspiralSpinDot_3PNCoeff(eta,m1m2);
-	  params->S2dot15    = XLALSimInspiralSpinDot_3PNCoeff(eta,m2m1);
+	  params.wdotSO15s1 = XLALSimInspiralTaylorT4Phasing_3PNSOCoeff(m1m2);
+	  params.wdotSO15s2 = XLALSimInspiralTaylorT4Phasing_3PNSOCoeff(m2m1);
+	  params.ESO15s1    = XLALSimInspiralEnergy_3PNSOCoeff(m1m2);
+	  params.ESO15s2    = XLALSimInspiralEnergy_3PNSOCoeff(m2m1);
+	  params.S1dot15    = XLALSimInspiralSpinDot_3PNCoeff(eta,m1m2);
+	  params.S2dot15    = XLALSimInspiralSpinDot_3PNCoeff(eta,m2m1);
         case LAL_SIM_INSPIRAL_SPIN_ORDER_1PN:
         case LAL_SIM_INSPIRAL_SPIN_ORDER_05PN:
         case LAL_SIM_INSPIRAL_SPIN_ORDER_0PN:
@@ -525,7 +525,7 @@ int XLALSimInspiralPNEvolveOrbitSpinTaylorT4(
  *		4) The orbital frequency has gone outside the requested bounds
  */
 static int XLALSimInspiralSpinTaylorT4StoppingTest(
-	double t, 
+	UNUSED double t, 
 	const double values[],
 	double dvalues[], 
 	void *mparams
@@ -536,8 +536,6 @@ static int XLALSimInspiralSpinTaylorT4StoppingTest(
             = (LALSimInspiralSpinTaylorT4Coeffs*) mparams;
     /* Spin-corrections to energy (including dynamical terms) */
     REAL8 Espin15 = 0., Espin2 = 0., Espin25 = 0.;
-
-    UNUSED(t);
 
     omega = values[1];
     v = pow(omega,1./3.);
@@ -643,7 +641,7 @@ static int XLALSimInspiralSpinTaylorT4StoppingTest(
  * The derivative of E1 is Eq. (15)-(16) of gr-qc/0310034
  */
 static int XLALSimInspiralSpinTaylorT4Derivatives(
-	double t, 
+	UNUSED double t, 
 	const double values[],
 	double dvalues[], 
 	void *mparams
@@ -664,8 +662,6 @@ static int XLALSimInspiralSpinTaylorT4Derivatives(
 
     LALSimInspiralSpinTaylorT4Coeffs *params 
             = (LALSimInspiralSpinTaylorT4Coeffs*) mparams;
-
-    UNUSED(t);
 
     /* copy variables */
     // UNUSED!!: s    = values[0] ;

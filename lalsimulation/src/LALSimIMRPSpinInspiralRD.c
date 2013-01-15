@@ -225,7 +225,6 @@ static int XLALSimIMRPhenSpinParamsSetup(LALSimInspiralSpinTaylorT4Coeffs  *para
       params->ESelfSS2s2  = 0.;
       params->ESelfSSO2s1 = 0.;
       params->ESelfSSO2s2 = 0.;
-      params->Sdot20S     = 0.;
 
     case LAL_SIM_INSPIRAL_SPIN_ORDER_2PN:
       /* This kills all spin interaction intervening at 2.5PN order or higher*/
@@ -358,7 +357,6 @@ static int XLALSpinInspiralDerivatives(UNUSED double t,
   dS1z = params->S1dot15 * v5 * cross1z;
 
   /* dS1, 2PN */
-  /* Sdot20= 0.5 */
   tmpx = S1z * S2y - S1y * S2z;
   tmpy = S1x * S2z - S1z * S2x;
   tmpz = S1y * S2x - S1x * S2y;
