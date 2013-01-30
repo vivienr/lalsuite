@@ -129,6 +129,8 @@ static int XLALSimIMRPhenSpinParamsSetup(LALSimInspiralSpinTaylorT4Coeffs  *para
   REAL8 phi2 = XLALSimInspiralTestGRParamExists(testGR,"phi2") ? XLALSimInspiralGetTestGRParam(testGR,"phi2") : 0.;
   REAL8 phi3 = XLALSimInspiralTestGRParamExists(testGR,"phi3") ? XLALSimInspiralGetTestGRParam(testGR,"phi3") : 0.;
   REAL8 phi4 = XLALSimInspiralTestGRParamExists(testGR,"phi4") ? XLALSimInspiralGetTestGRParam(testGR,"phi4") : 0.;
+  
+  const REAL8 quadparam1 = quadparam2 = 1.;
 
   params->wdotnewt = XLALSimInspiralTaylorT4Phasing_0PNCoeff(params->eta);
   params->Enewt    = XLALSimInspiralEnergy_0PNCoeff(params->eta);
@@ -157,18 +159,28 @@ static int XLALSimIMRPhenSpinParamsSetup(LALSimInspiralSpinTaylorT4Coeffs  *para
       params->S2dot25     = XLALSimInspiralSpinDot_5PNCoeff(params->eta,-params->dmByM);
 
     case 4:
-      params->wdotcoeff[4]  = XLALSimInspiralTaylorT4Phasing_4PNCoeff(params->eta)+phi4;
-      params->Ecoeff[4]   = XLALSimInspiralEnergy_4PNCoeff(params->eta);
-      params->wdotSS2     = XLALSimInspiralTaylorT4Phasing_4PNSSCoeff(params->eta);
-      params->wdotSSO2    = XLALSimInspiralTaylorT4Phasing_4PNSSOCoeff(params->eta);
-      params->ESS2        = XLALSimInspiralEnergy_4PNSSCoeff(params->eta);
-      params->ESSO2       = XLALSimInspiralEnergy_4PNSSOCoeff(params->eta);
-      params->wdotSelfSS2 = XLALSimInspiralTaylorT4Phasing_4PNSelfSSCoeff(params->eta);
-      params->wdotSelfSSO2= XLALSimInspiralTaylorT4Phasing_4PNSelfSSOCoeff(params->eta);
-      params->ESelfSS2s1  = XLALSimInspiralEnergy_4PNSelfSSCoeff(params->m1Bym2);
-      params->ESelfSS2s2  = XLALSimInspiralEnergy_4PNSelfSSCoeff(1./params->m1Bym2);
-      params->ESelfSSO2s1 = XLALSimInspiralEnergy_4PNSelfSSOCoeff(params->m1Bym2);
-      params->ESelfSSO2s2 = XLALSimInspiralEnergy_4PNSelfSSOCoeff(1./params->m1Bym2);
+      params->wdotcoeff[4] = XLALSimInspiralTaylorT4Phasing_4PNCoeff(params->eta)+phi4;
+      params->Ecoeff[4]    = XLALSimInspiralEnergy_4PNCoeff(params->eta);
+      params->wdotSS2      = XLALSimInspiralTaylorT4Phasing_4PNSSCoeff(params->eta);
+      params->wdotSSO2     = XLALSimInspiralTaylorT4Phasing_4PNSSOCoeff(params->eta);
+      params->ESS2         = XLALSimInspiralEnergy_4PNSSCoeff(params->eta);
+      params->ESSO2        = XLALSimInspiralEnergy_4PNSSOCoeff(params->eta);
+      params->wdotSSselfS2 = XLALSimInspiralTaylorT4Phasing_4PNSelfSSCoeff(params->m1ByM);
+      params->wdotSSselfS1L= XLALSimInspiralTaylorT4Phasing_4PNSelfSSOCoeff(params->m1ByM);
+      params->wdotSSselfS2 = XLALSimInspiralTaylorT4Phasing_4PNSelfSSCoeff(params->m2ByM);
+      params->wdotSSselfS2L= XLALSimInspiralTaylorT4Phasing_4PNSelfSSOCoeff(params->m2ByM);
+      params->wdotQM2S1    = quadparam1 * XLALSimInspiralTaylorT4Phasing_4PNQMCoeff(params->m1ByM);
+      params->wdotQM2S1L   = quadparam1 * XLALSimInspiralTaylorT4Phasing_4PNQMSOCoeff(params->m1ByM);
+      params->wdotQM2S2    = quadparam2 * XLALSimInspiralTaylorT4Phasing_4PNQMCoeff(params->m2ByM);
+      params->wdotQM2S2L   = quadparam2 * XLALSimInspiralTaylorT4Phasing_4PNQMSOCoeff(params->m2ByM);
+      params->EQM2S1 	   = XLALSimInspiralEnergy_4PNSelfSSCoeff(params->m1ByM);
+      params->EQM2S1L 	   = XLALSimInspiralEnergy_4PNSelfSSOCoeff(params->m1ByM);
+      params->EQM2S2 	   = XLALSimInspiralEnergy_4PNSelfSSCoeff(params->m2ByM);
+      params->EQM2S2L 	   = XLALSimInspiralEnergy_4PNSelfSSOCoeff(params->m2ByM);
+      params->ESelfSS2s1   = 0.;
+      params->ESelfSS2s2   = 0.;
+      params->ESelfSSO2s1  = 0.;
+      params->ESelfSSO2s2  = 0.;
  
     case 3:
       params->Ecoeff[3]      = 0.;

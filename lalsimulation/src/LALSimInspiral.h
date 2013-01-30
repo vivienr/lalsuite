@@ -1706,10 +1706,13 @@ int XLALSimInspiralTaylorF2(
 		const REAL8 deltaF,             /**< frequency resolution */
 		const REAL8 m1_SI,              /**< mass of companion 1 (kg) */
 		const REAL8 m2_SI,              /**< mass of companion 2 (kg) */
+		const REAL8 S1z,                /**<   z component of the spin of companion 1 */
+		const REAL8 S2z,                /**<   z component of the spin of companion 2  */
 		const REAL8 fStart,             /**< start GW frequency (Hz) */
 		const REAL8 r,                  /**< distance of source (m) */
 		const REAL8 lambda1,            /**< (tidal deformation of body 1)/(mass of body 1)^5 */
 		const REAL8 lambda2,            /**< (tidal deformation of body 2)/(mass of body 2)^5 */
+		const LALSimInspiralSpinOrder spinO,  /**< twice PN order of spin effects */
 		LALSimInspiralTidalOrder tideO, /**< twice PN order of tidal effects */
 		const INT4 phaseO,              /**< twice PN phase order */
 		const INT4 amplitudeO           /**< twice PN amplitude order */
@@ -2172,9 +2175,10 @@ typedef struct tagLALSimInspiralSpinTaylorT4Coeffs
   REAL8 wdotcoeff[LAL_MAX_PN_ORDER]; // coeffs. of PN corrections to wdot
   REAL8 wdotlogcoeff; 		   // coefficient of log term in wdot
   REAL8 wdotSO15s1, wdotSO15s2; 	   // non-dynamical 1.5PN SO corrections
-  REAL8 wdotSS2,wdotSSO2; 	   // non-dynamical 2PN SS correction
-  REAL8 wdotSelfSS2,wdotSelfSSO2;    // non-dynamical 2PN self-spin correction
-  REAL8 wdotQM2; 	                   // non-dynamical 2PN quadrupole-monopole correction
+  REAL8 wdotSSelfS1,wdotSSelfS2;      // non-dynamical 2PN self-spin correction
+  REAL8 wdotSSelfS1L,wdotSSelfS2L;    // non-dynamical 2PN self-spin correction
+  REAL8 wdotQM2S1,wdotQM2S1L;
+  REAL8 wdotQM2S2,wdotQM2S2L;
   REAL8 wdotSO25s1,wdotSO25s2; 	   // non-dynamical 2.5PN SO corrections
   REAL8 wdotSO3s1,wdotSO3s2; 	   // non-dynamical 2.5PN SO corrections
   REAL8 Enewt;                       // coeffs. of PN corrections to energy
@@ -2183,7 +2187,6 @@ typedef struct tagLALSimInspiralSpinTaylorT4Coeffs
   REAL8 ESS2,ESSO2; 		   // non-dynamical 2PN SS correction
   REAL8 ESelfSSO2s1,ESelfSSO2s2; 	   // non-dynamical 2PN self-spin correction
   REAL8 ESelfSS2s1,ESelfSS2s2; 	           // non-dynamical 2PN self-spin correction
-  REAL8 EQM2; 	                   // non-dynamical 2PN quadrupole-monopole correction
   REAL8 ESO25s1, ESO25s2; 	   // non-dynamical 2.5PN SO corrections 
   REAL8 LNhatSO15s1, LNhatSO15s2;    // non-dynamical 1.5PN SO corrections
   REAL8 LNhatSS2; 		   // non-dynamical 2PN SS correction
@@ -2193,12 +2196,6 @@ typedef struct tagLALSimInspiralSpinTaylorT4Coeffs
   REAL8 wdottidal6pn;	           // next to leading order tidal correction
   REAL8 Etidal5pn;	           // leading order tidal correction to energy
   REAL8 Etidal6pn;                   // next to leading order tidal correction to energy
-  REAL8 quadparam1; ///< quadrupole parameter for m1 (=1 for BH, ~ 4-8 for NS)
-  REAL8 quadparam2; ///< quadrupole parameter for m2 (see gr-qc/9709032)
-  REAL8 wdotQM2S1; ///< non-dynamical S1^2 2PN quadrupole-monopole correction
-  REAL8 wdotQM2S1L; ///< non-dynamical (S1.L)^2 2PN quadrupole-monopole correction
-  REAL8 wdotQM2S2; ///< non-dynamical S2^2 2PN quadrupole-monopole correction
-  REAL8 wdotQM2S2L; ///< non-dynamical (S2.L)^2 2PN quadrupole-monopole correction
   REAL8 EQM2S1; ///< non-dynamical S1^2 2PN quadrupole-monopole correction
   REAL8 EQM2S1L;///< non-dynamical (S1.L)^2 2PN quadrupole-monopole correction
   REAL8 EQM2S2; ///< non-dynamical S2^2 2PN quadrupole-monopole correction
