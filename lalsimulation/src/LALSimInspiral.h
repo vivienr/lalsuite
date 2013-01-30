@@ -2175,8 +2175,9 @@ typedef struct tagLALSimInspiralSpinTaylorT4Coeffs
   REAL8 wdotcoeff[LAL_MAX_PN_ORDER]; // coeffs. of PN corrections to wdot
   REAL8 wdotlogcoeff; 		   // coefficient of log term in wdot
   REAL8 wdotSO15s1, wdotSO15s2; 	   // non-dynamical 1.5PN SO corrections
-  REAL8 wdotSSelfS1,wdotSSelfS2;      // non-dynamical 2PN self-spin correction
-  REAL8 wdotSSelfS1L,wdotSSelfS2L;    // non-dynamical 2PN self-spin correction
+  REAL8 wdotSS2,wdotSSO2;
+  REAL8 wdotSSselfS1,wdotSSselfS2;      // non-dynamical 2PN self-spin correction
+  REAL8 wdotSSselfS1L,wdotSSselfS2L;    // non-dynamical 2PN self-spin correction
   REAL8 wdotQM2S1,wdotQM2S1L;
   REAL8 wdotQM2S2,wdotQM2S2L;
   REAL8 wdotSO25s1,wdotSO25s2; 	   // non-dynamical 2.5PN SO corrections
