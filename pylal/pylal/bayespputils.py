@@ -177,6 +177,88 @@ border-bottom-style:double;
 """
 
 #===============================================================================
+# Function used to generate plot labels.
+#===============================================================================
+def plot_label(param):
+  """
+  A lookup table for plot labels.
+  """
+  m1_names = ['mass1', 'm1']
+  m2_names = ['mass2', 'm2']
+  mc_names = ['mc','mchirp','chirpmass']
+  eta_names = ['eta','massratio','sym_massratio']
+  q_names = ['q','asym_massratio']
+  iota_names = ['iota','incl','inclination']
+  dist_names = ['dist','distance']
+  ra_names = ['rightascension','ra']
+  dec_names = ['declination','dec']
+  phase_names = ['phi_orb', 'phi', 'phase']
+
+  labels={
+      'm1':r'$m_1$',
+      'm2':r'$m_2$',
+      'mc':r'$\mathcal{M}_c$',
+      'eta':r'$\eta$',
+      'q':r'$q$',
+      'mtotal':r'$M_\mathrm{total}$',
+      'spin1':r'$S_1$',
+      'spin2':r'$S_2$',
+      'a1':r'$a_1$',
+      'a2':r'$a_2$',
+      'theta1':r'$\theta_1$',
+      'theta2':r'$\theta_2$',
+      'phi1':r'$\phi_1$',
+      'phi2':r'$\phi_2$',
+      'chi':r'$\chi$',
+      'tilt1':r'$t_1$',
+      'tilt2':r'$t_2$',
+      'costilt1':r'$\mathrm{cos}(t_1)$',
+      'costilt2':r'$\mathrm{cos}(t_2)$',
+      'iota':r'$\iota$',
+      'cosiota':r'$\mathrm{cos}(\iota)$',
+      'time':r'$t_\mathrm{c}$',
+      'dist':r'$d_\mathrm{L}$',
+      'ra':r'$\alpha$',
+      'dec':r'$\delta$',
+      'phase':r'$\phi$',
+      'psi':r'$\psi$',
+      'thetas':r'$\theta_\mathrm{s}$',
+      'costhetas':r'$\mathrm{cos}(\theta_\mathrm{s})$',
+      'beta':r'$\beta$',
+      'cosbeta':r'$\mathrm{cos}(\beta)$',
+      'logl':r'$\mathrm{log}(\mathcal{L})$'}
+
+  # Handle cases where multiple names have been used
+  if param in m1_names:
+    param = 'm1'
+  elif param in m2_names:
+    param = 'm2'
+  elif param in mc_names:
+    param = 'mc'
+  elif param in eta_names:
+    param = 'eta'
+  elif param in q_names:
+    param = 'q'
+  elif param in iota_names:
+    param = 'iota'
+  elif param in dist_names:
+    param = 'dist'
+  elif param in ra_names:
+    param = 'ra'
+  elif param in dec_names:
+    param = 'dec'
+  elif param in phase_names:
+    param = 'phase'
+
+  try:
+    label = labels[param]
+  except KeyError:
+    # Use simple string if no formated label is available for param
+    label = param
+
+  return label
+
+#===============================================================================
 # Functions used to parse injection structure.
 #===============================================================================
 def _inj_m1(inj):
@@ -960,9 +1042,11 @@ class Posterior(object):
         """
         Append posteriors pos1,pos2,...=func(post_names)
         """
+        # deepcopy 1D posteriors to ensure mapping function doesn't modify the originals
+        import copy
         #1D input
         if isinstance(post_names, str):
-            old_post = self[post_names]
+            old_post = copy.deepcopy(self[post_names])
             old_inj  = old_post.injval
             old_trigs  = old_post.trigvals
             if old_inj:
@@ -984,7 +1068,7 @@ class Posterior(object):
                 self.append(new_post)
         #MultiD input
         else:
-            old_posts = [self[post_name] for post_name in post_names]
+            old_posts = [copy.deepcopy(self[post_name]) for post_name in post_names]
             old_injs = [post.injval for post in old_posts]
             old_trigs = [post.trigvals for post in old_posts]
             samps = func(*[post.samples for post in old_posts])
@@ -1236,6 +1320,9 @@ class Posterior(object):
         posterior samples must have a column named 'chain' so that the
         different chains can be separated.
         """
+        from numpy import seterr as np_seterr
+        np_seterr(all='raise')
+
         if "chain" in self.names:
             chains=np.unique(self["chain"].samples)
             chain_index=self.names.index("chain")
@@ -1250,7 +1337,11 @@ class Posterior(object):
             sigmaHat2=W + BoverN
             m=len(chainData)
             VHat=sigmaHat2 + BoverN/m
-            R = VHat/W
+            try:
+              R = VHat/W
+            except:
+              print "Error when computer Gelman-Rubin R statistic for %s.  This may be a fixed parameter"%pname
+              R = np.nan
             return R
         else:
             raise RuntimeError('could not find necessary column header "chain" in posterior samples')
@@ -2695,6 +2786,14 @@ def component_momentum(m, a, theta, phi):
 #
 #
 
+def symm_tidal_params(lambda1,lambda2,eta):
+    """
+    Calculate best tidal parameters
+    """
+    lam_tilde = (1./52.)*((1.+7.*eta-31.*eta*eta)*(lambda1+lambda2) + np.sqrt(1.-4.*eta)*(1.+9.*eta-11.*eta*eta)*(lambda1-lambda2))
+    dlam_tilde = (1.-4.*eta)*(1.-32132.*eta/2195.+43784.*eta*eta/2195.)*(lambda1+lambda2) + np.sqrt(1.-4.*eta)*(1.-36522.*eta/2195.+103658.*eta*eta/2195.-32084.*eta*eta*eta/2195.)*(lambda1-lambda2)
+    return lam_tilde, dlam_tilde
+
 def spin_angles(f_lower,mc,eta,incl,a1,theta1,phi1,a2=None,theta2=None,phi2=None):
     """
     Calculate physical spin angles.
@@ -2716,6 +2815,41 @@ def spin_angles(f_lower,mc,eta,incl,a1,theta1,phi1,a2=None,theta2=None,phi2=None
     thetas = array_polar_ang(J)
     beta  = array_ang_sep(J,L)
     return tilt1, tilt2, thetas, beta
+#
+#
+
+def physical2radiationFrame(theta_jn, phi_jl, tilt1, tilt2, phi12, a1, a2, m1, m2, fref):
+    """
+    Wrapper function for SimInspiralTransformPrecessingInitialConditions().
+    Vectorizes function for use in append_mapping() methods of the posterior class.
+    """
+    import lalsimulation as lalsim
+    transformFunc = lalsim.SimInspiralTransformPrecessingInitialConditions
+
+    # Convert component masses to SI units
+    m1 *= lalsim.lal.LAL_MSUN_SI
+    m2 *= lalsim.lal.LAL_MSUN_SI
+
+    # Flatten arrays
+    ins = [theta_jn, phi_jl, tilt1, tilt2, phi12, a1, a2, m1, m2, fref]
+    try:
+      for p,param in enumerate(ins):
+        ins[p] = param.flatten()
+    except:
+      pass
+
+    results = np.array([transformFunc(t_jn, p_jl, t1, t2, p12, a1, a2, m1, m2, f) for (t_jn, p_jl, t1, t2, p12, a1, a2, m1, m2, f) in zip(*ins)])
+
+    iota = results[:,0].reshape(-1,1)
+    spin1x = results[:,1].reshape(-1,1)
+    spin1y = results[:,2].reshape(-1,1)
+    spin1z = results[:,3].reshape(-1,1)
+    spin2x = results[:,4].reshape(-1,1)
+    spin2y = results[:,5].reshape(-1,1)
+    spin2z = results[:,6].reshape(-1,1)
+    a1,theta1,phi1 = cart2sph(spin1x,spin1y,spin1z)
+    a2,theta2,phi2 = cart2sph(spin2x,spin2y,spin2z)
+    return iota, theta1, phi1, theta2, phi2
 #
 #
 
@@ -2819,7 +2953,8 @@ def plot_one_param_pdf(posterior,plot1DParams,analyticPDF=None,analyticCDF=None,
 
     if injpar is not None:
         if min(pos_samps)<injpar and max(pos_samps)>injpar:
-            plt.axvline(injpar, color='b', linestyle='-.')
+
+            plt.axvline(injpar, color='r', linestyle='-.', linewidth=4)
 
             #rkde=gkde.integrate_box_1d(min(pos[:,i]),getinjpar(injection,i))
             #print "r of injected value of %s (kde) = %f"%(param,rkde)
@@ -2843,7 +2978,7 @@ def plot_one_param_pdf(posterior,plot1DParams,analyticPDF=None,analyticCDF=None,
                 plt.axvline(trigval, color=color, linestyle='-.')
     #
     plt.grid()
-    plt.xlabel(ax1_name)
+    plt.xlabel(plot_label(ax1_name))
     plt.ylabel('Probability Density')
 
     # For RA and dec set custom labels and for RA reverse
@@ -3088,8 +3223,8 @@ def plot_two_param_kde(posterior,plot2DkdeParams):
             else: color = 'c'
             plt.plot([par_trigvalues1[IFO]],[par_trigvalues2[IFO]],color=color,marker='o',scalex=False,scaley=False)
 
-    plt.xlabel(par1_name)
-    plt.ylabel(par2_name)
+    plt.xlabel(plot_label(par1_name))
+    plt.ylabel(plot_label(par2_name))
     plt.grid()
 
     # For RA and dec set custom labels and for RA reverse
@@ -3193,17 +3328,18 @@ def plot_two_param_greedy_bins_contourf(posteriors_by_name,greedy2Params,confide
         CSlst.append(CS)
     
     plt.title("%s-%s confidence contours (greedy binning)"%(par1_name,par2_name)) # add a title
-    plt.xlabel(par2_name)
-    plt.ylabel(par1_name)
+    plt.xlabel(plot_label(par2_name))
+    plt.ylabel(plot_label(par1_name))
     if len(name_list)!=len(CSlst):
         raise RuntimeError("Error number of contour objects does not equal number of names! Use only *one* contour from each set to associate a name.")
     full_name_list=[]
     dummy_lines=[]
     for plot_name in name_list:
         full_name_list.append(plot_name)
-        for cl in confidence_levels+[1]:
-            dummy_lines.append(mpl_lines.Line2D(np.array([0.,1.]),np.array([0.,1.]),color='k'))
-            full_name_list.append('%s%%'%str(int(cl*100)))
+        if len(confidence_levels)>1:
+            for cl in confidence_levels+[1]:
+                dummy_lines.append(mpl_lines.Line2D(np.array([0.,1.]),np.array([0.,1.]),color='k'))
+                full_name_list.append('%s%%'%str(int(cl*100)))
         fig_actor_lst = [cs.collections[0] for cs in CSlst]
         fig_actor_lst.extend(dummy_lines)
     if legend is not None: twodcontour_legend=plt.figlegend(tuple(fig_actor_lst), tuple(full_name_list), loc='right')
@@ -3404,8 +3540,8 @@ def plot_two_param_greedy_bins_contour(posteriors_by_name,greedy2Params,confiden
     	axes.xaxis.set_major_locator(locatorX)
 
     #plt.title("%s-%s confidence contours (greedy binning)"%(par1_name,par2_name)) # add a title
-    plt.xlabel(ax2_name)
-    plt.ylabel(ax1_name)
+    plt.xlabel(plot_label(ax2_name))
+    plt.ylabel(plot_label(ax1_name))
 
     if len(name_list)!=len(CSlst):
         raise RuntimeError("Error number of contour objects does not equal number of names! Use only *one* contour from each set to associate a name.")
@@ -3414,9 +3550,10 @@ def plot_two_param_greedy_bins_contour(posteriors_by_name,greedy2Params,confiden
 
     for plot_name in name_list:
         full_name_list.append(plot_name)
-    for ls_,cl in zip(line_styles[0:len(confidence_levels)],confidence_levels):
-        dummy_lines.append(mpl_lines.Line2D(np.array([0.,1.]),np.array([0.,1.]),ls=ls_,color='k'))
-        full_name_list.append('%s%%'%str(int(cl*100)))
+    if len(confidence_levels)>1:
+      for ls_,cl in zip(line_styles[0:len(confidence_levels)],confidence_levels):
+          dummy_lines.append(mpl_lines.Line2D(np.array([0.,1.]),np.array([0.,1.]),ls=ls_,color='k'))
+          full_name_list.append('%s%%'%str(int(cl*100)))
 
     fig_actor_lst = [cs.collections[0] for cs in CSlst]
 
@@ -3527,8 +3664,8 @@ def plot_two_param_greedy_bins_hist(posterior,greedy2Params,confidence_levels):
     myfig.add_axes(axes)
     
     #plt.clf()
-    plt.xlabel(ax2_name)
-    plt.ylabel(ax1_name)
+    plt.xlabel(plot_label(ax2_name))
+    plt.ylabel(plot_label(ax1_name))
 
     #bins=(par1pos_Nbins,par2pos_Nbins)
     bins=(50,50) # Matches plot_one_param_pdf
@@ -4672,3 +4809,6 @@ def confidence_interval_uncertainty(cl, cl_bounds, posteriors):
     quant_uncertainty = float(_cl_count(largest_cl_bound, all_samples) - _cl_count(smallest_cl_bound, all_samples))/float(N)
 
     return (relative_change, frac_uncertainty, quant_uncertainty)
+
+
+

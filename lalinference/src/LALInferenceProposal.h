@@ -172,6 +172,9 @@ void LALInferenceOrbitalPhaseJump(LALInferenceRunState *runState, LALInferenceVa
 /** Polarization-phase exact degeneracy. */
 void LALInferencePolarizationPhaseJump(LALInferenceRunState *runState, LALInferenceVariables *proposedParams);
 
+/** Polarization-phase correlation jump */
+void LALInferenceCorrPolarizationPhaseJump(LALInferenceRunState *runState, LALInferenceVariables *proposedParams);
+
 /** Choose a random covariance matrix eigenvector to jump along. */
 void LALInferenceCovarianceEigenvectorJump(LALInferenceRunState *runState, LALInferenceVariables *proposedParams);
 
@@ -211,9 +214,13 @@ void LALInferenceDrawApproxPrior(LALInferenceRunState *runState, LALInferenceVar
     different locations for detectors. */
 void LALInferenceSkyReflectDetPlane(LALInferenceRunState *runState, LALInferenceVariables *proposedParams);
 
+void LALInferenceSkyRingProposal(LALInferenceRunState *runState, LALInferenceVariables *proposedParams);;
+
 /* Nested sampling wrappers. */
 void NSFillMCMCVariables(LALInferenceVariables *proposedParams, LALInferenceVariables *priorArgs);
 void NSWrapMCMCLALProposal(LALInferenceRunState *runState, LALInferenceVariables *proposedParams);
+
+void LALInferencePSDFitJump(LALInferenceRunState *runState, LALInferenceVariables *proposedParams);
 
 /** Rotate each spin by random angles about L. */
 void LALInferenceRotateSpins(LALInferenceRunState *runState, LALInferenceVariables *proposedParams);

@@ -203,7 +203,7 @@ def compare_plots_one_param_pdf(list_of_pos_by_name,param):
             plt.plot(ind,np.transpose(kdepdf),label=name)
         plt.grid()
         plt.legend()
-        plt.xlabel(param)
+        plt.xlabel(bppu.plot_label(param))
         plt.xlim(min_pos,max_pos)
         plt.ylabel('Probability Density')
         #plt.tight_layout()
@@ -292,7 +292,7 @@ def compare_plots_one_param_line_hist(list_of_pos_by_name,param,cl,color_by_name
     oned_legend=plt.figlegend(patch_list,pos_names,'right')
     for text in oned_legend.get_texts():
         text.set_fontsize('small')
-    plt.xlabel(param)
+    plt.xlabel(bppu.plot_label(param))
     plt.ylabel('Probability density')
     plt.draw()
     #plt.tight_layout()
@@ -402,7 +402,7 @@ def compare_plots_one_param_line_hist_cum(list_of_pos_by_name,param,cl,color_by_
     oned_legend=plt.figlegend(patch_list,pos_names,'right')
     for text in oned_legend.get_texts():
         text.set_fontsize('small')
-    plt.xlabel(param)
+    plt.xlabel(bppu.plot_label(param))
     plt.ylabel('Probability density')
     plt.draw()
     #plt.tight_layout()
@@ -491,6 +491,7 @@ def compare_bayes(outdir,names_and_pos_folders,injection_path,eventnum,username,
         test_and_switch_param(common_output_table_header,'chirpmass','mchirp')
         test_and_switch_param(common_output_table_header,'mc','mchirp')
         test_and_switch_param(common_output_table_header,'asym_massratio','q')
+        test_and_switch_param(common_output_table_header,'massratio', 'eta')
         test_and_switch_param(common_output_table_header,'RA','ra')
         test_and_switch_param(common_output_table_header,'rightascension','ra')
         test_and_switch_param(common_output_table_header,'declination','dec')
@@ -805,7 +806,7 @@ def output_confidence_levels_tex(clevels,outpath):
         for name,levels in clevels_by_name.items():
             outfile.write(name)
             for param,low,med,high in levels:
-                outfile.write(r' & $%.3g^{%.3g}_{%.3g}$ '%(med,high,low))
+                outfile.write(r' & $%0.3g^{%0.3g}_{%0.3g}$ '%(med,high,low))
             outfile.write('\\\\ \n')
 
         outfile.write('\\hline \n \\end{tabular}')
