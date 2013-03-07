@@ -1076,6 +1076,7 @@ LALInferenceIFOData *thisData=IFOdata;
      int a=0;
      injF = XLALCreateCOMPLEX16FrequencySeries("", &epochtmp, 0.0, 0.0, &lalDimensionlessUnit, 1);
      injnoi=XLALCreateCOMPLEX16FrequencySeries("", &epochtmp, 0.0, 0.0, &lalDimensionlessUnit, 1);
+
      while( !feof(fp) ){
 	injF = XLALResizeCOMPLEX16FrequencySeries( injF, 0, i+1);
        
@@ -1123,7 +1124,7 @@ LALInferenceIFOData *thisData=IFOdata;
 	}
         
       
-    FILE *noise=fopen("noisefile.dat", "w");
+   // FILE *noise=fopen("noisefile.dat", "w");
      
 		for(j=0;j<injF->data->length;j++){
 			if(ph==1){
@@ -1133,8 +1134,10 @@ LALInferenceIFOData *thisData=IFOdata;
 			//re = cos(0 * f);
 			im = - sin(twopit * f); 
 			//im = - sin(0 * f);
-			injnoi->data->data[j].re+=injF->data->data[j].re*scale_factor*FplusScaled*re;
-			injnoi->data->data[j].im+=injF->data->data[j].im*scale_factor*FplusScaled*im;
+			//injnoi->data->data[j].re+=injF->data->data[j].re*scale_factor*FplusScaled*re;
+			thisData->freqData->data->data[j].re+=injF->data->data[j].re*scale_factor*FplusScaled*re;			
+			//injnoi->data->data[j].im+=injF->data->data[j].im*scale_factor*FplusScaled*im;
+			thisData->freqData->data->data[j].im+=injF->data->data[j].im*scale_factor*FplusScaled*im;
 			}
 			else if(ph==0){
 			  f = ((double) i) * deltaF;
@@ -1144,9 +1147,11 @@ LALInferenceIFOData *thisData=IFOdata;
 			im = - sin(twopit * f);
 			REAL8 abswave=0.0;
 			REAL8 absnoise=0.0;
-			fprintf(noise, "%lg %lg \n",injnoi->data->data[j].re,injnoi->data->data[j].im  );
-			absnoise=sqrt(injnoi->data->data[j].re*injnoi->data->data[j].re + 
-			injnoi->data->data[j].im*injnoi->data->data[j].im);
+			//fprintf(noise, "%lg %lg \n",injnoi->data->data[j].re,injnoi->data->data[j].im  );
+			//absnoise=sqrt(injnoi->data->data[j].re*injnoi->data->data[j].re + 
+			//injnoi->data->data[j].im*injnoi->data->data[j].im);
+			absnoise=sqrt(thisData->freqData->data->data[j].re*thisData->freqData->data->data[j].re + 
+			thisData->freqData->data->data[j].im*thisData->freqData->data->data[j].im);
 			abswave=sqrt(injF->data->data[j].re*injF->data->data[j].re+injF->data->data[j].im*injF->data->data[j].im);
 			thisData->freqData->data->data[j].re=absnoise+(abswave*scale_factor*FplusScaled*sqrt(re*re +im*im));
 			thisData->freqData->data->data[j].im=0;
@@ -1156,7 +1161,7 @@ LALInferenceIFOData *thisData=IFOdata;
 			}
 		
 		fclose(fp);
-		fclose(noise);
+		//fclose(noise);
 		fclose(noi);
 		fprintf(stdout,"Injected SNR in detector %s = %g\n",thisData->detector->frDetector.name,thisData->SNR);
 		
