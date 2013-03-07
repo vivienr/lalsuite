@@ -1125,6 +1125,8 @@ LALInferenceIFOData *thisData=IFOdata;
         
       
    // FILE *noise=fopen("noisefile.dat", "w");
+
+
      
 		for(j=0;j<injF->data->length;j++){
 			if(ph==1){
