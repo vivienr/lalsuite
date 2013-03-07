@@ -147,7 +147,5 @@ REAL8 LALInferenceSMEENullLogLikelihood(LALInferenceIFOData *data);
  *        i.e., to be a set of vectors corresponding to        
  *        frequencies)                                         
  ***************************************************************/
-REAL8 LALInferenceFreqDomainStudentTLogLikelihood(LALInferenceVariables *currentParams, LALInferenceIFOData *data,
-                                      LALInferenceTemplateFunction *template);
 
 #endif
