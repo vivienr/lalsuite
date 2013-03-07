@@ -1013,8 +1013,8 @@ void initialiseProposal( LALInferenceRunState *runState ){
     XLAL_ERROR_VOID(XLAL_EFAILED);
   }
  
-  runState->proposalStats = NULL;
-  
+  //runState->proposalStats = NULL;
+  if(!runState->proposalStats) runState->proposalStats = calloc(1,sizeof(LALInferenceVariables));
   /* add proposals */
   if( covfrac ){
     LALInferenceAddProposalToCycle( runState, covarianceEigenvectorJumpName,
