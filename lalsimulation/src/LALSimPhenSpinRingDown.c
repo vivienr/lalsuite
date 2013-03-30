@@ -25,9 +25,13 @@
 #include <lal/LALStdlib.h>
 #include <lal/LALConstants.h>
 
-#include "LALSimIMRPSpinInspiralRD.h"
+#ifdef __GNUC__
+#define UNUSED __attribute__ ((unused))
+#else
+#define UNUSED
+#endif
 
-int XLALSimIMRPhenSpinGenerateQNMFreq(COMPLEX16Vector *modefreqs,
+static int UNUSED XLALSimIMRPhenSpinGenerateQNMFreq(COMPLEX16Vector *modefreqs,
 				      UINT4 l,
 				      INT4  m,
 				      REAL8 finalMass,

@@ -25,6 +25,7 @@
 #include <lal/TimeSeries.h>
 #include "check_series_macros.h"
 #include "LALSimInspiralPNCoefficients.c"
+#include "LALSimInspiralSpinTaylorT4.h"
 
 /*
 #ifdef __GNUC__
@@ -34,23 +35,6 @@
 #endif
 */
 
-/* use error codes above 1024 to avoid conflicts with GSL */
-#define LALSIMINSPIRAL_ST4_TEST_ENERGY                  1025
-#define LALSIMINSPIRAL_ST4_TEST_OMEGADOT                1026
-#define LALSIMINSPIRAL_ST4_TEST_COORDINATE              1027
-#define LALSIMINSPIRAL_ST4_TEST_OMEGANAN                1028
-#define LALSIMINSPIRAL_ST4_TEST_FREQBOUND               1029
-#define LALSIMINSPIRAL_ST4_DERIVATIVE_OMEGANONPOS       1030
-
-/* Number of variables used for precessing waveforms */
-#define LAL_NUM_ST4_VARIABLES 14
-/* absolute and relative tolerance for adaptive Runge-Kutta ODE integrator */
-/* 1.e-06 is too large for end of 1.4--1.4 M_sun BNS inspiral */
-/* (phase difference at end will be ~10% of GW cycle). */
-/* 1.e-12 is used so last data point isn't nan for 6PN tidal, */
-/* since larger values probably cause larger step sizes. */
-#define LAL_ST4_ABSOLUTE_TOLERANCE 1.e-12
-#define LAL_ST4_RELATIVE_TOLERANCE 1.e-12
 
 /* Declarations of static functions - defined below */
 static int XLALSimInspiralSpinTaylorT4StoppingTest(double t, 

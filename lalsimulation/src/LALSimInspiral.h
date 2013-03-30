@@ -2159,53 +2159,6 @@ int XLALSimInspiralTaylorF2RedSpinComputeNoiseMoments(
     REAL8 df
 );
 
-/**
- * Struct containing all of the non-dynamical coefficients needed
- * to evolve a spinning, precessing binary and produce a waveform.
- */
-typedef struct tagLALSimInspiralSpinTaylorT4Coeffs
-{
-  REAL8 M; 			   // total mass in seconds
-  REAL8 eta; 			   // symmetric mass ratio
-  REAL8 m1Bym2;                      // ratio m1/m2
-  REAL8 m1ByM;                       // ratio m1/M
-  REAL8 m2ByM;                       // ratio m2/M
-  REAL8 dmByM;                       // ratio dm/M
-  REAL8 wdotnewt;                    //leading order coefficient of wdot = \f$\dot{\omega}\f$
-  REAL8 wdotcoeff[LAL_MAX_PN_ORDER]; // coeffs. of PN corrections to wdot
-  REAL8 wdotlogcoeff; 		   // coefficient of log term in wdot
-  REAL8 wdotSO15s1, wdotSO15s2; 	   // non-dynamical 1.5PN SO corrections
-  REAL8 wdotSS2,wdotSSO2;
-  REAL8 wdotSSselfS1,wdotSSselfS2;      // non-dynamical 2PN self-spin correction
-  REAL8 wdotSSselfS1L,wdotSSselfS2L;    // non-dynamical 2PN self-spin correction
-  REAL8 wdotQM2S1,wdotQM2S1L;
-  REAL8 wdotQM2S2,wdotQM2S2L;
-  REAL8 wdotSO25s1,wdotSO25s2; 	   // non-dynamical 2.5PN SO corrections
-  REAL8 wdotSO3s1,wdotSO3s2; 	   // non-dynamical 2.5PN SO corrections
-  REAL8 Enewt;                       // coeffs. of PN corrections to energy
-  REAL8 Ecoeff[LAL_MAX_PN_ORDER];    // coeffs. of PN corrections to energy
-  REAL8 ESO15s1, ESO15s2; 	   // non-dynamical 1.5PN SO corrections
-  REAL8 ESS2,ESSO2; 		   // non-dynamical 2PN SS correction
-  REAL8 ESelfSSO2s1,ESelfSSO2s2; 	   // non-dynamical 2PN self-spin correction
-  REAL8 ESelfSS2s1,ESelfSS2s2; 	           // non-dynamical 2PN self-spin correction
-  REAL8 ESO25s1, ESO25s2; 	   // non-dynamical 2.5PN SO corrections 
-  REAL8 LNhatSO15s1, LNhatSO15s2;    // non-dynamical 1.5PN SO corrections
-  REAL8 LNhatSS2; 		   // non-dynamical 2PN SS correction
-  REAL8 S1dot15,S2dot15;             // non-dynamical leading SO term in S1,2dot
-  REAL8 S1dot25,S2dot25;             // non-dynamical Next to leading SO correction to S1,2dot
-  REAL8 wdottidal5pn;		   // leading order tidal correction 
-  REAL8 wdottidal6pn;	           // next to leading order tidal correction
-  REAL8 Etidal5pn;	           // leading order tidal correction to energy
-  REAL8 Etidal6pn;                   // next to leading order tidal correction to energy
-  REAL8 EQM2S1; ///< non-dynamical S1^2 2PN quadrupole-monopole correction
-  REAL8 EQM2S1L;///< non-dynamical (S1.L)^2 2PN quadrupole-monopole correction
-  REAL8 EQM2S2; ///< non-dynamical S2^2 2PN quadrupole-monopole correction
-  REAL8 EQM2S2L;///< non-dynamical (S2.L)^2 2PN quadrupole-monopole correction
-  REAL8 fStart; 			   // starting GW frequency of integration
-  REAL8 fEnd; 			   // ending GW frequency of integration
-  REAL8 dt;                          // sampling in seconds
-} LALSimInspiralSpinTaylorT4Coeffs;
-
 /* compute theta0, theta3, theta3s from mc, eta, chi */
 void XLALSimInspiralTaylorF2RedSpinChirpTimesFromMchirpEtaChi(
     double *theta0, /**< dimensionless parameter related to the chirp time by theta0 = 2 pi fLow tau0 */

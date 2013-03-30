@@ -35,7 +35,8 @@
 #include <lal/LALSimInspiral.h>
 #include <lal/Date.h>
 
-#include "LALSimIMRPSpinInspiralRD.h"
+#include "LALSimInspiralSpinTaylorT4.h"
+#include "LALSimPhenSpinRingDown.c"
 #include "LALSimInspiralPNCoefficients.c"
 
 /* Minimum integration length */
@@ -534,27 +535,27 @@ static int XLALSimSpinInspiralTest(UNUSED double t, const double values[], doubl
     if (energy>0.) XLALPrintWarning("*** Test: LALSimIMRPSpinInspiral WARNING **: Bounding energy >ve!\n");
     else 
       XLALPrintWarning("*** Test: LALSimIMRPSpinInspiral WARNING **:  Energy increases dE %12.6e dE*dt %12.6e 1pMEn %12.4e M: %12.4e, eta: %12.4e  om %12.6e \n", denergy, denergy*params->dt/params->M, - 0.001*energy, params->M/LAL_MTSUN_SI, params->eta, omega);
-    return LALSIMINSPIRAL_PHENSPIN_TEST_ENERGY;
+    return LALSIMINSPIRAL_ST4_TEST_ENERGY;
   }
   else if (omega < 0.0) {
     XLALPrintWarning("** LALSimIMRPSpinInspiral WARNING **: omega < 0  M: %12.4e, eta: %12.4e  om %12.6e\n",params->M, params->eta, omega);
-    return LALSIMINSPIRAL_PHENSPIN_TEST_OMEGANONPOS;
+    return LALSIMINSPIRAL_ST4_DERIVATIVE_OMEGANONPOS;
   }
   else if (dvalues[1] < 0.0) {
     /* omegadot < 0 */
-    return LALSIMINSPIRAL_PHENSPIN_TEST_OMEGADOT;
+    return LALSIMINSPIRAL_ST4_TEST_OMEGADOT;
   }
   else if (isnan(omega)) {
     /* omega is nan */
-    return LALSIMINSPIRAL_PHENSPIN_TEST_OMEGANAN;
+    return LALSIMINSPIRAL_ST4_TEST_OMEGANAN;
   } 
   else if ( params->fEnd > 0. && params->fStart > params->fEnd && omega < params->fEnd) {
     /* freq. below bound in backward integration */
-    return LALSIMINSPIRAL_PHENSPIN_TEST_FREQBOUND;
+    return LALSIMINSPIRAL_ST4_TEST_FREQBOUND;
   }
   else if ( params->fEnd > params->fStart && omega > params->fEnd) {
     /* freq. above bound in forward integration */
-    return LALSIMINSPIRAL_PHENSPIN_TEST_FREQBOUND;
+    return LALSIMINSPIRAL_ST4_TEST_FREQBOUND;
   }
   else
     return GSL_SUCCESS;
@@ -581,30 +582,30 @@ static int XLALSimIMRPhenSpinTest(UNUSED double t, const double values[], double
     if (energy>0.) XLALPrintWarning("*** Test: LALSimIMRPSpinInspiralRD WARNING **: Bounding energy >ve!\n");
     else 
       XLALPrintWarning("*** Test: LALSimIMRPSpinInspiralRD WARNING **:  Energy increases dE %12.6e dE*dt %12.6e 1pMEn %12.4e M: %12.4e, eta: %12.4e  om %12.6e \n", denergy, denergy*params->dt/params->M, - 0.001*energy, params->M/LAL_MTSUN_SI, params->eta, omega);
-    return LALSIMINSPIRAL_PHENSPIN_TEST_ENERGY;
+    return LALSIMINSPIRAL_ST4_TEST_ENERGY;
   }
   else if (omega < 0.0) {
     XLALPrintWarning("** LALSimIMRPSpinInspiralRD WARNING **: omega < 0  M: %12.4e, eta: %12.4e  om %12.6e\n",params->M, params->eta, omega);
-    return LALSIMINSPIRAL_PHENSPIN_TEST_OMEGANONPOS;
+    return LALSIMINSPIRAL_ST4_DERIVATIVE_OMEGANONPOS;
   }
   else if (dvalues[1] < 0.0) {
     /* omegadot < 0 */
-    return LALSIMINSPIRAL_PHENSPIN_TEST_OMEGADOT;
+    return LALSIMINSPIRAL_ST4_TEST_OMEGADOT;
   }
   else if (isnan(omega)) {
     /* omega is nan */
-    return LALSIMINSPIRAL_PHENSPIN_TEST_OMEGANAN;
+    return LALSIMINSPIRAL_ST4_TEST_OMEGANAN;
   } 
   else if ( params->fEnd > 0. && params->fStart > params->fEnd && omega < params->fEnd) {
     /* freq. below bound in backward integration */
-    return LALSIMINSPIRAL_PHENSPIN_TEST_FREQBOUND;
+    return LALSIMINSPIRAL_ST4_TEST_FREQBOUND;
   }
   else if ( params->fEnd > params->fStart && omega > params->fEnd) {
     /* freq. above bound in forward integration */
-    return LALSIMINSPIRAL_PHENSPIN_TEST_FREQBOUND;
+    return LALSIMINSPIRAL_ST4_TEST_FREQBOUND;
   }
   else if (omega>omegaMatch) {
-    return LALSIMINSPIRAL_PHENSPIN_TEST_OMEGAMATCH;
+    return LALSIMINSPIRAL_PST4_TEST_OMEGAMATCH;
   }
   else
     return GSL_SUCCESS;
@@ -800,9 +801,9 @@ static int XLALSimInspiralSpinTaylorT4Engine(REAL8TimeSeries **omega,      /**< 
 
   /* allocate the integrator */
   if (approx == PhenSpinTaylor)
-    integrator = XLALAdaptiveRungeKutta4Init(LAL_NUM_PST4_VARIABLES,XLALSpinInspiralDerivatives,XLALSimSpinInspiralTest,LAL_PST4_ABSOLUTE_TOLERANCE,LAL_PST4_RELATIVE_TOLERANCE);
+    integrator = XLALAdaptiveRungeKutta4Init(LAL_NUM_PST4_VARIABLES,XLALSpinInspiralDerivatives,XLALSimSpinInspiralTest,LAL_ST4_ABSOLUTE_TOLERANCE,LAL_ST4_RELATIVE_TOLERANCE);
   else
-    integrator = XLALAdaptiveRungeKutta4Init(LAL_NUM_PST4_VARIABLES,XLALSpinInspiralDerivatives,XLALSimIMRPhenSpinTest,LAL_PST4_ABSOLUTE_TOLERANCE,LAL_PST4_RELATIVE_TOLERANCE);
+    integrator = XLALAdaptiveRungeKutta4Init(LAL_NUM_PST4_VARIABLES,XLALSpinInspiralDerivatives,XLALSimIMRPhenSpinTest,LAL_ST4_ABSOLUTE_TOLERANCE,LAL_ST4_RELATIVE_TOLERANCE);
 
   if (!integrator) {
     XLALPrintError("XLAL Error - %s: Cannot allocate integrator\n", __func__);
@@ -1285,9 +1286,9 @@ int XLALSimSpinInspiralGenerator(REAL8TimeSeries **hPlus,               /**< +-p
 
     int intLen1=Phi1->data->length;
     /* report on abnormal termination*/
-    if ( (errcodeInt != LALSIMINSPIRAL_PHENSPIN_TEST_FREQBOUND) ) {
+    if ( (errcodeInt != LALSIMINSPIRAL_ST4_TEST_FREQBOUND ) ) {
       XLALPrintError("** LALSimIMRPSpinInspiralRD WARNING **: integration terminated with code %d.\n",errcode);
-      XLALPrintError("   1025: Energy increases\n  1026: Omegadot -ve\n  1027: Freqbound\n 1028: Omega NAN\n  1031: Omega -ve\n");
+      XLALPrintError("   1025: Energy increases\n  1026: Omegadot -ve\n  1028: Omega NAN\n  1029: Freqbound\n  1030: Omega -ve\n");
       XLALPrintError("  Waveform parameters were m1 = %14.6e, m2 = %14.6e, inc = %10.6f,  fref %10.4f Hz\n", m1, m2, iota, f_ref);
       XLALPrintError("                           S1 = (%10.6f,%10.6f,%10.6f)\n", s1x, s1y, s1z);
       XLALPrintError("                           S2 = (%10.6f,%10.6f,%10.6f)\n", s2x, s2y, s2z);
@@ -1332,7 +1333,7 @@ int XLALSimSpinInspiralGenerator(REAL8TimeSeries **hPlus,               /**< +-p
   }
 
   /* report on abnormal termination*/
-  if ( (errcodeInt !=  LALSIMINSPIRAL_PHENSPIN_TEST_ENERGY) ) {
+  if ( (errcodeInt !=  LALSIMINSPIRAL_ST4_TEST_ENERGY) ) {
     XLALPrintWarning("** LALSimIMRPSpinInspiralRD WARNING **: integration terminated with code %d.\n",errcode);
     XLALPrintWarning("  Waveform parameters were m1 = %14.6e, m2 = %14.6e, inc = %10.6f,\n", m1, m2, iota);
     XLALPrintWarning("                           S1 = (%10.6f,%10.6f,%10.6f)\n", s1x, s1y, s1z);
@@ -1661,8 +1662,12 @@ static INT4 XLALSimIMRHybridRingdownWave(
   gsl_vector_set(hderivs, 7, inspwave1->data[6]);
   gsl_vector_set(hderivs, 7 + nmodes, inspwave2->data[6]);
 
+  printf(" mr0 %12.4e  mr1 %12.4e  rt %12.4e  m %12.4e\n",matchrange->data[0],matchrange->data[1],rt,m);
+
 #if DEBUG_RD
-  for (i=0;i<nmodes;i++) printf(" inspw1 %d  %12.4e  %12.4e\n",i,inspwave1->data[i],inspwave2->data[i]);
+  FILE *fpippo=fopen("pipporac2.dat","w");
+  for (i=0;i<6;i++) fprintf(fpippo," inspw1 %d %14.6e  %12.4e  %12.4e  %12.4e  %12.4e\n",i,-((double)i)*rt+matchrange->data[1]*m,inspwave1->data[i],inspwave2->data[i],inspwave1->data[i+6]*1.e-3,inspwave2->data[i+6]*1.e-3);
+  fclose(fpippo);
 #endif
   
   /* Complete the definition for the rest half of A */
@@ -1900,9 +1905,9 @@ int XLALSimIMRPhenSpinInspiralRDGenerator(REAL8TimeSeries **hPlus,              
 
     errcode=XLALSimInspiralSpinTaylorT4Engine(&omega1,&Phi1,&LNhatx1,&LNhaty1,&LNhatz1,&S1x1,&S1y1,&S1z1,&S2x1,&S2y1,&S2z1,&Energy1,yinit,lengthH,PhenSpinTaylorRD,&params);
     /* report on abnormal termination*/
-    if ( (errcode != LALSIMINSPIRAL_PHENSPIN_TEST_FREQBOUND) ) {
+    if ( (errcode != LALSIMINSPIRAL_ST4_TEST_FREQBOUND ) ) {
       XLALPrintError("** LALSimIMRPSpinInspiralRD WARNING **: integration terminated with code %d.\n",errcode);
-      XLALPrintError("   1025: Energy increases\n  1026: Omegadot -ve\n 1028: Omega NAN\n 1029: OMega > OmegaMatch\n 1031: Omega -ve\n");
+      XLALPrintError("   1025: Energy increases\n  1026: Omegadot -ve\n  1027: Freqbound\n 1028: Omega NAN\n  1030: Omega -ve\n  1031: Omega > OmegaMatch\n");
       XLALPrintError("  Waveform parameters were m1 = %14.6e, m2 = %14.6e, inc = %10.6f,  fref %10.4f Hz\n", mass1, mass2, iota, f_ref);
       XLALPrintError("                           S1 = (%10.6f,%10.6f,%10.6f)\n", s1x, s1y, s1z);
       XLALPrintError("                           S2 = (%10.6f,%10.6f,%10.6f)\n", s2x, s2y, s2z);
@@ -1949,9 +1954,9 @@ int XLALSimIMRPhenSpinInspiralRDGenerator(REAL8TimeSeries **hPlus,              
   } /* End of int forward + integration backward*/
 
   /* report on abnormal termination*/
-  if ( (errcodeInt != LALSIMINSPIRAL_PHENSPIN_TEST_OMEGAMATCH) ) {
+  if ( (errcodeInt != LALSIMINSPIRAL_PST4_TEST_OMEGAMATCH) ) {
       XLALPrintError("** LALSimIMRPSpinInspiralRD WARNING **: integration terminated with code %d.\n",errcode);
-      XLALPrintError("   1025: Energy increases\n  1026: Omegadot -ve\n  1027: Freqbound\n 1028: Omega NAN\n  1031: Omega -ve\n");
+      XLALPrintError("   1025: Energy increases\n  1026: Omegadot -ve\n  1027: Freqbound\n 1028: Omega NAN\n  1030: Omega -ve\n");
       XLALPrintError("  Waveform parameters were m1 = %14.6e, m2 = %14.6e, inc = %10.6f,\n", m1, m2, iota);
       XLALPrintError("                           S1 = (%10.6f,%10.6f,%10.6f)\n", s1x, s1y, s1z);
       XLALPrintError("                           S2 = (%10.6f,%10.6f,%10.6f)\n", s2x, s2y, s2z);
@@ -2004,7 +2009,7 @@ int XLALSimIMRPhenSpinInspiralRDGenerator(REAL8TimeSeries **hPlus,              
     for (kdx=0;kdx<9;kdx++) hL4->data->data[9*idx+kdx]=hL4tmp->data[kdx]*amp44ini*v2*v2;
   }
 
-  if (errcodeInt==LALSIMINSPIRAL_PHENSPIN_TEST_OMEGAMATCH) {
+  if (errcodeInt==LALSIMINSPIRAL_PST4_TEST_OMEGAMATCH) {
     REAL8 LNhS1,LNhS2,S1S2,omegaMatch;
     REAL8 m1ByMsq=pow(params.m1ByM,2.);
     REAL8 m2ByMsq=pow(params.m2ByM,2.);
@@ -2282,9 +2287,18 @@ int XLALSimIMRPhenSpinInspiralRDGenerator(REAL8TimeSeries **hPlus,              
         for (kdx=0;kdx<9;kdx++) hL4->data->data[9*count+kdx]=hL4tmp->data[kdx]*amp44ini*v2*v2;
       } while ( (om < frOmRD) && (tm < tAs) );
       tPeak=cntI*deltaT+upcntP*dtHi;
-      printf("  finito con upcnt %d  tP %14.6e tm %14.6e  tA %14.6e\n",upcntP,tPeak,tm,tAs);
+      printf("  finito con upcnt %d  tP %14.6e tm %14.6e %14.6e tA %14.6e\n",upcntP,tPeak,cntI*deltaT+upcnt*dtHi,tm,tAs);
 
-      printf(" h[%d] %12.4e   h[%d] %12.4e  h[%d] %12.4e\n",count-1,creal(hL2->data->data[5*(count-1)+4]),count,creal(hL2->data->data[5*count+4]),count+1,creal(hL2->data->data[5*(count+1)+4]));
+      FILE *fprova=fopen("pipporac.dat","w");
+      int pip;
+      double pippo;
+      for (idx=40;idx>0;idx--) {
+	pip=count-idx;
+	pippo=(double)pip;
+	//printf(" h[%d] %12.4e  %12.4e \n",pip,pippo*deltaT,creal(hL2->data->data[5*pip+4]));
+	fprintf(fprova," h[%d] %14.6e  %12.4e \n",pip,pippo*deltaT,creal(hL2->data->data[5*pip+4]));
+      }
+      fclose(fprova);
 
       /*--------------------------------------------------------------
        * Attach the ringdown waveform to the end of inspiral/merger
@@ -2311,9 +2325,9 @@ int XLALSimIMRPhenSpinInspiralRDGenerator(REAL8TimeSeries **hPlus,              
 
       REAL8Vector *matchrange=XLALCreateREAL8Vector(3);
       matchrange->data[2]=count*deltaT/Mtime;
-      matchrange->data[1]=tPeak/Mtime-20.;
+      matchrange->data[1]=tPeak/Mtime-10.;
       matchrange->data[0]=tPeak/Mtime;
-      double dtMat=(matchrange->data[0]-matchrange->data[1])*Mtime;
+      double dtMat=(matchrange->data[0]-matchrange->data[1])*Mtime/(nPtsComb-1);
       printf(" dtMat %12.4e\n",dtMat);
       tm=tPeak+dtMat;
       for (idx=nPtsComb+1;idx>=0;idx--) {
@@ -2348,9 +2362,6 @@ int XLALSimIMRPhenSpinInspiralRDGenerator(REAL8TimeSeries **hPlus,              
 	    errcode =XLALSimSpinInspiralFillL2Modes(hL2tmp,velMat->data[idx],eta,dm,PsiMat->data[idx],alpMat->data[idx],&trigAngle);
             waveR->data[idx]=creal(hL2tmp->data[m+l])*amp22ini*pow(velMat->data[idx],2);
             waveI->data[idx]=cimag(hL2tmp->data[m+l])*amp22ini*pow(velMat->data[idx],2);
-#if DEBUG_RD
-            printf(" %d /%d hLM %12.4e wR %12.4e, I: %12.4e %12.4e\n",idx,waveR->length,creal(hL2tmp->data[l+m])*amp22ini*pow(velMat->data[idx],2),waveR->data[idx],cimag(hL2tmp->data[l+m])*amp22ini*pow(velMat->data[idx],2),waveI->data[idx]);
-#endif
 	  }
 
           errcode+=XLALGenerateWaveDerivative(dwaveR,waveR,dtMat);
@@ -2368,10 +2379,6 @@ int XLALSimIMRPhenSpinInspiralRDGenerator(REAL8TimeSeries **hPlus,              
           errcode+=XLALSimIMRHybridRingdownWave(rdwave1l2,rdwave2l2,deltaT,mass1,mass2,inspWaveR,inspWaveI,modefreqs,matchrange);
 	  for (idx=0;idx<=count;idx++) {
 	    hLMtmp->data->data[idx]=hL2->data->data[5*idx+(l+m)];
-#if DEBUG_RD
-	    if ((count-idx)<5)
-	      printf(" l=2, m%d %d  %12.4e %12.4e\n",m,idx,creal(hLMtmp->data->data[idx]),cimag(hLMtmp->data->data[idx]));
-#endif
 	  }
           for (idx=count; idx<count+nRDWave-1;idx++) {
 	    hLMtmp->data->data[idx]=rdwave1l2->data[idx-count+1]+I*rdwave2l2->data[idx-count+1];
@@ -2474,7 +2481,7 @@ int XLALSimIMRPhenSpinInspiralRDGenerator(REAL8TimeSeries **hPlus,              
 
     } /* End of: if phen part not sane*/
 
-  } /*End of if errcodeInt==LALSIMINSPIRAL_PHENSPIN_TEST_OMEGAMATCH*/
+  } /*End of if errcodeInt==LALSIMINSPIRAL_PST4_TEST_OMEGAMATCH*/
   else {
     if (omega) XLALDestroyREAL8TimeSeries(omega);
     if (Phi) XLALDestroyREAL8TimeSeries(Phi);
