@@ -1,7 +1,6 @@
 AM_CFLAGS = $(LALSUPPORT_CFLAGS)
 LDADD = $(LALSUPPORT_LIBS) $(top_builddir)/src/liblalsimulation.la
 
-if LALSUPPORT
 check_PROGRAMS = \
 	GenerateSimulation \
 	TestSpinTaylorT4Dynamics \
@@ -9,9 +8,9 @@ check_PROGRAMS = \
 	GRFlagsTest \
 	WaveformFlagsTest \
 	TestSphHarmTS \
+	TestWaveformFromCache \
 	TestPrecessWaveform
 TESTS = $(check_PROGRAMS)
-endif
 
 EXTRA_DIST =
 

@@ -53,6 +53,12 @@
 #define TRUE (1==1)
 #define FALSE (1==0)
 
+#ifdef __GNUC__
+#define UNUSED __attribute__ ((unused))
+#else
+#define UNUSED
+#endif
+
 /* Hooks for Einstein@Home / BOINC
    These are defined to do nothing special in the standalone case
    and will be set in boinc_extras.h if EAH_BOINC is set
@@ -124,18 +130,6 @@ int global_argc;
 #define REARTH_GCT = 6.378140e06;
 #define C_GCT      = 299792458;
 
-/**
- * Pre-factors for frequency and spindown spacings:
- * \f$\delta f^{(s)} = \text{COARSE_DFsDOT} \frac{\sqrt{\mu}}{T^{s+1}}\f$
- * Derived from diagonal elements of basic frequency/spindown metric:
- * \f$\delta f^{(s)} = 2 \sqrt{\frac{\mu}}{\gamma_{ii}}\f$
- * where
- * \f$\gamma_{ii} = \frac{4 (1+i)^2 \pi^2 T^{2+2i}}{(3+2i) ((2+i)!)^2}\f$
- */
-#define COARSE_DF0DOT   1.10266
-#define COARSE_DF1DOT   2.13529
-#define COARSE_DF2DOT   6.73735
-
 /* ---------- Macros -------------------- */
 #define HSMAX(x,y) ( (x) > (y) ? (x) : (y) )
 #define HSMIN(x,y) ( (x) < (y) ? (x) : (y) )
@@ -196,7 +190,6 @@ int compareCoarseGridUindex( const void *a, const void *b );
 int compareFineGridNC( const void *a,const void *b );
 int compareFineGridsumTwoF( const void *a,const void *b );
 
-LALSegList * XLALReadSegmentsFromFile ( const char *fname );
 SFTCatalogSequence *XLALSetUpStacksFromSegmentList ( const SFTCatalog *SFTCatalog, const LALSegList *segList );
 
 int XLALComputeFStatFreqBand (  MultiFstatFrequencySeries **fstatSeries,
@@ -343,7 +336,7 @@ int MAIN( int argc, char *argv[]) {
   FILE *fpFstat1=NULL;
 
   /* checkpoint filename */
-  CHAR *fnameChkPoint=NULL;
+  CHAR *uvar_fnameChkPoint = NULL;
 
   /* user variables */
   BOOLEAN uvar_help = FALSE;    /* true if -h option is given */
@@ -484,6 +477,7 @@ int MAIN( int argc, char *argv[]) {
   LAL_CALL( LALRegisterINTUserVar (   &status, "gammaRefine", 'g', UVAR_OPTIONAL, "Refinement of fine grid (default: use segment times)", &uvar_gammaRefine), &status);
   LAL_CALL( LALRegisterINTUserVar (   &status, "gamma2Refine",'G', UVAR_OPTIONAL, "Refinement of f2dot fine grid (default: use segment times, -1=use gammaRefine)", &uvar_gamma2Refine), &status);
   LAL_CALL( LALRegisterSTRINGUserVar( &status, "fnameout",    'o', UVAR_OPTIONAL, "Output filename", &uvar_fnameout), &status);
+  LAL_CALL( LALRegisterSTRINGUserVar( &status, "fnameChkPoint",0,  UVAR_OPTIONAL, "Checkpoint filename", &uvar_fnameChkPoint), &status);
   LAL_CALL( LALRegisterINTUserVar(    &status, "nCand1",      'n', UVAR_OPTIONAL, "No. of candidates to output", &uvar_nCand1), &status);
   LAL_CALL( LALRegisterBOOLUserVar(   &status, "printCand1",   0,  UVAR_OPTIONAL, "Print 1st stage candidates", &uvar_printCand1), &status);
   LAL_CALL( LALRegisterREALUserVar(   &status, "refTime",      0,  UVAR_OPTIONAL, "Ref. time for pulsar pars [Default: mid-time]", &uvar_refTime), &status);
@@ -619,15 +613,17 @@ int MAIN( int argc, char *argv[]) {
                    XLAL_EFUNC, "create_gctFStat_toplist() failed for nCand=%d and sortBy=%d\n", uvar_nCand1, uvar_SortToplist );
     }
 
-  /* checkpoint filename */
-  // in BOINC App don't derive the checkpoint name from the output filename,
-  // or else the checkpoint file will end up in the project- rather than the slot-directory
 #ifdef EAH_BOINC
-  fnameChkPoint="checkpoint.cpt";
-#else
-  fnameChkPoint = LALCalloc( strlen(uvar_fnameout) + 1 + 4, sizeof(CHAR) );
-  strcpy(fnameChkPoint, uvar_fnameout);
-  strcat(fnameChkPoint, ".cpt");
+  // BOINC Apps always checkpoint, so set a default filename here
+  if (uvar_fnameChkPoint == NULL) {
+    CHAR*fname = "checkpoint.cpt";
+    uvar_fnameChkPoint = XLALMalloc(strlen(fname)+1);
+    if (uvar_fnameChkPoint == NULL) {
+      fprintf(stderr, "error allocating memory [HierarchSearchGCT.c %d]\n" , __LINE__);
+      return(HIERARCHICALSEARCH_EMEM);
+    }
+    strcpy(uvar_fnameChkPoint, fname);
+  }
 #endif
 
   /* write the log file */
@@ -786,28 +782,37 @@ int MAIN( int argc, char *argv[]) {
   }
 
   /* set Fstat calculation frequency resolution (coarse grid) */
-  if ( LALUserVarWasSet(&uvar_dFreq) ) {
-    usefulParams.dFreqStack = uvar_dFreq;
-  }
-  else {
-    usefulParams.dFreqStack = -1;
-  }
-
-  /* set Fstat spindown resolution (coarse grid) */
-  if ( LALUserVarWasSet(&uvar_df1dot) ) {
-    usefulParams.df1dot = uvar_df1dot;
-  }
-  else {
-    usefulParams.df1dot = -1;
+  if ( LALUserVarWasSet(&uvar_FreqBand) ) {
+    if ( LALUserVarWasSet(&uvar_dFreq) ) {
+      usefulParams.dFreqStack = uvar_dFreq;
+    } else {
+      XLALPrintError("--dFreq is required if --FreqBand is given\n");
+      return( HIERARCHICALSEARCH_EBAD );
+    }
+  } else {
+    usefulParams.dFreqStack = 0;
   }
 
   /* set Fstat spindown resolution (coarse grid) */
-  if ( LALUserVarWasSet(&uvar_f2dot) || LALUserVarWasSet(&uvar_f2dotBand) ) {
+  if ( LALUserVarWasSet(&uvar_f1dotBand) ) {
+    if ( LALUserVarWasSet(&uvar_df1dot) ) {
+      usefulParams.df1dot = uvar_df1dot;
+    } else {
+      XLALPrintError("--df1dot is required if --f1dotBand is given\n");
+      return( HIERARCHICALSEARCH_EBAD );
+    }
+  } else {
+    usefulParams.df1dot = 0;
+  }
+
+  /* set Fstat 2nd spindown resolution (coarse grid) */
+  if ( LALUserVarWasSet(&uvar_f2dotBand) ) {
     if ( LALUserVarWasSet(&uvar_df2dot) ) {
       usefulParams.df2dot = uvar_df2dot;
     }
     else {
-      usefulParams.df2dot = -1;
+      XLALPrintError("--df2dot is required if --f2dotBand is given\n");
+      return( HIERARCHICALSEARCH_EBAD );
     }
   }
   else {
@@ -882,7 +887,11 @@ int MAIN( int argc, char *argv[]) {
   LogPrintf(LOG_NORMAL, "dFreqStack = %e, df1dot = %e, df2dot = %e\n", dFreqStack, df1dot, df2dot);
 
   /* number of coarse grid spindown values */
-  nf1dot = (UINT4) ceil( usefulParams.spinRange_midTime.fkdotBand[1] / df1dot) + 1;
+  if ( df1dot == 0 ) {
+    nf1dot = 1;
+  } else {
+    nf1dot = (UINT4) ceil( usefulParams.spinRange_midTime.fkdotBand[1] / df1dot) + 1;
+  }
 
   /* set number of fine-grid spindowns */
   if ( LALUserVarWasSet(&uvar_gammaRefine) ) {
@@ -1172,7 +1181,7 @@ int MAIN( int argc, char *argv[]) {
     UINT4 count = 0; /* The first checkpoint should have value 1 */
     UINT4 skycount = 0;
 
-    GET_GCT_CHECKPOINT (fnameChkPoint, semiCohToplist, semiCohToplist2, &count);
+    GET_GCT_CHECKPOINT (uvar_fnameChkPoint, semiCohToplist, semiCohToplist2, &count);
 
     if (count) {
       f1dotGridCounter = (UINT4) (count % nf1dot);  /* Checkpointing counter = i_sky * nf1dot + i_f1dot */
@@ -1234,7 +1243,11 @@ int MAIN( int argc, char *argv[]) {
         semiCohPar.extraBinsFstat = usefulParams.extraBinsFstat;
 
         /* calculate total number of bins for Fstat */
-        binsFstatSearch = (UINT4)(usefulParams.spinRange_midTime.fkdotBand[0]/dFreqStack + 1e-6) + 1;
+        if ( dFreqStack == 0 ) {
+          binsFstatSearch = 1;
+        } else {
+          binsFstatSearch = (UINT4)(usefulParams.spinRange_midTime.fkdotBand[0]/dFreqStack + 1e-6) + 1;
+        }
         binsFstat1 = binsFstatSearch + 2 * semiCohPar.extraBinsFstat;
 
         /* loop over segments for memory allocation */
@@ -1759,7 +1772,7 @@ int MAIN( int argc, char *argv[]) {
                       skyGridCounter * nf1dot + ifdot,
                       thisScan.numSkyGridPoints * nf1dot, uvar_Freq, uvar_FreqBand);
 
-        SET_GCT_CHECKPOINT (fnameChkPoint, semiCohToplist, semiCohToplist2, skyGridCounter*nf1dot+ifdot, TRUE);
+        SET_GCT_CHECKPOINT (uvar_fnameChkPoint, semiCohToplist, semiCohToplist2, skyGridCounter*nf1dot+ifdot, TRUE);
 
       } /* ########## End of loop over coarse-grid f1dot values (ifdot) ########## */
 
@@ -1884,8 +1897,7 @@ int MAIN( int argc, char *argv[]) {
 
   // in BOINC App the checkpoint is left behind to be cleaned up by the Core Client
 #ifndef EAH_BOINC
-  clear_gct_checkpoint (fnameChkPoint);
-  LALFree (fnameChkPoint);
+  clear_gct_checkpoint (uvar_fnameChkPoint);
 #endif
 
   /*------------ free all remaining memory -----------*/
@@ -2004,7 +2016,7 @@ void SetUpSFTs( LALStatus *status,			/**< pointer to LALStatus structure */
                 MultiDetectorStateSeriesSequence *stackMultiDetStates, /**< output multi detector states for each stack */
                 UsefulStageVariables *in, /**< input params */
                 BOOLEAN useWholeSFTs,	/**< special switch: load all given frequency bins from SFTs */
-                REAL8 mismatch1		/**< 'mismatch1' user-input needed here internally ... */
+                REAL8 UNUSED mismatch1		/**< 'mismatch1' user-input needed here internally ... */
                 )
 {
   SFTCatalog *catalog = NULL;
@@ -2155,21 +2167,10 @@ void SetUpSFTs( LALStatus *status,			/**< pointer to LALStatus structure */
   TRY( LALExtrapolatePulsarSpinRange( status->statusPtr, &in->spinRange_endTime, tEndGPS, &in->spinRange_refTime), status);
   TRY( LALExtrapolatePulsarSpinRange( status->statusPtr, &in->spinRange_midTime, tMidGPS, &in->spinRange_refTime), status);
 
-  /* set Fstat calculation frequency resolution (coarse grid) */
-  if ( in->dFreqStack < 0 ) {
-    in->dFreqStack = COARSE_DF0DOT * sqrt(mismatch1) / in->tStack;
-  }
-
   /* set Fstat spindown resolution (coarse grid) */
-  if ( in->df1dot < 0 ) {
-    in->df1dot = COARSE_DF1DOT * sqrt(mismatch1) / ( in->tStack * in->tStack );
-  }
   in->df1dot = HSMIN(in->df1dot, in->spinRange_midTime.fkdotBand[1]);
 
   /* set Fstat 2nd spindown resolution (coarse grid) */
-  if ( in->df2dot < 0 ) {
-    in->df2dot = COARSE_DF2DOT * sqrt(mismatch1) / ( in->tStack * in->tStack * in->tStack );
-  }
   in->df2dot = HSMIN(in->df2dot, in->spinRange_midTime.fkdotBand[2]);
 
   /* calculate number of bins for Fstat overhead due to residual spin-down */
@@ -2730,89 +2731,6 @@ void ComputeU2idx( REAL8 freq_event,
   return;
 
 } /* ComputeU2idx */
-
-/** Function to read a segment list from given filename, returns a *sorted* SegmentList
- *
- * The segment-list format parse here is consistent with Xavie's segment lists used previously
- * and follows the format <repeated lines of form "startGPS endGPS duration[h] NumSFTs">,
- * allowed comment-characters are '%' and '#'
- *
- * \note we (ab)use the integer 'id' field in LALSeg to carry the total number of SFTs
- * contained in that segment. This will be used as a consistency check in
- * XLALSetUpStacksFromSegmentList().
- *
- */
-LALSegList *
-XLALReadSegmentsFromFile ( const char *fname	/**< name of file containing segment list */
-                           )
-{
-  LALSegList *segList = NULL;
-
-  /** check input consistency */
-  if ( !fname ) {
-    XLALPrintError ( "%s: NULL input 'fname'", __func__ );
-    XLAL_ERROR_NULL ( XLAL_EINVAL );
-  }
-
-  /* read and parse segment-list file contents*/
-  LALParsedDataFile *flines = NULL;
-  if ( XLALParseDataFile ( &flines, fname ) != XLAL_SUCCESS )
-    XLAL_ERROR_NULL ( XLAL_EFUNC );
-
-  UINT4 numSegments = flines->lines->nTokens;
-  /* allocate and initialized segment list */
-  if ( (segList = XLALCalloc ( 1, sizeof(*segList) )) == NULL )
-    XLAL_ERROR_NULL ( XLAL_ENOMEM );
-  if ( XLALSegListInit ( segList ) != XLAL_SUCCESS )
-    XLAL_ERROR_NULL ( XLAL_EFUNC );
-
-
-  UINT4 iSeg;
-  for ( iSeg = 0; iSeg < numSegments; iSeg ++ )
-    {
-      REAL8 t0, t1, TspanHours;
-      INT4 NSFT;
-      LALSeg thisSeg;
-      int ret;
-      ret = sscanf ( flines->lines->tokens[iSeg], "%lf %lf %lf %d", &t0, &t1, &TspanHours, &NSFT );
-      if ( ret != 4 ) {
-        XLALPrintError ("%s: failed to parse data-line %d (%d) in segment-list %s: '%s'\n", __func__, iSeg, ret, fname, flines->lines->tokens[iSeg] );
-        XLALSegListClear ( segList );
-        XLALFree ( segList );
-        XLALDestroyParsedDataFile ( flines );
-        XLAL_ERROR_NULL ( XLAL_ESYS );
-      }
-      /* check internal consistency of these numbers */
-      REAL8 hours = 3600.0;
-      if ( fabs ( t1 - t0 - TspanHours * hours ) >= 1.0 ) {
-        XLALPrintError ("%s: Inconsistent segment list, in line %d: t0 = %f, t1 = %f, Tspan = %f != t1 - t0 (to within 1s)\n", __func__, iSeg, t0, t1, TspanHours );
-        XLAL_ERROR_NULL ( XLAL_EDOM );
-      }
-
-      LIGOTimeGPS start, end;
-      XLALGPSSetREAL8( &start, t0 );
-      XLALGPSSetREAL8( &end,   t1 );
-
-      /* we set number of SFTs as 'id' field, as we have no other use for it */
-      if ( XLALSegSet ( &thisSeg, &start, &end, NSFT ) != XLAL_SUCCESS )
-        XLAL_ERROR_NULL ( XLAL_EFUNC );
-
-      if ( XLALSegListAppend ( segList, &thisSeg ) != XLAL_SUCCESS )
-        XLAL_ERROR_NULL ( XLAL_EFUNC );
-
-    } /* for iSeg < numSegments */
-
-  /* sort final segment list in increasing GPS start-times */
-  if ( XLALSegListSort( segList ) != XLAL_SUCCESS )
-    XLAL_ERROR_NULL ( XLAL_EFUNC );
-
-  /* free parsed segment file contents */
-  XLALDestroyParsedDataFile ( flines );
-
-  return segList;
-
-} /* XLALReadSegmentsFromFile() */
-
 
 /** Set up 'segmented' SFT-catalogs for given list of segments and a total SFT-catalog.
  *
