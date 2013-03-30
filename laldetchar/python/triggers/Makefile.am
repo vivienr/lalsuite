@@ -5,4 +5,7 @@ triggers_PYTHON = \
 	cwb.py \
 	kw.py \
 	daily_ihope.py \
+	excesspower.py \
+	rate.py \
+	omicron.py \
 	omega.py

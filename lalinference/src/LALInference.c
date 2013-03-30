@@ -43,18 +43,18 @@
 #define UNUSED
 #endif
 
-size_t LALInferenceTypeSize[] = {sizeof(INT4),
-                                 sizeof(INT8),
-                                 sizeof(UINT4),
-                                 sizeof(REAL4),
-                                 sizeof(REAL8),
-                                 sizeof(COMPLEX8),
-                                 sizeof(COMPLEX16),
-                                 sizeof(gsl_matrix *),
-                                 sizeof(REAL8Vector *),
-                                 sizeof(UINT4Vector *),
-                                 sizeof(CHAR *),
-                                 sizeof(void *)
+size_t LALInferenceTypeSize[12] = {sizeof(INT4),
+                                   sizeof(INT8),
+                                   sizeof(UINT4),
+                                   sizeof(REAL4),
+                                   sizeof(REAL8),
+                                   sizeof(COMPLEX8),
+                                   sizeof(COMPLEX16),
+                                   sizeof(gsl_matrix *),
+                                   sizeof(REAL8Vector *),
+                                   sizeof(UINT4Vector *),
+                                   sizeof(CHAR *),
+                                   sizeof(void *)
 };
 
 
@@ -105,6 +105,12 @@ LALInferenceParamVaryType LALInferenceGetVariableVaryType(LALInferenceVariables 
   return (LALInferenceGetItem(vars,name)->vary);
 }
 
+void LALInferenceSetParamVaryType(LALInferenceVariables *vars, const char *name, LALInferenceParamVaryType vary)
+{
+  LALInferenceVariableItem *item = LALInferenceGetItem(vars,name);
+  item->vary = vary;
+  return;
+}
 
 void *LALInferenceGetVariable(const LALInferenceVariables * vars,const char * name)
 /* Return the value of variable name from the vars structure by walking the list */
@@ -281,8 +287,8 @@ int LALInferenceCheckVariable(LALInferenceVariables *vars,const char *name)
   else return 0;
 }
 
-void LALInferenceDestroyVariables(LALInferenceVariables *vars)
-/* Free the entire structure */
+void LALInferenceClearVariables(LALInferenceVariables *vars)
+/* Free all variables inside the linked list, leaving only the head struct */
 {
   LALInferenceVariableItem *this,*next;
   if(!vars) return;
@@ -316,7 +322,7 @@ void LALInferenceCopyVariables(LALInferenceVariables *origin, LALInferenceVariab
   /* Make sure the structure is initialised */
   if(!target) XLAL_ERROR_VOID(XLAL_EFAULT, "Unable to copy to uninitialised LALInferenceVariables structure.");
   /* first dispose contents of "target" (if any): */
-  LALInferenceDestroyVariables(target);
+  LALInferenceClearVariables(target);
 
   /* get the number of elements in origin */
   dims = LALInferenceGetVariableDimension( origin );
@@ -491,13 +497,13 @@ void LALInferencePrintSample(FILE *fp,LALInferenceVariables *sample){
   while(ptr!=NULL) {
     switch (ptr->type) {
       case LALINFERENCE_INT4_t:
-        fprintf(fp, "%d", *(INT4 *) ptr->value);
+        fprintf(fp, "%"LAL_INT4_FORMAT, *(INT4 *) ptr->value);
         break;
       case LALINFERENCE_INT8_t:
         fprintf(fp, "%"LAL_INT8_FORMAT , *(INT8 *) ptr->value);
         break;
       case LALINFERENCE_UINT4_t:
-        fprintf(fp, "%ud", *(UINT4 *) ptr->value);
+        fprintf(fp, "%"LAL_UINT4_FORMAT , *(UINT4 *) ptr->value);
         break;
       case LALINFERENCE_REAL4_t:
         fprintf(fp, "%9.20e", *(REAL4 *) ptr->value);
@@ -539,13 +545,13 @@ void LALInferencePrintSampleNonFixed(FILE *fp,LALInferenceVariables *sample){
 		if (ptr->vary != LALINFERENCE_PARAM_FIXED) {
 			switch (ptr->type) {
 				case LALINFERENCE_INT4_t:
-					fprintf(fp, "%d", *(INT4 *) ptr->value);
+					fprintf(fp, "%"LAL_INT4_FORMAT, *(INT4 *) ptr->value);
 					break;
 				case LALINFERENCE_INT8_t:
 					fprintf(fp, "%"LAL_INT8_FORMAT, *(INT8 *) ptr->value);
 					break;
 				case LALINFERENCE_UINT4_t:
-					fprintf(fp, "%ud", *(UINT4 *) ptr->value);
+					fprintf(fp, "%"LAL_UINT4_FORMAT, *(UINT4 *) ptr->value);
 					break;
 				case LALINFERENCE_REAL4_t:
 					fprintf(fp, "%11.7f", *(REAL4 *) ptr->value);
@@ -604,7 +610,7 @@ void LALInferencePrintProposalStats(FILE *fp,LALInferenceVariables *propStats){
   while(ptr!=NULL) {
     accepted = (REAL4) (*(LALInferenceProposalStatistics *) ptr->value).accepted;
     proposed = (REAL4) (*(LALInferenceProposalStatistics *) ptr->value).proposed;
-    acceptanceRate = accepted/proposed;
+    acceptanceRate = accepted/(proposed==0 ? 1.0 : proposed);
     fprintf(fp, "%9.5f\t", acceptanceRate);
     ptr=ptr->next;
   }
@@ -625,6 +631,10 @@ const char *LALInferenceTranslateInternalToExternalParamName(const char *inName)
     return "theta1";
   } else if (!strcmp(inName, "theta_spin2")) {
     return "theta2";
+  } else if (!strcmp(inName, "tilt_spin1")) {
+    return "tilt1";
+  } else if (!strcmp(inName, "tilt_spin2")) {
+    return "tilt2";
   } else if (!strcmp(inName, "chirpmass")) {
     return "mc";
   } else if (!strcmp(inName, "massratio")) {
@@ -1822,8 +1832,8 @@ double LALInferenceKDLogCellEigenVolume(LALInferenceKDTree *cell) {
   return logVol;
 }
 
-void LALInferenceKDVariablesToREAL8(LALInferenceVariables *params, REAL8 *pt, LALInferenceVariables *template) {
-  LALInferenceVariableItem *templateItem = template->head;
+void LALInferenceKDVariablesToREAL8(LALInferenceVariables *params, REAL8 *pt, LALInferenceVariables *templt) {
+  LALInferenceVariableItem *templateItem = templt->head;
   size_t i = 0;
   while (templateItem != NULL) {
     if (templateItem->vary != LALINFERENCE_PARAM_FIXED && 
@@ -1835,8 +1845,8 @@ void LALInferenceKDVariablesToREAL8(LALInferenceVariables *params, REAL8 *pt, LA
   }
 }
 
-void LALInferenceKDREAL8ToVariables(LALInferenceVariables *params, REAL8 *pt, LALInferenceVariables *template) {
-  LALInferenceVariableItem *templateItem = template->head;
+void LALInferenceKDREAL8ToVariables(LALInferenceVariables *params, REAL8 *pt, LALInferenceVariables *templt) {
+  LALInferenceVariableItem *templateItem = templt->head;
   size_t i = 0;
   while (templateItem != NULL) {
     if (templateItem->vary != LALINFERENCE_PARAM_FIXED && 
