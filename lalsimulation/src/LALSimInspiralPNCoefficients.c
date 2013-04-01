@@ -38,52 +38,52 @@
  */
 
 static REAL8 UNUSED 
-XLALSimInspiralEnergy_0PNCoeff(REAL8 eta)
+XLALSimInspiralPNEnergy_0PNCoeff(REAL8 eta)
 {
   return -eta / 2.0;
 }
 
-static REAL8 UNUSED XLALSimInspiralEnergy_2PNCoeff(REAL8 eta)
+static REAL8 UNUSED XLALSimInspiralPNEnergy_2PNCoeff(REAL8 eta)
 {
   return -(3.0/4.0 + 1.0/12.0 * eta);
 }
 
-static REAL8 UNUSED XLALSimInspiralEnergy_3PNSOCoeff(REAL8 m1Bym2)
+static REAL8 UNUSED XLALSimInspiralPNEnergy_3PNSOCoeff(REAL8 m1Bym2)
 {
   return 8. / 3. + 2. / m1Bym2;
 }
 
-static REAL8 UNUSED XLALSimInspiralEnergy_4PNCoeff(REAL8 eta)
+static REAL8 UNUSED XLALSimInspiralPNEnergy_4PNCoeff(REAL8 eta)
 {
   return -(27.0/8.0 - 19.0/8.0 * eta + 1./24.0 * eta*eta);
 }
 
-static REAL8 UNUSED XLALSimInspiralEnergy_4PNSSCoeff(REAL8 eta)
+static REAL8 UNUSED XLALSimInspiralPNEnergy_4PNSSCoeff(REAL8 eta)
 {
   return 1./eta;
 }
 
-static REAL8 UNUSED XLALSimInspiralEnergy_4PNSSOCoeff(REAL8 eta)
+static REAL8 UNUSED XLALSimInspiralPNEnergy_4PNSSOCoeff(REAL8 eta)
 {
   return -3./eta;
 }
 
-static REAL8 UNUSED XLALSimInspiralEnergy_4PNSelfSSCoeff(REAL8 m1ByM)
+static REAL8 UNUSED XLALSimInspiralPNEnergy_4PNSelfSSCoeff(REAL8 m1ByM)
 {
   return (1./m1ByM/m1ByM) / 2.;
 }
 
-static REAL8 UNUSED XLALSimInspiralEnergy_4PNSelfSSOCoeff(REAL8 m1ByM)
+static REAL8 UNUSED XLALSimInspiralPNEnergy_4PNSelfSSOCoeff(REAL8 m1ByM)
 {
   return -3. * (1./m1ByM/m1ByM) / 2.;
 }
 
-static REAL8 UNUSED XLALSimInspiralEnergy_5PNSOCoeffs1(REAL8 eta, REAL8 m1Bym2)
+static REAL8 UNUSED XLALSimInspiralPNEnergy_5PNSOCoeffs1(REAL8 eta, REAL8 m1Bym2)
 {
   return 8. - 31. / 9. * eta + (3. - 10. / 3. * eta) / m1Bym2;
 }
 
-static REAL8 UNUSED XLALSimInspiralEnergy_6PNCoeff(REAL8 eta)
+static REAL8 UNUSED XLALSimInspiralPNEnergy_6PNCoeff(REAL8 eta)
 {
   return -(67.5/6.4 - (344.45/5.76 - 20.5/9.6 * LAL_PI*LAL_PI) * eta + 15.5/9.6 * eta*eta + 3.5/518.4 * eta*eta*eta);
 }

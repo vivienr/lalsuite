@@ -3517,5 +3517,3 @@ static int StoreFDHCache(LALSimInspiralWaveformCache *cache,
 
   return XLAL_SUCCESS;
 }
-
->>>>>>> master
