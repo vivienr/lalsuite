@@ -58,22 +58,22 @@ static REAL8 UNUSED XLALSimInspiralPNEnergy_4PNCoeff(REAL8 eta)
   return -(27.0/8.0 - 19.0/8.0 * eta + 1./24.0 * eta*eta);
 }
 
-static REAL8 UNUSED XLALSimInspiralPNEnergy_4PNSSCoeff(REAL8 eta)
+static REAL8 UNUSED XLALSimInspiralPNEnergy_4PNS1S2Coeff(REAL8 eta)
 {
   return 1./eta;
 }
 
-static REAL8 UNUSED XLALSimInspiralPNEnergy_4PNSSOCoeff(REAL8 eta)
+static REAL8 UNUSED XLALSimInspiralPNEnergy_4PNS1S2LCoeff(REAL8 eta)
 {
   return -3./eta;
 }
 
-static REAL8 UNUSED XLALSimInspiralPNEnergy_4PNSelfSSCoeff(REAL8 m1ByM)
+static REAL8 UNUSED XLALSimInspiralPNEnergy_4PNQM2SCoeff(REAL8 m1ByM)
 {
   return (1./m1ByM/m1ByM) / 2.;
 }
 
-static REAL8 UNUSED XLALSimInspiralPNEnergy_4PNSelfSSOCoeff(REAL8 m1ByM)
+static REAL8 UNUSED XLALSimInspiralPNEnergy_4PNQM2SLCoeff(REAL8 m1ByM)
 {
   return -3. * (1./m1ByM/m1ByM) / 2.;
 }
@@ -671,7 +671,7 @@ XLALSimInspiralTaylorT4Phasing_4PNSSCoeff(REAL8 eta)
   return - 247. / 48. / eta;
 }
 
-static REAL8 UNUSED XLALSimInspiralTaylorT4Phasing_4PNSSOCoeff(REAL8 eta)
+static REAL8 UNUSED XLALSimInspiralTaylorT4Phasing_4PNSSLCoeff(REAL8 eta)
 {
   return  721. / 48. / eta;
 }
@@ -683,7 +683,7 @@ XLALSimInspiralTaylorT4Phasing_4PNSelfSSCoeff(REAL8 mByM)
 }
 
 static REAL8 UNUSED
-XLALSimInspiralTaylorT4Phasing_4PNSelfSSOCoeff(REAL8 mByM)
+XLALSimInspiralTaylorT4Phasing_4PNSelfSSLCoeff(REAL8 mByM)
 {
 return -1./96./mByM/mByM;
 }

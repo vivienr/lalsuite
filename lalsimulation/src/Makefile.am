@@ -50,8 +50,7 @@ noinst_HEADERS = \
 	LALSimIMRSpinEOBAuxFuncs.c \
 	LALSimIMRSpinEOBFactorizedWaveform.c \
 	LALSimIMRSpinEOBFactorizedFlux.c \
-	LALSimIMREOBFactorizedFlux.c \
-	LALSimInspiralSpinTaylorT4.h
+	LALSimIMREOBFactorizedFlux.c
 
 lib_LTLIBRARIES = liblalsimulation.la
 liblalsimulation_la_SOURCES = \

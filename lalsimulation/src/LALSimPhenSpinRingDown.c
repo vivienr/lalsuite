@@ -39,7 +39,7 @@ static int UNUSED XLALSimIMRPhenSpinGenerateQNMFreq(COMPLEX16Vector *modefreqs,
 				      REAL8 totalMass)
 {
   static const int UNUSED nSpin=107;
-  static const int UNUSED nMode=8;
+  static const int nMode=8;
   if (modefreqs->length>8) {
     XLALPrintError("*** LALSimIMRPhenSpinGenerateQNMFreq ERROR: number of modes limited to %d, %d requested\n",nMode,modefreqs->length);
     XLAL_ERROR(XLAL_EFUNC);
