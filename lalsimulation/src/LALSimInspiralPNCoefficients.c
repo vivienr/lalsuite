@@ -760,6 +760,12 @@ XLALSimInspiralTaylorT4Phasing_7PNCoeff(REAL8 eta)
 }
 
 static REAL8 UNUSED
+XLALSimInspiralTaylorT4Phasing_7PNSLCoeff(REAL8 mCompByMtot)
+{
+  return (1195.759 + 6558.455 mCompByMtot - 3734.208 * mCompByMtot*mCompByMtot + 299.397 *pow(mCompByMtot,3) - 737.205 * pow(mCompByMtot,4) - 454.398 pow(mCompByMtot,5))/(18.144 * mCompByMtot);
+}
+
+static REAL8 UNUSED
 XLALSimInspiralSpinDot_3PNCoeff(REAL8 eta, REAL8 m1Bym2)
 {
   return (4.0 + 3.0 / m1Bym2) / 2.0 * eta;
