@@ -705,39 +705,39 @@ static int XLALSimSpinInspiralFillL2Modes(COMPLEX16Vector *hL2,
   REAL8 v2    = v*v;
   REAL8 damp  = 1.;
 
-  hL2->data[2+os] = ( ( 1. - damp * v2 / 42. * (107. - 55. * eta) ) * 
+  hL2->data[2+os] = ( 1./( 1. + damp * v2 / 42. * (107. - 55. * eta) ) * 
                       ( cos(2.*(Psi+alpha)) * an->cHi4 + cos(2.*(Psi-alpha)) * an->sHi4 ) + 
                       v * dm/3.*an->si * ( cos(Psi-2.*alpha) * an->sHi2 + cos(Psi + 2.*alpha) * an->cHi2 ) );
 
-  hL2->data[2+os]+=I*( ( 1. - damp * v2 / 42. * (107. - 55. * eta) ) * 
+  hL2->data[2+os]+=I*( 1./( 1. + damp * v2 / 42. * (107. - 55. * eta) ) * 
                        (-sin(2.*(Psi+alpha)) * an->cHi4 + sin(2.*(Psi-alpha)) * an->sHi4 ) +  
                        v * dm/3.*an->si * ( sin(Psi-2.*alpha) * an->sHi2 - sin(Psi + 2. * alpha) * an->cHi2 ) );
 
-  hL2->data[-2+os] = ( ( 1. - damp * v2 / 42. * (107. - 55. * eta) ) *
+  hL2->data[-2+os] = ( 1./( 1. + damp * v2 / 42. * (107. - 55. * eta) ) *
                        ( cos(2. * (Psi + alpha)) * an->cHi4 + cos(2. * (Psi - alpha)) * an->sHi4 ) -
                        v * dm / 3. * an->si * ( cos(Psi - 2. * alpha) * an->sHi2 + cos(Psi + 2. * alpha) * an->cHi2 ) );
 
-  hL2->data[-2+os]+=I*( ( 1. - damp * v2 / 42. * (107. - 55. * eta) ) *
+  hL2->data[-2+os]+=I*( 1./( 1. + damp * v2 / 42. * (107. - 55. * eta) ) *
                         ( sin(2.*(Psi + alpha))*an->cHi4 - sin(2.*(Psi-alpha)) * an->sHi4 ) +
                          v*dm/3.*an->si * ( sin(Psi-2.*alpha) * an->sHi2 - sin(Psi+2.*alpha) * an->cHi2 ) );
 
-  hL2->data[1+os] = an->si * ( ( 1. - damp * v2 / 42. * (107. - 55. * eta) ) *
+  hL2->data[1+os] = an->si * ( 1./( 1. + damp * v2 / 42. * (107. - 55. * eta) ) *
                                 ( -cos(2. * Psi - alpha) * an->sHi2 + cos(2. * Psi + alpha) * an->cHi2 ) +
                                 v * dm / 3. * ( -cos(Psi + alpha) * (an->ci + an->cDi)/2. - cos(Psi - alpha) * an->sHi2 * (1. + 2. * an->ci) ) );
 
-  hL2->data[1+os]+= an->si *I*( ( 1. - damp * v2 / 42. * (107. - 55. * eta) ) *
+  hL2->data[1+os]+= an->si *I*( 1./( 1. + damp * v2 / 42. * (107. - 55. * eta) ) *
                                 ( -sin(2.*Psi-alpha ) * an->sHi2 - sin(2.*Psi + alpha) * an->cHi2 ) +
                                 v * dm / 3. * (sin(Psi + alpha) * (an->ci + an->cDi)/2. - sin(Psi - alpha) * an->sHi2 * (1.+2.*an->ci) ) );
 
-  hL2->data[-1+os] = an->si * ( ( 1. - damp * v2 / 42. * (107. - 55. * eta) ) * 
+  hL2->data[-1+os] = an->si * ( 1./( 1. + damp * v2 / 42. * (107. - 55. * eta) ) * 
                                 ( cos(2.*Psi-alpha) * an->sHi2 - cos(2.*Psi+alpha)*an->cHi2) +
                                 v * dm / 3. * ( -cos(Psi + alpha) * (an->ci + an->cDi)/2. - cos(Psi - alpha) * an->sHi2 * (1. + 2. * an->ci) ) );
 
-  hL2->data[-1+os]+= an->si *I*( ( 1. - damp * v2 / 42. * (107. - 55. * eta) ) * 
+  hL2->data[-1+os]+= an->si *I*( 1./( 1. + damp * v2 / 42. * (107. - 55. * eta) ) * 
                                  ( -sin(2. * Psi - alpha) * an->sHi2 - sin(2. * Psi + alpha) * an->cHi2 ) -
                                  v * dm / 3. * ( sin(Psi + alpha) * (an->ci + an->cDi)/2. - sin(Psi - alpha) * an->sHi2 * (1. + 2. * an->ci) ) );
 
-  hL2->data[os] = amp20 * ( an->si2*( 1.- damp *v2/42.*(107.-55.*eta) )*cos(2.*Psi) + I*v*dm/3.*an->sDi*sin(Psi) );
+  hL2->data[os] = amp20 * ( an->si2/( 1.+ damp *v2/42.*(107.-55.*eta) )*cos(2.*Psi) + I*v*dm/3.*an->sDi*sin(Psi) );
 
   return XLAL_SUCCESS;
 } /* End of XLALSimSpinInspiralFillL2Modes*/
@@ -1698,13 +1698,6 @@ static INT4 XLALSimIMRHybridRingdownWave(
     XLAL_ERROR( XLAL_ENOMEM );
   }
 
-  printf(" t5 %12.4e\n",t5);
-  printf(" t4 %12.4e\n",t4);
-  printf(" t3 %12.4e\n",t3);
-  printf(" t2 %12.4e\n",t2);
-  printf(" t1 %12.4e\n",t1);
-  printf(" 1/tau  %12.4e\n",cimag(modefreqs->data[0]));
-
   /* Define the linear system Ax=y */
   /* Matrix A (2*n by 2*n) has block symmetry. Define half of A here as "coef" */
   /* Define y here as "hderivs" */
@@ -1765,10 +1758,8 @@ static INT4 XLALSimIMRHybridRingdownWave(
     for (j = 0; j < 16; ++j) {
       printf("%8.1e ",gsl_matrix_get(coef,i,j));
     }
-  }
-  printf("\n");
-  for (i = 0; i < 16; ++i)
     printf(" | %8.1e\n",gsl_vector_get(hderivs,i));
+  }
 #endif
 
   /* Call gsl LU decomposition to solve the linear system */
@@ -1817,12 +1808,28 @@ static INT4 XLALSimIMRHybridRingdownWave(
   gsl_vector_free(x);
   gsl_permutation_free(p);
 
-  double tOffset=(matchrange->data[2]-matchrange->data[1])*m;
-  printf(" offset %12.4e\n",tOffset);
+  //double tOffset=(matchrange->data[2]-matchrange->data[1])*m;
 
   /* Build ring-down waveforms */
 
   FILE *frd=fopen("checkrdPS.dat","w");
+  double a1=0.;
+  double a2=0.;
+  int jdx;
+  for (jdx = -5; jdx < 0; ++jdx) {
+    tj = jdx * dt;
+    a1=0.;
+    a2=0.;
+    for (i = 0; i < nmodes; ++i) {
+      a1 += exp(- tj * cimag(modefreqs->data[i]))
+	* ( modeamps->data[i] * cos(tj * creal(modefreqs->data[i]))
+	    +   modeamps->data[i + nmodes] * sin(tj * creal(modefreqs->data[i])) );
+      a2 += exp(- tj * cimag(modefreqs->data[i]))
+	* (- modeamps->data[i] * sin(tj * creal(modefreqs->data[i]))
+	   +   modeamps->data[i + nmodes] * cos(tj * creal(modefreqs->data[i])) );
+    }
+    fprintf(frd," %d  %12.4e  %12.4e  %12.4e\n",jdx,matchrange->data[1]*m+tj,.631*a1,.631*a2);
+  }
   for (j = 0; j < rdwave1->length; ++j) {
     tj = j * dt;
     rdwave1->data[j] = 0;
@@ -2130,7 +2137,6 @@ int XLALSimIMRPhenSpinInspiralRDGenerator(REAL8TimeSeries **hPlus,              
     REAL8Vector *EnergyHi = NULL;
 
     idx=omega->data->length-2-( (int) ( ((double)minIntLen)*dtHi/deltaT ) );
-    printf("  Parto con idx %d   ",idx);
     do {
       idx--;
       LNhS1=(LNhatx->data->data[idx]*S1x->data->data[idx]+LNhaty->data->data[idx]*S1y->data->data[idx]+LNhatz->data->data[idx]*S1z->data->data[idx])/m1Msq;
@@ -2138,7 +2144,6 @@ int XLALSimIMRPhenSpinInspiralRDGenerator(REAL8TimeSeries **hPlus,              
       S1S2=(S1x->data->data[idx]*S2x->data->data[idx]+S1y->data->data[idx]*S2y->data->data[idx]+S1z->data->data[idx]*S2z->data->data[idx])/m1Msq/m2Msq;
       omegaMatch=OmMatch(LNhS1,LNhS2,S1S1,S1S2,S2S2);
     } while ((idx>0)&&(omega->data->data[abs(idx)]>omegaMatch));
-    printf("  ***** Trovato %d  om %12.4e  omM %12.4e  om %12.4e\n",idx,omega->data->data[abs(idx)],omegaMatch,omega->data->data[abs(idx+1)]);
     if (idx<0) {
       XLALPrintError(" *** XLALSimIMRPSpinInspiralRD ERROR ***: impossible to attach phen part\n");
       XLAL_ERROR(XLAL_EFAILED);
@@ -2248,7 +2253,6 @@ int XLALSimIMRPhenSpinInspiralRDGenerator(REAL8TimeSeries **hPlus,              
         // values of omega at the end of the integration.
       }
     } while ((idx>0)&&(iMatchUp==0));
-    printf(" trovato om[%d] %12.4e  om[%d] %12.4e  om[%d] %12.4e  omM %12.4e\n",iMatchUp-1,omegaHi->data[iMatchUp-1],iMatchUp,omegaHi->data[iMatchUp],iMatchUp+1,omegaHi->data[iMatchUp+1],omegaMatch);
 
     REAL8Vector *domegaHi  = XLALCreateREAL8Vector(stkLenHi);
     REAL8Vector *dLNhxHi   = XLALCreateREAL8Vector(stkLenHi);
@@ -2364,7 +2368,6 @@ int XLALSimIMRPhenSpinInspiralRDGenerator(REAL8TimeSeries **hPlus,              
         XLAL_ERROR(XLAL_EFAILED);
       }
 
-      printf("  modefre %12.4e\n",creal(modefreqs->data[0]));
       REAL8 omegaRD = creal(modefreqs->data[0])*Mass*LAL_MTSUN_SI/2.;
       REAL8 frOmRD  = fracRD(LNhS1,LNhS2,S1S1,S1S2,S2S2)*omegaRD;
 
@@ -2378,7 +2381,6 @@ int XLALSimIMRPhenSpinInspiralRDGenerator(REAL8TimeSeries **hPlus,              
 	  om = om1 / (1. - tm / tAs) + om0;
 	  if ((om>=frOmRD)&&(upcntP==0)) {
 	    upcntP=upcnt;
-	    printf("  *** Trovato upcnt %d om  %12.4e  frOmRD %12.4e  omRD %12.4e\n",upcntP,om,frOmRD,omegaRD);
 	  }
 	  Psi = Psi0 + (- tAs * (om1/Mtime-dalpha1*trigAngle.ci) * log(1. - tm / tAs) + (om0/Mtime-dalpha0*trigAngle.ci) * (tm - t0) )  - 2.*om*(1.-eta*pow(om,2./3.))*log(om);
 	  alpha = alpha0 + ( dalpha0 * (tm - t0) - dalpha1 * tAs * log(1. - tm / tAs) );
@@ -2395,7 +2397,6 @@ int XLALSimIMRPhenSpinInspiralRDGenerator(REAL8TimeSeries **hPlus,              
 	//if (om>0.1) printf(" om %12.4e  vs. omRD %12.4e\n",om,frOmRD);
       } while ( (om < frOmRD) && (tm < tAs) );
       tPeak=cntI*deltaT+upcntP*dtHi;
-      printf("  finito con upcnt %d  tP %14.6e tm %14.6e %14.6e tA %14.6e  fOmRD %12.4e\n",upcntP,tPeak,cntI*deltaT+upcnt*dtHi,tm,tAs,frOmRD);
 
       /*--------------------------------------------------------------
        * Attach the ringdown waveform to the end of inspiral/merger
@@ -2422,13 +2423,12 @@ int XLALSimIMRPhenSpinInspiralRDGenerator(REAL8TimeSeries **hPlus,              
 
       REAL8Vector *matchrange=XLALCreateREAL8Vector(3);
       matchrange->data[2]=count*deltaT/Mtime;
-      matchrange->data[0]=tPeak/Mtime-8.;
+      matchrange->data[0]=tPeak/Mtime-10.;
       matchrange->data[1]=tPeak/Mtime;
       double dtMat=(matchrange->data[1]-matchrange->data[0])*Mtime/(nPtsComb-1);
       tm=tPeak+dtMat;
       REAL8Vector *tmArray=XLALCreateREAL8Vector(nPtsComb+2);
       for (idx=nPtsComb+1;idx>=0;idx--) {
-	printf(" **** ASSgn %d ****\n",idx);
 	tmArray->data[idx]=tm;
 	om = om1 / (1. - tm / tAs) + om0;
 	PsiMat->data[idx] = Psi0 + (- tAs * (om1/Mtime-dalpha1*trigAngle.ci) * log(1. - tm / tAs) + (om0/Mtime-dalpha0*trigAngle.ci) * (tm - t0) )  - 2.*om*(1.-eta*pow(om,2./3.))*log(om);
