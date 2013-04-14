@@ -2972,7 +2972,9 @@ int XLALGetFrameAxisFromString(const CHAR *inString)
 
 int XLALGetHigherModesFromString(const CHAR *inString) 
 {
-  if (strstr(inString, "L3"))
+  if (strstr(inString, "L2"))
+    return LAL_SIM_INSPIRAL_MODES_CHOICE_RESTRICTED;
+  else if (strstr(inString, "L3"))
     return  LAL_SIM_INSPIRAL_MODES_CHOICE_3L;
   else if (strstr(inString, "L4"))
     return  LAL_SIM_INSPIRAL_MODES_CHOICE_3L;
@@ -2998,10 +3000,12 @@ int XLALGetHigherModesFromString(const CHAR *inString)
     return  LAL_SIM_INSPIRAL_MODES_CHOICE_2AND4AND5L;
   else if (strstr(inString, "L345"))
     return  LAL_SIM_INSPIRAL_MODES_CHOICE_3AND4AND5L;
-  else if (strstr(inString, "ALL_MODES"))
+  else if (strstr(inString, "ALL"))
     return  LAL_SIM_INSPIRAL_MODES_CHOICE_ALL;
-  else
+  else {
+    XLALPrintError(" Error: invalid value %s for mode choice\n",inString);
     return 0;
+  }
 }
 
 int XLALSimInspiralChooseTDWaveformFromCache(

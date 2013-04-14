@@ -35,6 +35,7 @@
  * Ochsner, Yi Pan, and B S Sathyaprakash, "Comparison of post-Newtonian
  * templates for compact binary inspiral signals in gravitational-wave
  * detectors", Phys. Rev. D 80, 084043 (2009), arXiv:0907.0700v1
+ * For the spin terms a good reference are (3.15) and (3.16) of 1303.7412
  */
 
 static REAL8 UNUSED 
@@ -48,9 +49,9 @@ static REAL8 UNUSED XLALSimInspiralPNEnergy_2PNCoeff(REAL8 eta)
   return -(3.0/4.0 + 1.0/12.0 * eta);
 }
 
-static REAL8 UNUSED XLALSimInspiralPNEnergy_3PNSOCoeff(REAL8 m1Bym2)
+static REAL8 UNUSED XLALSimInspiralPNEnergy_3PNSOCoeff(REAL8 mByM)
 {
-  return 8. / 3. + 2. / m1Bym2;
+  return 2. / 3. + 2. / mByM;
 }
 
 static REAL8 UNUSED XLALSimInspiralPNEnergy_4PNCoeff(REAL8 eta)
@@ -68,25 +69,31 @@ static REAL8 UNUSED XLALSimInspiralPNEnergy_4PNS1S2LCoeff(REAL8 eta)
   return -3./eta;
 }
 
-static REAL8 UNUSED XLALSimInspiralPNEnergy_4PNQM2SCoeff(REAL8 m1ByM)
+static REAL8 UNUSED XLALSimInspiralPNEnergy_4PNQM2SCoeff(REAL8 mByM)
 {
-  return (1./m1ByM/m1ByM) / 2.;
+  return (1./mByM/mByM) / 2.;
 }
 
-static REAL8 UNUSED XLALSimInspiralPNEnergy_4PNQM2SLCoeff(REAL8 m1ByM)
+static REAL8 UNUSED XLALSimInspiralPNEnergy_4PNQM2SLCoeff(REAL8 mByM)
 {
-  return -3. * (1./m1ByM/m1ByM) / 2.;
+  return -3. * (1./mByM/mByM) / 2.;
 }
 
-static REAL8 UNUSED XLALSimInspiralPNEnergy_5PNSOCoeffs1(REAL8 eta, REAL8 m1Bym2)
+static REAL8 UNUSED XLALSimInspiralPNEnergy_5PNSOCoeffs1(REAL8 mByM)
 {
-  return 8. - 31. / 9. * eta + (3. - 10. / 3. * eta) / m1Bym2;
+  return 5. + 3./mByM + 29.*mByM/9. + mByM*mByM/9.;
 }
 
 static REAL8 UNUSED XLALSimInspiralPNEnergy_6PNCoeff(REAL8 eta)
 {
   return -(67.5/6.4 - (344.45/5.76 - 20.5/9.6 * LAL_PI*LAL_PI) * eta + 15.5/9.6 * eta*eta + 3.5/518.4 * eta*eta*eta);
 }
+
+static REAL8 UNUSED XLALSimInspiralPNEnergy_7PNSOCoeff(REAL8 mByM)
+{
+  return -75./4. + 27./(4.*mByM) + 53.*mByM/2. + 67*mByM*mByM/6. + 17.*pow(mByM,3)/12. - pow(mByM,4)/12.;
+}
+
 
 /*
  * Tidal correction coefficients to Energy
@@ -111,51 +118,59 @@ XLALSimInspiralPNEnergy_12PNTidalCoeff(
 }
 
 /**
- * Computes the PN Coefficients for using in the TaylorT1 flux equation.
+ * Computes the flux PN Coefficients.
  *
  * Terms given in equation 3.2 of: Alessandra Buonanno, Bala R Iyer, Evan
  * Ochsner, Yi Pan, and B S Sathyaprakash, "Comparison of post-Newtonian
  * templates for compact binary inspiral signals in gravitational-wave
  * detectors", Phys. Rev. D 80, 084043 (2009), arXiv:0907.0700v1
+ * For terms involving spins see eq.(3.13) of arXiv:1303.7412
  */
 
 static REAL8 UNUSED
-XLALSimInspiralTaylorT1Flux_0PNCoeff(
-	REAL8 eta)
+XLALSimInspiralPNFlux_0PNCoeff(REAL8 eta)
 {
-	return 32.0 * eta*eta / 5.0;
+  return 32.0 * eta*eta / 5.0;
 }
 
 static REAL8 UNUSED
-XLALSimInspiralTaylorT1Flux_2PNCoeff(
-	REAL8 eta)
+XLALSimInspiralPNFlux_2PNCoeff(REAL8 eta)
 {
-	return -(12.47/3.36 + 3.5/1.2 * eta);
+  return -(12.47/3.36 + 3.5/1.2 * eta);
 }
 
 static REAL8 UNUSED
-XLALSimInspiralTaylorT1Flux_3PNCoeff(
-	REAL8 UNUSED eta)
+XLALSimInspiralPNFlux_3PNCoeff(REAL8 UNUSED eta)
 {
-	return 4.0 * LAL_PI;
+  return 4.0 * LAL_PI;
 }
 
 static REAL8 UNUSED
-XLALSimInspiralTaylorT1Flux_4PNCoeff(
-	REAL8 eta)
+XLALSimInspiralPNFlux_3PNSCoeff(REAL8 mByM)
+{
+  return 3./2. - 5./4./mByM;
+}
+
+static REAL8 UNUSED
+XLALSimInspiralPNFlux_4PNCoeff(REAL8 eta)
 {
 	return -(44.711/9.072 - 92.71/5.04 * eta - 6.5/1.8 * eta*eta);
 }
 
 static REAL8 UNUSED
-XLALSimInspiralTaylorT1Flux_5PNCoeff(
-	REAL8 eta)
+XLALSimInspiralPNFlux_5PNCoeff(REAL8 eta)
 {
 	return -(81.91/6.72 + 58.3/2.4 * eta) * LAL_PI;
 }
 
 static REAL8 UNUSED
-XLALSimInspiralTaylorT1Flux_6PNCoeff(
+XLALSimInspiralPNFlux_5PNSCoeff(REAL8 mByM)
+{
+  return 63./8. - 13./(16.*mByM) - (73.*mByM)/36. - (157.*mByM*mByM)/18.;
+}
+
+static REAL8 UNUSED
+XLALSimInspiralPNFlux_6PNCoeff(
 	REAL8 eta)
 {
 	return (664.3739519/6.9854400 + 16.0/3.0 * LAL_PI*LAL_PI - 17.12/1.05 * LAL_GAMMA
@@ -164,17 +179,28 @@ XLALSimInspiralTaylorT1Flux_6PNCoeff(
 }
 
 static REAL8 UNUSED
-XLALSimInspiralTaylorT1Flux_6PNLogCoeff(
+XLALSimInspiralPNFlux_6PNLogCoeff(
 	REAL8 UNUSED eta)
 {
 	return -8.56/1.05;
 }
 
 static REAL8 UNUSED
-XLALSimInspiralTaylorT1Flux_7PNCoeff(
-	REAL8 eta)
+XLALSimInspiralPNFlux_6PNSCoeff(REAL8 mByM)
+{
+  return LAL_PI*( 17./3. - 31./(6.*mByM) );
+}
+
+static REAL8 UNUSED
+XLALSimInspiralPNFlux_7PNCoeff(REAL8 eta)
 {
 	return -(162.85/5.04 - 214.745/1.728 * eta - 193.385/3.024 * eta*eta) * LAL_PI;
+}
+
+static REAL8 UNUSED
+XLALSimInspiralPNFlux_7PNSCoeff(REAL8 mByM)
+{
+  return -(18.737/13.608) + 95.35/(3.36*mByM) - 229.27*mByM/7.56 + 12.476*mByM*mByM/1.89 - 35*pow(mByM,3)/108 - 1117*pow(mByM,4)/54;
 }
 
 /*
@@ -182,7 +208,7 @@ XLALSimInspiralTaylorT1Flux_7PNCoeff(
  */
 
 static REAL8 UNUSED
-XLALSimInspiralTaylorT1Flux_10PNTidalCoeff(
+XLALSimInspiralPNFlux_10PNTidalCoeff(
     REAL8 chi2,
     REAL8 lambda2)
 {
@@ -190,7 +216,7 @@ XLALSimInspiralTaylorT1Flux_10PNTidalCoeff(
 }
 
 static REAL8 UNUSED
-XLALSimInspiralTaylorT1Flux_12PNTidalCoeff(
+XLALSimInspiralPNFlux_12PNTidalCoeff(
     REAL8 chi2,
     REAL8 lambda2)
 {
@@ -654,9 +680,9 @@ return 4.0 * LAL_PI;
 }
 
 static REAL8 UNUSED
-XLALSimInspiralTaylorT4Phasing_3PNSOCoeff(REAL8 m1Bym2)
+XLALSimInspiralTaylorT4Phasing_3PNSOCoeff(REAL8 mByM)
 {
-  return -(113.0 + 75.0 / m1Bym2 ) / 12.0;
+  return - 19./6. - 25./4./mByM;
 }
 
 static REAL8 UNUSED
@@ -716,9 +742,9 @@ XLALSimInspiralTaylorT4Phasing_5PNCoeff(REAL8 eta)
 }
 
 static REAL8 UNUSED 
-XLALSimInspiralTaylorT4Phasing_5PNSLCoeff(REAL8 eta, REAL8 m1BYm2)
+XLALSimInspiralTaylorT4Phasing_5PNSLCoeff(REAL8 mByM)
 {
-  return -31319. / 1008. + 1159. / 24. * eta + (-809. / 84. + 281. / 8. * eta) / m1BYm2;
+  return 13.795/1.008 - 809./(84.*mByM) - 527.*mByM/24. - 79.*mByM*mByM/6.;
 }
 
 static REAL8 UNUSED 
@@ -731,17 +757,15 @@ XLALSimInspiralTaylorT4Phasing_6PNCoeff(REAL8 eta)
 }
 
 static REAL8 UNUSED 
-XLALSimInspiralTaylorT4Phasing_6PNLogCoeff(
-					   REAL8 UNUSED eta)
+XLALSimInspiralTaylorT4Phasing_6PNLogCoeff(REAL8 UNUSED eta)
 {
   return -(1712.0/315.0);
 }
 
 static REAL8 UNUSED
-XLALSimInspiralTaylorT4Phasing_6PNSLCoeff(
-					  REAL8 mCompOverMtot)
+XLALSimInspiralTaylorT4Phasing_6PNSLCoeff(REAL8 mByMtot)
 {
-  return -LAL_PI/3. * ( 188. - 151./2./mCompOverMtot);
+  return -LAL_PI/3. * ( 188. - 151./2./mByMtot);
 }
 
 static REAL8 UNUSED
@@ -760,21 +784,21 @@ XLALSimInspiralTaylorT4Phasing_7PNCoeff(REAL8 eta)
 }
 
 static REAL8 UNUSED
-XLALSimInspiralTaylorT4Phasing_7PNSLCoeff(REAL8 mCompByMtot)
+XLALSimInspiralTaylorT4Phasing_7PNSLCoeff(REAL8 mByM)
 {
-  return (1195.759 + 6558.455 * mCompByMtot - 3734.208 * mCompByMtot*mCompByMtot + 299.397*pow(mCompByMtot,3) - 737.205*pow(mCompByMtot,4) - 454.398*pow(mCompByMtot,5) )/(18.144 * mCompByMtot);
+  return (1195.759 + 6558.455 * mByM - 3734.208 * mByM*mByM + 299.397*pow(mByM,3) - 737.205*pow(mByM,4) - 454.398*pow(mByM,5) )/(18.144 * mByM);
 }
 
 static REAL8 UNUSED
-XLALSimInspiralSpinDot_3PNCoeff(REAL8 eta, REAL8 m1Bym2)
+XLALSimInspiralSpinDot_3PNCoeff(REAL8 mByM)
 {
-  return (4.0 + 3.0 / m1Bym2) / 2.0 * eta;
+  return 3./2. -mByM - mByM*mByM/2.;
 }
 
 static REAL8 UNUSED
-XLALSimInspiralSpinDot_5PNCoeff(REAL8 eta, REAL8 m1Mm2BYM)
+XLALSimInspiralSpinDot_5PNCoeff(REAL8 mByM)
 {
-  return 0.5625 + 1.25 * eta - eta * eta / 24. + m1Mm2BYM * (-0.5625 + 0.625 * eta);
+  return 9./8. - mByM/2. + 7.*mByM*mByM/12. - 7.*pow(mByM,3)/6. - pow(mByM,4)/24.;
 }
 
 /*

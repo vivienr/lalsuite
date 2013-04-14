@@ -87,6 +87,7 @@ const char * usage =
 "                             SEOBNRv1\n"
 "                             SpinTaylorT4\n"
 "                             SpinTaylorT2\n"
+"                             PhenSpinTaylor\n"
 "                             PhenSpinTaylorRD\n"
 "                           Supported FD approximants:\n"
 "                             IMRPhenomA\n"
@@ -131,6 +132,7 @@ const char * usage =
 "--distance D               Distance in Mpc (default 100)\n"
 "--axis AXIS                for PhenSpin: 'View' (default), 'TotalJ', 'OrbitalL'\n"
 "--nonGRpar NAME VALUE      add the nonGRparam with name 'NAME' and value 'VALUE'\n"
+"--higher-modes VALUE       specify l modes with value 'VALUE' (L2 or RESTRICTED is default)\n"
 "--outname FNAME            Output to file FNAME (default 'simulation.dat')\n"
 "--verbose                  If included, add verbose output\n"
 ;
@@ -244,6 +246,14 @@ static GSParams *parse_args(ssize_t argc, char **argv) {
             if ( (int) XLALSimInspiralGetFrameAxis(params->waveFlags)
                     == (int) XLAL_FAILURE) {
                 XLALPrintError("Error: invalid value %s for --axis\n", argv[i]);
+                goto fail;
+            }
+        } else if (strcmp(argv[i], "--modes") == 0) {
+            XLALSimInspiralSetModesChoice( params->waveFlags,
+                    XLALGetHigherModesFromString(argv[++i]) );
+            if ( (int) XLALSimInspiralGetModesChoice(params->waveFlags)
+                    == (int) XLAL_FAILURE) {
+                XLALPrintError("Error: invalid value %s for --modes\n", argv[i]);
                 goto fail;
             }
         } else if (strcmp(argv[i], "--nonGRpar") == 0) {
