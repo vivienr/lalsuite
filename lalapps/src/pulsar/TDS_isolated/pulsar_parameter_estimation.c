@@ -322,7 +322,7 @@ defined!\n");
     data[k].chunkMax = inputs.chunkMax;
 
     /* read in data */
-    while(fscanf(fp, "%lf%lf%lf", &times, &dataVals.re, &dataVals.im) != EOF){
+    while(fscanf(fp, "%lf%lf%lf", &times, &dataVals.real_FIXME, &dataVals.imag_FIXME) != EOF){
       /* check that size of data file is not to large */
       if( j == MAXLENGTH ){
         fprintf(stderr, "Error... size of MAXLENGTH not large enough.\n");
@@ -367,8 +367,8 @@ defined!\n");
 
       /* get the maximum and minimum range for the histogram */
       for (j = 0; j<(INT4)data[k].data->length; j++){
-        logabs->data[2*j] = log(fabs(data[k].data->data[j].re));
-        logabs->data[2*j+1] = log(fabs(data[k].data->data[j].im));
+        logabs->data[2*j] = log(fabs(creal(data[k].data->data[j])));
+        logabs->data[2*j+1] = log(fabs(cimag(data[k].data->data[j])));
 
         if ( logabs->data[2*j] > maxlogabs ) maxlogabs = logabs->data[2*j];
         if ( logabs->data[2*j+1] > maxlogabs ) maxlogabs = logabs->data[2*j+1];
@@ -1208,11 +1208,11 @@ void sum_data(DataStructure data){
     data.sumData->data[count] = 0.;
 
     for( j = i ; j < i + chunkLength ; j++){
-      B.re = data.data->data[j].re;
-      B.im = data.data->data[j].im;
+      B.real_FIXME = creal(data.data->data[j]);
+      B.imag_FIXME = cimag(data.data->data[j]);
 
       /* sum up the data */
-      data.sumData->data[count] += (B.re*B.re + B.im*B.im);
+      data.sumData->data[count] += (creal(B)*creal(B) + cimag(B)*cimag(B));
     }
 
     count++;
@@ -1289,8 +1289,8 @@ REAL8 log_likelihood( REAL8 *likeArray, DataStructure data,
       plus = data.lookupTable->lookupTable[psibin][timebin].plus;
       cross = data.lookupTable->lookupTable[psibin][timebin].cross;
 
-      B.re = data.data->data[j].re;
-      B.im = data.data->data[j].im;
+      B.real_FIXME = creal(data.data->data[j]);
+      B.imag_FIXME = cimag(data.data->data[j]);
 
       /*********************************************************/
       /* stuff for phase offset due to parameter uncertainties - MCMC only */
@@ -1300,23 +1300,23 @@ REAL8 log_likelihood( REAL8 *likeArray, DataStructure data,
         /* create the signal model */
         sin_cos_2PI_LUT( &sphi, &cphi, -dphi->data[j] );
 
-        model.re = (plus*vars.Xpcosphi_2 + cross*vars.Xcsinphi_2)*cphi +
+        model.real_FIXME = (plus*vars.Xpcosphi_2 + cross*vars.Xcsinphi_2)*cphi +
                  (cross*vars.Xccosphi_2 - plus*vars.Xpsinphi_2)*sphi;
-        model.im = (plus*vars.Xpsinphi_2 - cross*vars.Xccosphi_2)*cphi +
+        model.imag_FIXME = (plus*vars.Xpsinphi_2 - cross*vars.Xccosphi_2)*cphi +
                  (cross*vars.Xcsinphi_2 + plus*vars.Xpcosphi_2)*sphi;
       }
       /*********************************************************/
       else{
         /* create the signal model */
-        model.re = plus*vars.Xpcosphi_2 + cross*vars.Xcsinphi_2;
-        model.im = plus*vars.Xpsinphi_2 - cross*vars.Xccosphi_2;
+        model.real_FIXME = plus*vars.Xpcosphi_2 + cross*vars.Xcsinphi_2;
+        model.imag_FIXME = plus*vars.Xpsinphi_2 - cross*vars.Xccosphi_2;
       }
 
       /* sum over the model */
-      sumModel += model.re*model.re + model.im*model.im;
+      sumModel += creal(model)*creal(model) + cimag(model)*cimag(model);
 
       /* sum over that data and model */
-      sumDataModel += B.re*model.re + B.im*model.im;
+      sumDataModel += creal(B)*creal(model) + cimag(B)*cimag(model);
     }
 
     for( k = 0 ; k < mesh.h0Steps ; k++ ){

@@ -157,7 +157,7 @@ REAL8 LALInferenceNoiseOnlyLogLikelihood(LALInferenceVariables *currentParams, L
   double diffRe, diffIm, diffSquared;
   double dataReal, dataImag;
   REAL8 loglikeli;
-  int i, j, lower, upper, ifo, n;
+  int i, j, lower, upper, ifo;
   LALInferenceIFOData *dataPtr;
   double chisquared;
   double deltaT, TwoDeltaToverN, deltaF;
@@ -166,7 +166,11 @@ REAL8 LALInferenceNoiseOnlyLogLikelihood(LALInferenceVariables *currentParams, L
   gsl_matrix *lines   = NULL;//pointer to matrix holding line centroids
   gsl_matrix *widths  = NULL;//pointer to matrix holding line widths
   gsl_matrix *nparams = NULL;//pointer to matrix holding noise parameters
-  double dflog=1.0;        //logarithmic spacing of psd parameters
+
+  gsl_matrix *psdBandsMin  = NULL;//pointer to matrix holding min frequencies for psd model
+  gsl_matrix *psdBandsMax = NULL;//pointer to matrix holding max frequencies for psd model
+
+  //double dflog=1.0;        //logarithmic spacing of psd parameters
 
   int Nblock = 1;            //number of frequency blocks per IFO
   int Nlines = 1;            //number of lines to be removed
@@ -196,11 +200,17 @@ REAL8 LALInferenceNoiseOnlyLogLikelihood(LALInferenceVariables *currentParams, L
     nparams = *((gsl_matrix **)LALInferenceGetVariable(currentParams, "psdscale"));
     Nblock = (int)nparams->size2;
 
-    dflog = *(REAL8*) LALInferenceGetVariable(currentParams, "logdeltaf");
+    //dflog = *(REAL8*) LALInferenceGetVariable(currentParams, "logdeltaf");
+
+    psdBandsMin = *((gsl_matrix **)LALInferenceGetVariable(currentParams, "psdBandsMin"));
+    psdBandsMax = *((gsl_matrix **)LALInferenceGetVariable(currentParams, "psdBandsMax"));
+
   }
   double alpha[Nblock];
   double lnalpha[Nblock];
 
+  double psdBandsMin_array[Nblock];
+  double psdBandsMax_array[Nblock];
 
   chisquared = 0.0;
   /* loop over data (different interferometers): */
@@ -233,6 +243,10 @@ REAL8 LALInferenceNoiseOnlyLogLikelihood(LALInferenceVariables *currentParams, L
       {
         alpha[i]   = gsl_matrix_get(nparams,ifo,i);
         lnalpha[i] = log(alpha[i]);
+
+        psdBandsMin_array[i] = gsl_matrix_get(psdBandsMin,ifo,i);
+        psdBandsMax_array[i] = gsl_matrix_get(psdBandsMax,ifo,i);
+
       }
       else
       {
@@ -261,8 +275,8 @@ REAL8 LALInferenceNoiseOnlyLogLikelihood(LALInferenceVariables *currentParams, L
     for (i=lower; i<=upper; ++i)
     {
 
-      dataReal     = dataPtr->freqData->data->data[i].re / deltaT;
-      dataImag     = dataPtr->freqData->data->data[i].im / deltaT;
+      dataReal     = creal(dataPtr->freqData->data->data[i]) / deltaT;
+      dataImag     = cimag(dataPtr->freqData->data->data[i]) / deltaT;
       
       /* compute squared difference & 'chi-squared': */
       diffRe       = dataReal;         // Difference in real parts...
@@ -274,9 +288,14 @@ REAL8 LALInferenceNoiseOnlyLogLikelihood(LALInferenceVariables *currentParams, L
       /* Add noise PSD parameters to the model */
       if(psdFlag)
       {
-        n = (int)( log( (double)i/(double)lower )/dflog );
-        temp  /= alpha[n];
-        temp  += lnalpha[n];
+        for(j=0; j<Nblock; j++)
+        {
+            if (i >= psdBandsMin_array[j] && i <= psdBandsMax_array[j])
+            {
+                temp  /= alpha[j];
+                temp  += lnalpha[j];
+            }
+        }
       }
 
       /* Remove lines from model */
@@ -333,7 +352,7 @@ REAL8 LALInferenceUndecomposedFreqDomainLogLikelihood(LALInferenceVariables *cur
   REAL8 loglikeli;
   REAL8 plainTemplateReal, plainTemplateImag;
   REAL8 templateReal, templateImag;
-  int i, j, lower, upper, ifo, n;
+  int i, j, lower, upper, ifo;
   LALInferenceIFOData *dataPtr;
   double ra, dec, psi, distMpc, gmst;
   double GPSdouble;
@@ -354,7 +373,11 @@ REAL8 LALInferenceUndecomposedFreqDomainLogLikelihood(LALInferenceVariables *cur
   gsl_matrix *lines   = NULL;//pointer to matrix holding line centroids
   gsl_matrix *widths  = NULL;//pointer to matrix holding line widths
   gsl_matrix *nparams = NULL;//pointer to matrix holding noise parameters
-  double dflog = 1.0;        //logarithmic spacing of psd parameters
+
+  gsl_matrix *psdBandsMin  = NULL;//pointer to matrix holding min frequencies for psd model
+  gsl_matrix *psdBandsMax = NULL;//pointer to matrix holding max frequencies for psd model
+
+  //double dflog = 1.0;        //logarithmic spacing of psd parameters
   
   int Nblock = 1;            //number of frequency blocks per IFO
   int Nlines = 1;            //number of lines to be removed
@@ -386,10 +409,17 @@ REAL8 LALInferenceUndecomposedFreqDomainLogLikelihood(LALInferenceVariables *cur
     nparams = *((gsl_matrix **)LALInferenceGetVariable(currentParams, "psdscale"));
     Nblock = (int)nparams->size2;
 
-    dflog = *(REAL8*) LALInferenceGetVariable(currentParams, "logdeltaf");
+    //dflog = *(REAL8*) LALInferenceGetVariable(currentParams, "logdeltaf");
+
+    psdBandsMin = *((gsl_matrix **)LALInferenceGetVariable(currentParams, "psdBandsMin"));
+    psdBandsMax = *((gsl_matrix **)LALInferenceGetVariable(currentParams, "psdBandsMax"));
+
   }
   double alpha[Nblock];
   double lnalpha[Nblock];
+
+  double psdBandsMin_array[Nblock];
+  double psdBandsMax_array[Nblock];
 
   logDistFlag=LALInferenceCheckVariable(currentParams, "logdistance");
   if(LALInferenceCheckVariable(currentParams,"logmc")){
@@ -551,6 +581,10 @@ REAL8 LALInferenceUndecomposedFreqDomainLogLikelihood(LALInferenceVariables *cur
       {
         alpha[i]   = gsl_matrix_get(nparams,ifo,i);
         lnalpha[i] = log(alpha[i]);
+
+        psdBandsMin_array[i] = gsl_matrix_get(psdBandsMin,ifo,i);
+        psdBandsMax_array[i] = gsl_matrix_get(psdBandsMax,ifo,i);
+
       }
       else
       {
@@ -579,17 +613,17 @@ REAL8 LALInferenceUndecomposedFreqDomainLogLikelihood(LALInferenceVariables *cur
 
     for (i=lower; i<=upper; ++i){
       /* derive template (involving location/orientation parameters) from given plus/cross waveforms: */
-      plainTemplateReal = FplusScaled * dataPtr->freqModelhPlus->data->data[i].re  
-                          +  FcrossScaled * dataPtr->freqModelhCross->data->data[i].re;
-      plainTemplateImag = FplusScaled * dataPtr->freqModelhPlus->data->data[i].im  
-                          +  FcrossScaled * dataPtr->freqModelhCross->data->data[i].im;
+      plainTemplateReal = FplusScaled * creal(dataPtr->freqModelhPlus->data->data[i])  
+                          +  FcrossScaled * creal(dataPtr->freqModelhCross->data->data[i]);
+      plainTemplateImag = FplusScaled * cimag(dataPtr->freqModelhPlus->data->data[i])  
+                          +  FcrossScaled * cimag(dataPtr->freqModelhCross->data->data[i]);
 
       /* do time-shifting...             */
       /* (also un-do 1/deltaT scaling): */
       templateReal = (plainTemplateReal*re - plainTemplateImag*im) / deltaT;
       templateImag = (plainTemplateReal*im + plainTemplateImag*re) / deltaT;
-      dataReal     = dataPtr->freqData->data->data[i].re / deltaT;
-      dataImag     = dataPtr->freqData->data->data[i].im / deltaT;
+      dataReal     = creal(dataPtr->freqData->data->data[i]) / deltaT;
+      dataImag     = cimag(dataPtr->freqData->data->data[i]) / deltaT;
       /* compute squared difference & 'chi-squared': */
       diffRe       = dataReal - templateReal;         // Difference in real parts...
       diffIm       = dataImag - templateImag;         // ...and imaginary parts, and...
@@ -599,9 +633,14 @@ REAL8 LALInferenceUndecomposedFreqDomainLogLikelihood(LALInferenceVariables *cur
       /* Add noise PSD parameters to the model */
       if(psdFlag)
       {
-        n = (int)( log( (double)i/(double)lower )/dflog );
-        temp  /= alpha[n];
-        temp  += lnalpha[n];
+        for(j=0; j<Nblock; j++)
+        {
+            if (i >= psdBandsMin_array[j] && i <= psdBandsMax_array[j])
+            {
+                temp  /= alpha[j];
+                temp  += lnalpha[j];
+            }
+        }
       }
 
       /* Remove lines from model */
@@ -848,17 +887,17 @@ REAL8 LALInferenceFreqDomainStudentTLogLikelihood(LALInferenceVariables *current
       nu = degreesOfFreedom;
       /* (for now constant across frequencies)                                  */
       /* derive template (involving location/orientation parameters) from given plus/cross waveforms: */
-      plainTemplateReal = FplusScaled * dataPtr->freqModelhPlus->data->data[i].re  
-                          +  FcrossScaled * dataPtr->freqModelhCross->data->data[i].re;
-      plainTemplateImag = FplusScaled * dataPtr->freqModelhPlus->data->data[i].im  
-                          +  FcrossScaled * dataPtr->freqModelhCross->data->data[i].im;
+      plainTemplateReal = FplusScaled * creal(dataPtr->freqModelhPlus->data->data[i])  
+                          +  FcrossScaled * creal(dataPtr->freqModelhCross->data->data[i]);
+      plainTemplateImag = FplusScaled * cimag(dataPtr->freqModelhPlus->data->data[i])  
+                          +  FcrossScaled * cimag(dataPtr->freqModelhCross->data->data[i]);
 
       /* do time-shifting...            */
       /* (also un-do 1/deltaT scaling): */
       templateReal = (plainTemplateReal*re - plainTemplateImag*im) / deltaT;
       templateImag = (plainTemplateReal*im + plainTemplateImag*re) / deltaT;
-      dataReal     = dataPtr->freqData->data->data[i].re / deltaT;
-      dataImag     = dataPtr->freqData->data->data[i].im / deltaT;
+      dataReal     = creal(dataPtr->freqData->data->data[i]) / deltaT;
+      dataImag     = cimag(dataPtr->freqData->data->data[i]) / deltaT;
       /* compute squared difference & 'chi-squared': */
       diffRe       = dataReal - templateReal;         /* Difference in real parts...                     */
       diffIm       = dataImag - templateImag;         /* ...and imaginary parts, and...                  */
@@ -987,8 +1026,8 @@ REAL8 LALInferenceChiSquareTest(LALInferenceVariables *currentParams, LALInferen
     norm = 0.0;
     
     for (i=1; i < imax; ++i){  	  	  
-      norm += ((4.0 * deltaF * (freqModelResponse->data[i].re*freqModelResponse->data[i].re
-              +freqModelResponse->data[i].im*freqModelResponse->data[i].im)) 
+      norm += ((4.0 * deltaF * (creal(freqModelResponse->data[i])*creal(freqModelResponse->data[i])
+              +cimag(freqModelResponse->data[i])*cimag(freqModelResponse->data[i]))) 
               / ifoPtr->oneSidedNoisePowerSpectrum->data->data[i]);
       segnorm[i] = norm;
     }
@@ -1280,14 +1319,14 @@ FILE* file=fopen("TempSignal.dat", "w");
 
 	for(i=0; i<freqWaveform->length; i++){
 		/* derive template (involving location/orientation parameters) from given plus/cross waveforms: */
-		plainTemplateReal = FplusScaled * dataPtr->freqModelhPlus->data->data[i].re  
-                          +  FcrossScaled * dataPtr->freqModelhCross->data->data[i].re;
-		plainTemplateImag = FplusScaled * dataPtr->freqModelhPlus->data->data[i].im  
-                          +  FcrossScaled * dataPtr->freqModelhCross->data->data[i].im;
+		plainTemplateReal = FplusScaled * creal(dataPtr->freqModelhPlus->data->data[i])  
+                          +  FcrossScaled * creal(dataPtr->freqModelhCross->data->data[i]);
+		plainTemplateImag = FplusScaled * cimag(dataPtr->freqModelhPlus->data->data[i])  
+                          +  FcrossScaled * cimag(dataPtr->freqModelhCross->data->data[i]);
 
 		/* do time-shifting...             */
-		freqWaveform->data[i].re= (plainTemplateReal*re - plainTemplateImag*im);
-		freqWaveform->data[i].im= (plainTemplateReal*im + plainTemplateImag*re);		
+		freqWaveform->data[i].real_FIXME= (plainTemplateReal*re - plainTemplateImag*im);
+		freqWaveform->data[i].imag_FIXME= (plainTemplateReal*im + plainTemplateImag*re);		
 #ifdef DEBUG
 		fprintf(file, "%lg %lg \t %lg\n", f, freqWaveform->data[i].re, freqWaveform->data[i].im);
 #endif
@@ -1324,7 +1363,7 @@ REAL8 LALInferenceComputeFrequencyDomainOverlap(LALInferenceIFOData * dataPtr,
   upper = floor(dataPtr->fHigh / deltaF);
 	
   for (i=lower; i<=upper; ++i){  	  	  
-    overlap  += ((4.0*deltaF*(freqData1->data[i].re*freqData2->data[i].re+freqData1->data[i].im*freqData2->data[i].im)) 
+    overlap  += ((4.0*deltaF*(creal(freqData1->data[i])*creal(freqData2->data[i])+cimag(freqData1->data[i])*cimag(freqData2->data[i]))) 
                  / dataPtr->oneSidedNoisePowerSpectrum->data->data[i]);
   }
 
