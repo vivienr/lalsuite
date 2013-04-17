@@ -103,6 +103,8 @@ typedef struct tagLALSimInspiralPhenSpinTaylorT4Coeffs {
   REAL8 Etidal5pn; ///< leading order tidal correction to energy
   REAL8 Etidal6pn; ///< next to leading order tidal correction to energy
   REAL8 S1dot15, S2dot15;
+  REAL8 Sdot2S1S2,Sdot2LS1LS2;
+  REAL8 S1dot2LS1LS1,S2dot2LS2LS2;
   REAL8 S1dot25, S2dot25;
   REAL8 fStart; ///< starting GW frequency of integration
   REAL8 fEnd; ///< ending GW frequency of integration
@@ -225,7 +227,11 @@ static int XLALSimIMRPhenSpinParamsSetup(LALSimInspiralPhenSpinTaylorT4Coeffs  *
       params->EQM2S2  = XLALSimInspiralPNEnergy_4PNQM2SCoeff(params->m2ByM);
       params->EQM2S1L = XLALSimInspiralPNEnergy_4PNQM2SLCoeff(params->m1ByM);
       params->EQM2S2L = XLALSimInspiralPNEnergy_4PNQM2SLCoeff(params->m1ByM);
- 
+      params->Sdot2S1S2   = XLALSimInspiralSpinDot_4PNCoeffS1S2;
+      params->Sdot2LS1LS2 = XLALSimInspiralSpinDot_4PNCoeffLS1LS2;
+      params->S1dot2LS1LS1 = XLALSimInspiralSpinDot_4PNCoeffLSLSself(params->m1ByM);
+      params->S2dot2LS2LS2 = XLALSimInspiralSpinDot_4PNCoeffLSLSself(params->m2ByM);
+
     case 3:
       params->Ecoeff[3]      = 0.;
       params->wdotcoeff[3]   = XLALSimInspiralTaylorT4Phasing_3PNCoeff(params->eta)+phi3;
@@ -415,13 +421,13 @@ static int XLALSpinInspiralDerivatives(UNUSED double t,
   tmpz = S1y * S2x - S1x * S2y;
 
   // S1S2 contribution see. eq. 2.23 of arXiv:0812.4413
-  dS1x += 0.5 * v6 * (tmpx - 3. * LNhS2 * cross1x);
-  dS1y += 0.5 * v6 * (tmpy - 3. * LNhS2 * cross1y);
-  dS1z += 0.5 * v6 * (tmpz - 3. * LNhS2 * cross1z);
+  dS1x += v6 * (params->Sdot2S1S2*tmpx + params->Sdot2LS1LS2 * LNhS2 * cross1x);
+  dS1y += v6 * (params->Sdot2S1S2*tmpy + params->Sdot2LS1LS2 * LNhS2 * cross1y);
+  dS1z += v6 * (params->Sdot2S1S2*tmpz + params->Sdot2LS1LS2 * LNhS2 * cross1z);
   // S1S1 contribution
-  dS1x -= 1.5 * v6 * LNhS1 * cross1x;
-  dS1y -= 1.5 * v6 * LNhS1 * cross1y;
-  dS1z -= 1.5 * v6 * LNhS1 * cross1z;
+  dS1x += v6 * LNhS1 * cross1x * params->S1dot2LS1LS1;
+  dS1y += v6 * LNhS1 * cross1y * params->S1dot2LS1LS1;
+  dS1z += v6 * LNhS1 * cross1z * params->S1dot2LS1LS1;
 
   // dS1, 2.5PN, eq. 7.8 of Blanchet et al. gr-qc/0605140
   dS1x += params->S1dot25 * v7 * cross1x;
@@ -438,13 +444,13 @@ static int XLALSpinInspiralDerivatives(UNUSED double t,
   dS2z = params->S2dot15 * v5 * cross2z;
 
   /* dS2, 2PN */
-  dS2x += 0.5 * v6 * (-tmpx - 3.0 * LNhS1 * cross2x);
-  dS2y += 0.5 * v6 * (-tmpy - 3.0 * LNhS1 * cross2y);
-  dS2z += 0.5 * v6 * (-tmpz - 3.0 * LNhS1 * cross2z);
+  dS2x += v6 * (-params->Sdot2S1S2*tmpx + params->Sdot2LS1LS2 * LNhS1 * cross2x);
+  dS2y += v6 * (-params->Sdot2S1S2*tmpy + params->Sdot2LS1LS2 * LNhS1 * cross2y);
+  dS2z += v6 * (-params->Sdot2S1S2*tmpz + params->Sdot2LS1LS2 * LNhS1 * cross2z);
   // S2S2 contribution
-  dS2x -= 1.5 * v6 * LNhS2 * cross2x;
-  dS2y -= 1.5 * v6 * LNhS2 * cross2y;
-  dS2z -= 1.5 * v6 * LNhS2 * cross2z;
+  dS2x += v6 * LNhS2 * cross2x * params->S2dot2LS2LS2;
+  dS2y += v6 * LNhS2 * cross2y * params->S2dot2LS2LS2;
+  dS2z += v6 * LNhS2 * cross2z * params->S2dot2LS2LS2;
 
   // dS2, 2.5PN, eq. 7.8 of Blanchet et al. gr-qc/0605140
   dS2x += params->S2dot25 * v7 * cross2x;

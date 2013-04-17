@@ -795,6 +795,16 @@ XLALSimInspiralSpinDot_3PNCoeff(REAL8 mByM)
   return 3./2. -mByM - mByM*mByM/2.;
 }
 
+static const REAL8 UNUSED XLALSimInspiralSpinDot_4PNCoeffS1S2=0.5;
+
+static const REAL8 UNUSED XLALSimInspiralSpinDot_4PNCoeffLS1LS2=-1.5;
+
+static REAL8 UNUSED
+XLALSimInspiralSpinDot_4PNCoeffLSLSself(REAL8 mByM)
+{
+  return 1.5 * (1./mByM - 1.);
+}
+
 static REAL8 UNUSED
 XLALSimInspiralSpinDot_5PNCoeff(REAL8 mByM)
 {
