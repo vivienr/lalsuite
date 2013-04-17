@@ -1926,6 +1926,11 @@ int XLALGetAdaptiveIntFromString(const CHAR *inString);
 
 int XLALGetInspiralOnlyFromString(const CHAR *inString);
 
+/* Determines if a given time is playground data. */
+int XLALINT8NanoSecIsPlayground (
+        INT8 ns
+);
+
 /*---------------------------------------------------------------- */
 
 #ifdef  __cplusplus
