@@ -1,146 +1,57 @@
-AM_CPPFLAGS = -I$(top_builddir)/include -DPKGDATADIR='"$(pkgdatadir)"'
-LDADD = liblalsimulation.la
+ACLOCAL_AMFLAGS = -I gnuscripts
 
-NOISEPSDFILES = \
-	LIGO-T0900288-v3-BHBH_20deg.txt \
-	LIGO-T0900288-v3-High_Freq.txt \
-	LIGO-T0900288-v3-NO_SRM.txt \
-	LIGO-T0900288-v3-NSNS_Opt.txt \
-	LIGO-T0900288-v3-ZERO_DET_high_P.txt \
-	LIGO-T0900288-v3-ZERO_DET_low_P.txt
-
-bin_PROGRAMS = \
-	lalsim-bh-qnmode \
-	lalsim-bh-ringdown \
-	lalsim-bh-sphwf \
-	lalsim-detector-noise \
-	lalsim-sgwb \
-	lalsim-unicorn
-
-lalsimulationincludedir = $(includedir)/lal
-lalsimulationinclude_HEADERS = \
-	LALSimBlackHoleRingdown.h \
-	LALSimBurst.h \
-	LALSimInspiralPrecess.h \
-	LALSimInspiralWaveformFlags.h \
-	LALSimInspiralTestGRParams.h \
-	LALSimIMR.h \
-	LALSimInspiral.h \
-	LALSimulation.h \
-	LALSimNoise.h \
-	LALSimSGWB.h \
-	LALSimulationConfig.h \
-	LALSimulationLibVCSInfo.h \
-	LALSimulationVCSInfo.h \
-	lalsimulationswig_test.i
-
-noinst_HEADERS = \
-	LALSimIMREOBFactorizedWaveform.c \
-	LALSimIMREOBHybridRingdown.c \
-	LALSimIMREOBNQCCorrection.c \
-	LALSimIMREOBNRv2.h \
-	LALSimIMREOBNewtonianMultipole.c \
-	LALSimInspiralPNCoefficients.c \
-	LALSimInspiraldEnergyFlux.c \
-	LALSimIMRSpinEOBHamiltonian.c \
-	LALSimIMRSpinEOBHcapNumericalDerivative.c \
-	LALSimIMRSpinAlignedEOBHcapDerivative.c \
-	LALSimIMRSpinEOB.h \
-	LALSimIMRSpinEOBInitialConditions.c \
-	LALSimIMRSpinEOBAuxFuncs.c \
-	LALSimIMRSpinEOBFactorizedWaveform.c \
-	LALSimIMRSpinEOBFactorizedFlux.c \
-	LALSimIMREOBFactorizedFlux.c
-
-lib_LTLIBRARIES = liblalsimulation.la
-liblalsimulation_la_SOURCES = \
-	LALSimBlackHoleRingdown.c \
-	LALSimBurst.c \
-	LALSimBurstImg.c \
-	LALSimIMREOBNRv2.c \
-	LALSimIMRSpinAlignedEOB.c \
-	LALSimIMRPhenom.c \
-	LALSimIMRPhenomC.c \
-	LALSimIMRPSpinInspiralRD.c \
-	LALSimInspiralWaveformFlags.c \
-	LALSimInspiralTestGRParams.c \
-	LALSimInspiralPrecess.c \
-	LALSimInspiral.c \
-	LALSimInspiralPNMode.c \
-	LALSimInspiralSpinTaylor.c \
-	LALSimInspiralSpinTaylorF2.c \
-	LALSimInspiralTaylorEt.c \
-	LALSimInspiralTaylorF2.c \
-	LALSimInspiralTaylorF2ReducedSpin.c \
-	LALSimInspiralTaylorF2ReducedSpinMetric.c \
-	LALSimInspiralTaylorF2ReducedSpinTidal.c \
-	LALSimInspiralTaylorT1.c \
-	LALSimInspiralTaylorT2.c \
-	LALSimInspiralTaylorT3.c \
-	LALSimInspiralTaylorT4.c \
-	LALSimInspiralTaylorLength.c \
-	LALSimInspiralWaveformTaper.c \
-	LALSimulation.c \
-	LALSimulationVCSInfo.c \
-	LALSimNoisePSD.c \
-	LALSimNoise.c \
-	LALSimSGWB.c \
-	LALSimSGWBORF.c \
-	LALSimUnicorn.c \
-	check_series_macros.h \
-	unicorn.xpm
-
-liblalsimulation_la_LDFLAGS = -version-info $(LIBVERSION)
-
-lalsim_bh_qnmode_SOURCES = bh_qnmode.c
-lalsim_bh_sphwf_SOURCES = bh_sphwf.c
-lalsim_bh_ringdown_SOURCES = bh_ringdown.c
-lalsim_sgwb_SOURCES = sgwb.c
-lalsim_unicorn_SOURCES = unicorn.c
-lalsim_detector_noise_SOURCES = detector_noise.c
-
-MOSTLYCLEANFILES = \
-	lalsimulation-user-env.shell \
-	lalsimulation-user-env.sh \
-	lalsimulation-user-env.csh
-
-pkgdata_DATA = $(NOISEPSDFILES)
-
-sysconf_DATA = \
-	lalsimulation-user-env.sh \
-	lalsimulation-user-env.csh
-
-BUILT_SOURCES = \
-	lalsimulation-user-env.sh \
-	lalsimulation-user-env.csh
-
-lalsimulation-user-env.shell: Makefile $(srcdir)/generate_user_env.awk
-	@echo "# generic user environment script" >$@
-	@echo "set LALSIMULATION_PREFIX $(prefix)" >>$@
-	@echo "prepend PATH $(bindir)" >>$@
-	@echo "prepend MANPATH $(mandir)" >>$@
-	@echo "prepend PKG_CONFIG_PATH $(libdir)/pkgconfig" >>$@
-	@echo "prepend PYTHONPATH $(pyexecdir)" >>$@
-	@echo "prepend LAL_DATA_PATH $(pkgdatadir)" >>$@
-	@printf "$(SWIG_USER_ENV)" >>$@
-
-lalsimulation-user-env.csh lalsimulation-user-env.sh: lalsimulation-user-env.shell $(srcdir)/generate_user_env.awk
-	$(AM_V_GEN)$(AWK) -f $(srcdir)/generate_user_env.awk -v SED=$(SED) -v package=$(PACKAGE_NAME) -v output=$@ $< || { rm -f $@; exit 1; }
+# Override automake's default rule for rebuilding aclocal.m4, to ensure that
+# ./configure is successfully recreated after certain build system changes which
+# require other autotools (e.g. autoheader) to be re-run. See Redmine issue #728.
+$(ACLOCAL_M4): $(am__aclocal_m4_deps)
+	$(am__cd) $(srcdir) && $(SHELL) ./00boot
 
 EXTRA_DIST = \
-	generate_user_env.awk \
-	LALSimulationConfig.h.in \
-	$(NOISEPSDFILES)
+	COPYING \
+	lalsimulation.pc.in \
+	lalsimulation.spec.in \
+	lalsimulation.spec \
+	aclocal.m4
+
+SUBDIRS = \
+	gnuscripts \
+	debian \
+	include \
+	src \
+	python \
+	swig \
+	test
+
+pkgconfigdir = $(libdir)/pkgconfig
+pkgconfig_DATA = lalsimulation.pc
+
+DISTCLEANFILES = config.lt
 
 if HAVE_GIT_REPO
-BUILT_SOURCES += LALSimulationVCSInfo.h
-MOSTLYCLEANFILES += LALSimulationVCSInfo.h
-LALSimulationVCSInfo.h .PHONY : gen-LALSimulationVCSInfo.h
-gen-LALSimulationVCSInfo.h :
-	$(AM_V_at)$(GENERATE_VCS_INFO) LALSimulationVCSInfo.h $(srcdir)/LALSimulationVCSInfo.h.git
+vcs-clean: maintainer-clean
+	-cd $(top_srcdir) && $(GIT) clean -Xdf
 endif
 
-@LAL_HEADER_LINK@
+all-local:
+	@echo "";\
+	echo "==================================================";\
+	echo "LALSimulation has now been successfully built.";\
+	echo "Now run 'make install' to install LALSimulation.";\
+	echo "==================================================";\
+	echo ""
 
-swig_headers = $(lalsimulationinclude_HEADERS)
-include $(top_srcdir)/swig/swiglal_header.am
+install-exec-local:
+	@echo "";\
+	echo "==================================================";\
+	echo "LALSimulation has now been successfully installed.";\
+	echo "Now you may want to setup your environment:";\
+	echo "";\
+	echo "* Bourne shell [bash] users: please add the line";\
+	echo "  . $(sysconfdir)/lalsimulation-user-env.sh";\
+	echo "  to your .profile file.";\
+	echo "";\
+	echo "* C-shell [tcsh] users: please add the line";\
+	echo "  source $(sysconfdir)/lalsimulation-user-env.csh";\
+	echo "  to your .login file.";\
+	echo "==================================================";\
+	echo ""
