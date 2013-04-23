@@ -917,12 +917,18 @@ int XLALGetAdaptiveIntFromString(const CHAR *inString);
 
 /** 
  * XLAL function to determine inspiral-only flag from a string.  Returns
- * 1 if string contains 'inspiralOnly', otherwise returns 0 to signal 
+ * 1 if string contains 'inspiralOnly', otherwise returns 0 to signal
  * full inspiral-merger-ringdown waveform should be generated.
  */
 int XLALGetInspiralOnlyFromString(const CHAR *inString);
 
 /** 
+ * XLAL function to determine mode flag from a string.
+ * Returns one of enum values as name matches case of enum.
+ */
+int XLALGetHigherModesFromString(const CHAR *inString);
+
+/**
  * Construct and initialize a waveform cache.  Caches are used to
  * avoid re-computation of waveforms that differ only by simple
  * scaling relations in parameters.
