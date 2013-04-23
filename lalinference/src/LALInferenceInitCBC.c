@@ -1,7 +1,7 @@
 /*
  *  LALInferenceCBCInit.c:  Bayesian Followup initialisation routines.
  *
- *  Copyright (C) 2012 Vivien Raymond and John Veitch
+ *  Copyright (C) 2012 Vivien Raymond, John Veitch, Salvatore Vitale
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -36,9 +36,11 @@
 #include <lal/LALInferenceReadData.h>
 #include <lal/LALInferenceInit.h>
 
+
+static void print_flags_orders_warning(SimInspiralTable *injt, ProcessParamsTable *commline);
+
 /* Setup the template generation */
 /* Defaults to using LALSimulation */
-
 void LALInferenceInitCBCTemplate(LALInferenceRunState *runState)
 {
   char help[]="(--template [LAL,PhenSpin,LALGenerateInspiral,LALSim]\tSpecify template (default LAL)\n";
@@ -463,14 +465,12 @@ LALInferenceVariables *LALInferenceInitCBCVariables(LALInferenceRunState *state)
     approx = XLALGetApproximantFromString(ppt->value);
     ppt_order=LALInferenceGetProcParamVal(commandLine,"--order");
     if(ppt_order) PhaseOrder = XLALGetOrderFromString(ppt_order->value);
-    else fprintf(stdout, "No phase order given.  Using maximum available order for the template.\n");
   }
   ppt=LALInferenceGetProcParamVal(commandLine,"--approx");
   if(ppt){
     approx = XLALGetApproximantFromString(ppt->value);
     XLAL_TRY(PhaseOrder = XLALGetOrderFromString(ppt->value),errnum);
     if( (int) PhaseOrder == XLAL_FAILURE || errnum) {
-      fprintf(stdout, "No phase order given.  Using maximum available order for the template.\n");
       PhaseOrder=-1;
     }
   }
@@ -484,14 +484,12 @@ LALInferenceVariables *LALInferenceInitCBCVariables(LALInferenceRunState *state)
   
   if(approx==NumApproximants && injTable){ /* Read aproximant from injection file */
     approx=XLALGetApproximantFromString(injTable->waveform);
-    if(PhaseOrder!=(LALPNOrder)XLALGetOrderFromString(injTable->waveform))
-      fprintf(stdout,"WARNING! Injection specified phase order %i, you are using %i\n",\
-      XLALGetOrderFromString(injTable->waveform),PhaseOrder);
-    if(AmpOrder!=(LALPNOrder)injTable->amp_order)
-      fprintf(stdout,"WARNING! Injection specified amplitude order %i, you are using %i\n",
-	      injTable->amp_order,AmpOrder);
   }
-  if(approx==NumApproximants) approx=TaylorF2; /* Defaults to TF2 */
+  if(approx==NumApproximants){
+      
+       approx=TaylorF2; /* Defaults to TF2 */
+       XLALPrintWarning("You did not provide an approximant for the templates. Using default %s, which might now be what you want!\n",XLALGetStringFromApproximant(approx));
+  }
     
   /* Set the modeldomain appropriately */
   switch(approx)
@@ -527,7 +525,7 @@ LALInferenceVariables *LALInferenceInitCBCVariables(LALInferenceRunState *state)
       exit(1);
       break;
   }
-  fprintf(stdout,"Templates will run using Approximant %i (%s), phase order %i, amp order %i in the %s domain.\n",approx,XLALGetStringFromApproximant(approx),PhaseOrder,AmpOrder,modelDomain==LAL_SIM_DOMAIN_TIME?"time":"frequency");
+  //fprintf(stdout,"Templates will run using Approximant %i (%s), phase order %i, amp order %i in the %s domain.\n",approx,XLALGetStringFromApproximant(approx),PhaseOrder,AmpOrder,modelDomain==LAL_SIM_DOMAIN_TIME?"time":"frequency");
   
   ppt=LALInferenceGetProcParamVal(commandLine, "--fref");
   if (ppt) fRef = atof(ppt->value);
@@ -873,8 +871,8 @@ LALInferenceVariables *LALInferenceInitCBCVariables(LALInferenceRunState *state)
   }
 
   LALInferenceAddVariable(currentParams, "LAL_APPROXIMANT", &approx,        LALINFERENCE_UINT4_t, LALINFERENCE_PARAM_FIXED);
-  LALInferenceAddVariable(currentParams, "LAL_PNORDER",     &PhaseOrder,        LALINFERENCE_UINT4_t, LALINFERENCE_PARAM_FIXED);
-  LALInferenceAddVariable(currentParams, "LAL_AMPORDER",     &AmpOrder,        LALINFERENCE_UINT4_t, LALINFERENCE_PARAM_FIXED);
+  LALInferenceAddVariable(currentParams, "LAL_PNORDER",     &PhaseOrder,        LALINFERENCE_INT4_t, LALINFERENCE_PARAM_FIXED);
+  LALInferenceAddVariable(currentParams, "LAL_AMPORDER",     &AmpOrder,        LALINFERENCE_INT4_t, LALINFERENCE_PARAM_FIXED);
 
   LALInferenceAddVariable(currentParams, "fRef", &fRef, LALINFERENCE_REAL8_t, LALINFERENCE_PARAM_FIXED);
 
@@ -941,7 +939,6 @@ LALInferenceVariables *LALInferenceInitCBCVariables(LALInferenceRunState *state)
   if(ppt) nscale_block = atoi(ppt->value);
   else nscale_block = 8;
 
-
   //First, figure out sizes of dataset to set up noise blocks
   UINT4 nifo; //number of data channels
   UINT4 imin; //minimum Fourier bin for integration in IFO
@@ -983,6 +980,115 @@ LALInferenceVariables *LALInferenceInitCBCVariables(LALInferenceRunState *state)
     nifo++;
   }
 
+  UINT4 nscale_block_temp   = 10000;
+  gsl_matrix *bands_min_temp      = gsl_matrix_alloc(nifo,nscale_block_temp);
+  gsl_matrix *bands_max_temp      = gsl_matrix_alloc(nifo,nscale_block_temp);
+
+  UINT4 j;
+
+  for (i = 0; i < nifo; i ++) {
+     for (j = 0; j < nscale_block_temp; j++)
+        {
+          gsl_matrix_set(bands_min_temp,i,j,-1.0);
+          gsl_matrix_set(bands_max_temp,i,j,-1.0);
+        }
+  }
+
+  ppt = LALInferenceGetProcParamVal(commandLine, "--psdFitText");
+  if(ppt)  // Load in values from file if requested
+  {
+
+      char line [ 128 ];
+      char *bands_tempfile = ppt->value;
+      printf("Reading bands_temp from %s\n",bands_tempfile);
+
+      UINT4 band_min = 0, band_max = 0;
+
+      nscale_block = 0;
+      char * pch;
+      j = 0;
+
+      FILE *file = fopen ( bands_tempfile, "r" );
+      if ( file != NULL )
+      {
+          while ( fgets ( line, sizeof line, file ) != NULL )
+          {
+              pch = strtok (line," ");
+              int count = 0;
+              while (pch != NULL)
+              {
+                  if (count==0) {band_min = atoi(pch);}
+                  if (count==1) {band_max = atoi(pch);}
+                  pch = strtok (NULL, " ");
+                  count++;
+              }
+
+              for (i = 0; i < nifo; i ++) {
+
+                gsl_matrix_set(bands_min_temp,i,j,band_min/df);
+                gsl_matrix_set(bands_max_temp,i,j,band_max/df);
+
+              }
+ 
+              nscale_block++;
+              j++;
+
+          }
+      fclose ( file );
+      }
+
+      else
+      {
+          perror ( bands_tempfile ); /* why didn't the file open? */
+      }
+
+
+  }
+  else // Otherwise use defaults
+  {
+
+    nscale_bin   = (f_max+1-f_min)/nscale_block;
+    nscale_dflog = log( (double)(f_max+1)/(double)f_min )/(double)nscale_block;
+
+    //nscale_bin   = (f_max+1)/nscale_block;
+    //nscale_dflog = log( (double)(f_max+1) )/(double)nscale_block;
+
+    int freq_min, freq_max;
+
+    for (i = 0; i < nifo; i++)
+    {
+      for (j = 0; j < nscale_block; j++)
+      {
+
+        freq_min = (int) exp(log((double)f_min ) + nscale_dflog*(j-1));
+        freq_max = (int) exp(log((double)f_min ) + nscale_dflog*j);
+
+        //freq_min = (int) exp(1 + nscale_dflog*(j-1));
+        //freq_max = (int) exp(1 + nscale_dflog*j);
+        
+        gsl_matrix_set(bands_min_temp,i,j,freq_min);
+        gsl_matrix_set(bands_max_temp,i,j,freq_max);
+      }
+    }
+
+  }
+
+    gsl_matrix *bands_min      = gsl_matrix_alloc(nifo,nscale_block);
+    gsl_matrix *bands_max      = gsl_matrix_alloc(nifo,nscale_block);
+
+    for (i = 0; i < nifo; i++)
+    {
+      for (j = 0; j < nscale_block; j++)
+      {
+        gsl_matrix_set(bands_min,i,j,gsl_matrix_get(bands_min_temp,i,j));
+        gsl_matrix_set(bands_max,i,j,gsl_matrix_get(bands_max_temp,i,j));
+
+        //printf("%f %f\n",gsl_matrix_get(bands_min_temp,i,j),gsl_matrix_get(bands_max_temp,i,j));
+
+      }
+    }
+
+
   ppt = LALInferenceGetProcParamVal(commandLine, "--psdFit");
   if(ppt)//MARK: Here is where noise PSD parameters are being added to the model
   {
@@ -1002,6 +1108,7 @@ LALInferenceVariables *LALInferenceInitCBCVariables(LALInferenceRunState *state)
     {
       nscale_prior->data[i] = 1.0/sqrt( f_min*exp( (double)(i+1)*nscale_dflog ) );
       nscale_sigma->data[i] = nscale_prior->data[i]/sqrt((double)(nifo*nscale_block));
+
     }
 
     gsl_matrix *nscale = gsl_matrix_alloc(nifo,nscale_block);
@@ -1012,7 +1119,11 @@ LALInferenceVariables *LALInferenceInitCBCVariables(LALInferenceRunState *state)
 
     LALInferenceAddVariable(currentParams, "psdscale", &nscale, LALINFERENCE_gslMatrix_t, LALINFERENCE_PARAM_LINEAR);
     LALInferenceAddVariable(currentParams, "psdstore", &nstore, LALINFERENCE_gslMatrix_t, LALINFERENCE_PARAM_FIXED);
+
     LALInferenceAddVariable(currentParams, "logdeltaf", &nscale_dflog, LALINFERENCE_REAL8_t, LALINFERENCE_PARAM_FIXED);
+
+    LALInferenceAddVariable(currentParams, "psdBandsMin", &bands_min, LALINFERENCE_gslMatrix_t, LALINFERENCE_PARAM_FIXED);
+    LALInferenceAddVariable(currentParams, "psdBandsMax", &bands_max, LALINFERENCE_gslMatrix_t, LALINFERENCE_PARAM_FIXED);
 
     //Set up noise priors
     LALInferenceAddVariable(priorArgs,      "psddim",   &nscale_dim,  LALINFERENCE_INT4_t,  LALINFERENCE_PARAM_FIXED);
@@ -1024,6 +1135,7 @@ LALInferenceVariables *LALInferenceInitCBCVariables(LALInferenceRunState *state)
     LALInferenceAddVariable(state->proposalArgs, "psdbin",   &nscale_bin,   LALINFERENCE_INT4_t,  LALINFERENCE_PARAM_FIXED);
     LALInferenceAddVariable(state->proposalArgs, "psdsigma", &nscale_sigma, LALINFERENCE_REAL8Vector_t, LALINFERENCE_PARAM_FIXED);
 
+
   }//End of noise model initialization
   LALInferenceAddVariable(currentParams, "psdScaleFlag", &nscale_flag, LALINFERENCE_UINT4_t, LALINFERENCE_PARAM_FIXED);
 
@@ -1034,67 +1146,151 @@ LALInferenceVariables *LALInferenceInitCBCVariables(LALInferenceRunState *state)
 
   /********************* TBL: Adding line-removal parameters  *********************/
   UINT4 lines_flag  = 0;   //flag tells likelihood if line-removal is turned on
-  UINT4 lines_num   = 10;   //number of lines to remove
 
+  #define max(x, y) (((x) > (y)) ? (x) : (y))
   ppt = LALInferenceGetProcParamVal(commandLine, "--removeLines");
-  
+
   if(ppt)//MARK: Here is where noise line removal parameters are being added to the model
   {
     lines_flag = 1;
     dataPtr = state->data;
-    gsl_matrix *lines      = gsl_matrix_alloc(nifo,lines_num);
-    gsl_matrix *linewidth  = gsl_matrix_alloc(nifo,lines_num);
+    UINT4 lines_num_temp   = 10000;
+    UINT4 lines_num_ifo;
+    UINT4 lines_num = 0;
+    gsl_matrix *lines_temp      = gsl_matrix_alloc(nifo,lines_num_temp);
+    gsl_matrix *linewidth_temp  = gsl_matrix_alloc(nifo,lines_num_temp);
+
     i=0;
     while (dataPtr != NULL)
     {
+
+      for (j = 0; j < lines_num_temp; j++)
+      {
+        gsl_matrix_set(lines_temp,i,j,-1.0);
+        gsl_matrix_set(linewidth_temp,i,j,1.0);
+      }
+
       printf("ifo=%i  %s\n",i,dataPtr->name);fflush(stdout);
-      //top lines_num lines for each interferometer, and widths
-      if(!strcmp(dataPtr->name,"H1"))
+
+      char ifoRemoveLines[500];
+      snprintf (ifoRemoveLines,500, "--%s-removeLines",dataPtr->name);
+
+      ppt = LALInferenceGetProcParamVal(commandLine,ifoRemoveLines);
+      if(ppt || LALInferenceGetProcParamVal(commandLine, "--chisquaredlines") || LALInferenceGetProcParamVal(commandLine, "--KSlines"))
+      /* Load in values from file if requested */
       {
-        gsl_matrix_set(lines,i,0,35.0/df);   gsl_matrix_set(linewidth,i,0,3.0/df);
-        gsl_matrix_set(lines,i,1,45.0/df);   gsl_matrix_set(linewidth,i,1,1.5/df);
-        gsl_matrix_set(lines,i,2,51.0/df);   gsl_matrix_set(linewidth,i,2,2.5/df);
-        gsl_matrix_set(lines,i,3,60.0/df);   gsl_matrix_set(linewidth,i,3,3.0/df);
-        gsl_matrix_set(lines,i,4,72.0/df);   gsl_matrix_set(linewidth,i,4,3.0/df);
-        gsl_matrix_set(lines,i,5,87.0/df);   gsl_matrix_set(linewidth,i,5,0.5/df);
-        gsl_matrix_set(lines,i,6,108.0/df);  gsl_matrix_set(linewidth,i,6,0.5/df);
-        gsl_matrix_set(lines,i,7,117.0/df);  gsl_matrix_set(linewidth,i,7,0.5/df);
-        gsl_matrix_set(lines,i,8,122.0/df);  gsl_matrix_set(linewidth,i,8,5.0/df);
-        gsl_matrix_set(lines,i,9,180.0/df);  gsl_matrix_set(linewidth,i,9,2.0/df);
+        char line [ 128 ];
+        char lines_tempfile[500];
+
+        if (LALInferenceGetProcParamVal(commandLine, "--chisquaredlines")) {
+             snprintf (lines_tempfile,500, "%s-ChiSquaredLines.dat",dataPtr->name);
+        }
+        else if (LALInferenceGetProcParamVal(commandLine, "--KSlines")) {
+             snprintf (lines_tempfile,500, "%s-KSLines.dat",dataPtr->name);
+        }
+        else {
+             char *lines_tempfile_temp = ppt->value;
+             strcpy( lines_tempfile, lines_tempfile_temp );
+        }
+        printf("Reading lines_temp from %s\n",lines_tempfile);
+
+        char * pch;
+        j = 0;
+        double freqline = 0, freqlinewidth = 0;
+        lines_num_ifo = 0;
+        FILE *file = fopen ( lines_tempfile, "r" );
+        if ( file != NULL )
+        {
+          while ( fgets ( line, sizeof line, file ) != NULL )
+          {
+
+            pch = strtok (line," ");
+            int count = 0;
+            while (pch != NULL)
+            {
+                if (count==0) {freqline = atoi(pch);}
+                if (count==1) {freqlinewidth = atoi(pch);}
+                pch = strtok (NULL, " ");
+                count++;
+            }
+
+            gsl_matrix_set(lines_temp,i,j,freqline/df);
+            gsl_matrix_set(linewidth_temp,i,j,freqlinewidth/df);
+            j++;
+            lines_num_ifo++;
+          }
+          fclose ( file );
+        }
+
       }
 
-      if(!strcmp(dataPtr->name,"L1"))
-      {
-        gsl_matrix_set(lines,i,0,35.0/df);   gsl_matrix_set(linewidth,i,0,3.0/df);
-        gsl_matrix_set(lines,i,1,60.0/df);   gsl_matrix_set(linewidth,i,1,4.0/df);
-        gsl_matrix_set(lines,i,2,69.0/df);   gsl_matrix_set(linewidth,i,2,2.5/df);
-        gsl_matrix_set(lines,i,3,106.4/df);  gsl_matrix_set(linewidth,i,3,0.8/df);
-        gsl_matrix_set(lines,i,4,113.0/df);  gsl_matrix_set(linewidth,i,4,1.5/df);
-        gsl_matrix_set(lines,i,5,120.0/df);  gsl_matrix_set(linewidth,i,5,2.5/df);
-        gsl_matrix_set(lines,i,6,128.0/df);  gsl_matrix_set(linewidth,i,6,3.5/df);
-        gsl_matrix_set(lines,i,7,143.0/df);  gsl_matrix_set(linewidth,i,7,1.0/df);
-        gsl_matrix_set(lines,i,8,180.0/df);  gsl_matrix_set(linewidth,i,8,2.5/df);
-        gsl_matrix_set(lines,i,9,191.5/df);  gsl_matrix_set(linewidth,i,9,4.0/df);
-      }
 
-      if(!strcmp(dataPtr->name,"V1"))
+      else // Otherwise use defaults
       {
-        gsl_matrix_set(lines,i,0,35.0/df);   gsl_matrix_set(linewidth,i,0,3.0/df);
-        gsl_matrix_set(lines,i,1,60.0/df);   gsl_matrix_set(linewidth,i,1,4.0/df);
-        gsl_matrix_set(lines,i,2,69.0/df);   gsl_matrix_set(linewidth,i,2,2.5/df);
-        gsl_matrix_set(lines,i,3,106.4/df);  gsl_matrix_set(linewidth,i,3,0.8/df);
-        gsl_matrix_set(lines,i,4,113.0/df);  gsl_matrix_set(linewidth,i,4,1.5/df);
-        gsl_matrix_set(lines,i,5,120.0/df);  gsl_matrix_set(linewidth,i,5,2.5/df);
-        gsl_matrix_set(lines,i,6,128.0/df);  gsl_matrix_set(linewidth,i,6,3.5/df);
-        gsl_matrix_set(lines,i,7,143.0/df);  gsl_matrix_set(linewidth,i,7,1.0/df);
-        gsl_matrix_set(lines,i,8,180.0/df);  gsl_matrix_set(linewidth,i,8,2.5/df);
-        gsl_matrix_set(lines,i,9,191.5/df);  gsl_matrix_set(linewidth,i,9,4.0/df);
+        lines_num_ifo = 10;
+        /* top lines_temp_num lines_temp for each interferometer, and widths */
+        if(!strcmp(dataPtr->name,"H1"))
+        {
+          gsl_matrix_set(lines_temp,i,0,35.0/df);   gsl_matrix_set(linewidth_temp,i,0,3.0/df);
+          gsl_matrix_set(lines_temp,i,1,45.0/df);   gsl_matrix_set(linewidth_temp,i,1,1.5/df);
+          gsl_matrix_set(lines_temp,i,2,51.0/df);   gsl_matrix_set(linewidth_temp,i,2,2.5/df);
+          gsl_matrix_set(lines_temp,i,3,60.0/df);   gsl_matrix_set(linewidth_temp,i,3,3.0/df);
+          gsl_matrix_set(lines_temp,i,4,72.0/df);   gsl_matrix_set(linewidth_temp,i,4,3.0/df);
+          gsl_matrix_set(lines_temp,i,5,87.0/df);   gsl_matrix_set(linewidth_temp,i,5,0.5/df);
+          gsl_matrix_set(lines_temp,i,6,108.0/df);  gsl_matrix_set(linewidth_temp,i,6,0.5/df);
+          gsl_matrix_set(lines_temp,i,7,117.0/df);  gsl_matrix_set(linewidth_temp,i,7,0.5/df);
+          gsl_matrix_set(lines_temp,i,8,122.0/df);  gsl_matrix_set(linewidth_temp,i,8,5.0/df);
+          gsl_matrix_set(lines_temp,i,9,180.0/df);  gsl_matrix_set(linewidth_temp,i,9,2.0/df);
+        }
+
+        if(!strcmp(dataPtr->name,"L1"))
+        {
+          gsl_matrix_set(lines_temp,i,0,35.0/df);   gsl_matrix_set(linewidth_temp,i,0,3.0/df);
+          gsl_matrix_set(lines_temp,i,1,60.0/df);   gsl_matrix_set(linewidth_temp,i,1,4.0/df);
+          gsl_matrix_set(lines_temp,i,2,69.0/df);   gsl_matrix_set(linewidth_temp,i,2,2.5/df);
+          gsl_matrix_set(lines_temp,i,3,106.4/df);  gsl_matrix_set(linewidth_temp,i,3,0.8/df);
+          gsl_matrix_set(lines_temp,i,4,113.0/df);  gsl_matrix_set(linewidth_temp,i,4,1.5/df);
+          gsl_matrix_set(lines_temp,i,5,120.0/df);  gsl_matrix_set(linewidth_temp,i,5,2.5/df);
+          gsl_matrix_set(lines_temp,i,6,128.0/df);  gsl_matrix_set(linewidth_temp,i,6,3.5/df);
+          gsl_matrix_set(lines_temp,i,7,143.0/df);  gsl_matrix_set(linewidth_temp,i,7,1.0/df);
+          gsl_matrix_set(lines_temp,i,8,180.0/df);  gsl_matrix_set(linewidth_temp,i,8,2.5/df);
+          gsl_matrix_set(lines_temp,i,9,191.5/df);  gsl_matrix_set(linewidth_temp,i,9,4.0/df);
+        }
+
+        if(!strcmp(dataPtr->name,"V1"))
+        {
+          gsl_matrix_set(lines_temp,i,0,35.0/df);   gsl_matrix_set(linewidth_temp,i,0,3.0/df);
+          gsl_matrix_set(lines_temp,i,1,60.0/df);   gsl_matrix_set(linewidth_temp,i,1,4.0/df);
+          gsl_matrix_set(lines_temp,i,2,69.0/df);   gsl_matrix_set(linewidth_temp,i,2,2.5/df);
+          gsl_matrix_set(lines_temp,i,3,106.4/df);  gsl_matrix_set(linewidth_temp,i,3,0.8/df);
+          gsl_matrix_set(lines_temp,i,4,113.0/df);  gsl_matrix_set(linewidth_temp,i,4,1.5/df);
+          gsl_matrix_set(lines_temp,i,5,120.0/df);  gsl_matrix_set(linewidth_temp,i,5,2.5/df);
+          gsl_matrix_set(lines_temp,i,6,128.0/df);  gsl_matrix_set(linewidth_temp,i,6,3.5/df);
+          gsl_matrix_set(lines_temp,i,7,143.0/df);  gsl_matrix_set(linewidth_temp,i,7,1.0/df);
+          gsl_matrix_set(lines_temp,i,8,180.0/df);  gsl_matrix_set(linewidth_temp,i,8,2.5/df);
+          gsl_matrix_set(lines_temp,i,9,191.5/df);  gsl_matrix_set(linewidth_temp,i,9,4.0/df);
+        }
       }
       dataPtr = dataPtr->next;
       i++;
+
+      lines_num = max(lines_num,lines_num_ifo);
+
     }
 
-    //Add line matrices to variable lists
+    gsl_matrix *lines      = gsl_matrix_alloc(nifo,lines_num);
+    gsl_matrix *linewidth  = gsl_matrix_alloc(nifo,lines_num);
+
+    for (i = 0; i < nifo; i++)
+    {
+      for (j = 0; j < lines_num; j++)
+      {
+        gsl_matrix_set(lines,i,j,gsl_matrix_get(lines_temp,i,j));
+        gsl_matrix_set(linewidth,i,j,gsl_matrix_get(linewidth_temp,i,j));
+      }
+    }
+
+    /* Add line matrices to variable lists */
     LALInferenceAddVariable(currentParams, "line_center", &lines,     LALINFERENCE_gslMatrix_t, LALINFERENCE_PARAM_FIXED);
     LALInferenceAddVariable(currentParams, "line_width",  &linewidth, LALINFERENCE_gslMatrix_t, LALINFERENCE_PARAM_FIXED);
 
@@ -1177,14 +1373,16 @@ LALInferenceVariables *LALInferenceInitCBCVariables(LALInferenceRunState *state)
   }
   LALInferenceAddMinMaxPrior(priorArgs, "time",     &timeMin, &timeMax,   LALINFERENCE_REAL8_t);
 
-  ppt=LALInferenceGetProcParamVal(commandLine,"--fixPhi");
-  if(ppt){
-    LALInferenceAddVariable(currentParams, "phase",           &start_phase,        LALINFERENCE_REAL8_t, LALINFERENCE_PARAM_FIXED);
-    if(lalDebugLevel>0) fprintf(stdout,"phase fixed and set to %f\n",start_phase);
-  }else{
-    LALInferenceAddVariable(currentParams, "phase",           &start_phase,        LALINFERENCE_REAL8_t, LALINFERENCE_PARAM_CIRCULAR);
+  if(!LALInferenceGetProcParamVal(commandLine,"--margphi")){
+    ppt=LALInferenceGetProcParamVal(commandLine,"--fixPhi");
+    if(ppt){
+        LALInferenceAddVariable(currentParams, "phase",           &start_phase,        LALINFERENCE_REAL8_t, LALINFERENCE_PARAM_FIXED);
+        if(lalDebugLevel>0) fprintf(stdout,"phase fixed and set to %f\n",start_phase);
+    }else{
+        LALInferenceAddVariable(currentParams, "phase",           &start_phase,        LALINFERENCE_REAL8_t, LALINFERENCE_PARAM_CIRCULAR);
+    }
+    LALInferenceAddMinMaxPrior(priorArgs, "phase",     &phiMin, &phiMax,   LALINFERENCE_REAL8_t);
   }
-  LALInferenceAddMinMaxPrior(priorArgs, "phase",     &phiMin, &phiMax,   LALINFERENCE_REAL8_t);
 
   /* Jump in log distance if requested, otherwise use distance */
   if(LALInferenceGetProcParamVal(commandLine,"--logdistance"))
@@ -1575,6 +1773,13 @@ LALInferenceVariables *LALInferenceInitCBCVariables(LALInferenceRunState *state)
     LALInferenceAddVariable(currentParams, "tideO", &tideO,
         LALINFERENCE_INT4_t, LALINFERENCE_PARAM_FIXED);
   }
+  if (injTable)
+     print_flags_orders_warning(injTable,commandLine); 
+         
+     /* Print info about orders and waveflags used for templates */
+     fprintf(stdout,"\n\n---\t\t ---\n");
+     fprintf(stdout,"Templates will run using Approximant %i (%s), phase order %i, amp order %i, spin order %i tidal order %i, in the %s domain.\n",approx,XLALGetStringFromApproximant(approx),PhaseOrder,AmpOrder,(int) spinO, (int) tideO, modelDomain==LAL_SIM_DOMAIN_TIME?"time":"frequency");
+     fprintf(stdout,"---\t\t ---\n\n");
   return(currentParams);
 }
 
@@ -1740,4 +1945,86 @@ LALInferenceVariables *LALInferenceInitVariablesReviewEvidence_banana(LALInferen
   return(currentParams);
 }
 
+static void print_flags_orders_warning(SimInspiralTable *injt, ProcessParamsTable *commline){
 
+    /* If lalDebugLevel > 0, print information about:
+     * 
+     * - Eventual injection/template mismatch on phase and amplitude orders, as well as on waveFlags
+     * - Those fiels being set only for injection or template
+     * 
+     **/
+    XLALPrintWarning("\n");
+    LALPNOrder PhaseOrder=-1;
+    LALPNOrder AmpOrder=-1;
+    LALSimInspiralSpinOrder default_spinO = LAL_SIM_INSPIRAL_SPIN_ORDER_ALL;
+    LALSimInspiralTidalOrder default_tideO = LAL_SIM_INSPIRAL_TIDAL_ORDER_ALL;
+    Approximant approx=NumApproximants;
+    ProcessParamsTable *ppt=NULL;
+    ProcessParamsTable *ppt_order=NULL;
+    int errnum;
+    ppt=LALInferenceGetProcParamVal(commline,"--approximant");
+    if(ppt){
+        approx=XLALGetApproximantFromString(ppt->value);
+        ppt=LALInferenceGetProcParamVal(commline,"--order");
+        if(ppt) PhaseOrder = XLALGetOrderFromString(ppt->value);
+    }
+    ppt=LALInferenceGetProcParamVal(commline,"--approx");
+    if(ppt){
+       approx=XLALGetApproximantFromString(ppt->value);
+       XLAL_TRY(PhaseOrder = XLALGetOrderFromString(ppt->value),errnum);
+       if( (int) PhaseOrder == XLAL_FAILURE || errnum) {
+          XLALPrintWarning("WARNING: No phase order given.  Using maximum available order for the template.\n");
+          PhaseOrder=-1;
+        }
+     }
+     /* check approximant is given */
+    if (approx==NumApproximants){
+        approx=XLALGetApproximantFromString(injt->waveform);
+        XLALPrintWarning("WARNING: You did not provide an approximant for the templates. Using value in injtable (%s), which might not what you want!\n",XLALGetStringFromApproximant(approx));
+     }
+    
+    /* check inj/rec amporder */
+    ppt=LALInferenceGetProcParamVal(commline,"--amporder");
+    if(ppt) AmpOrder=atoi(ppt->value);
+    ppt=LALInferenceGetProcParamVal(commline,"--ampOrder");
+    if(ppt) AmpOrder = XLALGetOrderFromString(ppt->value);
+    if(AmpOrder!=(LALPNOrder)injt->amp_order)
+       XLALPrintWarning("WARNING: Injection specified amplitude order %i. Template will use  %i\n",
+               injt->amp_order,AmpOrder);
+
+    /* check inj/rec phase order */
+    if(PhaseOrder!=(LALPNOrder)XLALGetOrderFromString(injt->waveform))
+        XLALPrintWarning("WARNING: Injection specified phase order %i. Template will use %i\n",\
+             XLALGetOrderFromString(injt->waveform),PhaseOrder);
+
+    /* check inj/rec spinflag */
+    ppt=LALInferenceGetProcParamVal(commline, "--spinOrder");
+    ppt_order=LALInferenceGetProcParamVal(commline, "--inj-spinOrder");
+    if (ppt && ppt_order){
+       if (!(atoi(ppt->value)== atoi(ppt_order->value)))
+            XLALPrintWarning("WARNING: Set different spin orders for injection (%i ) and template (%i) \n",atoi(ppt_order->value),atoi(ppt->value));       
+    }
+    else if (ppt || ppt_order){
+        if (ppt)
+            XLALPrintWarning("WARNING: You set the spin order only for the template (%i). Injection will use default value (%i). You can change that with --inj-spinOrder. \n",atoi(ppt->value),default_spinO);   
+        else 
+            XLALPrintWarning("WARNING: You set the spin order only for the injection (%i). Template will use default value (%i). You can change that with --spinOrder. \n",atoi(ppt_order->value),default_spinO);     }
+    else
+        XLALPrintWarning("WARNING: You did not set the spin order. Injection and template will use default values (%i). You change that using --inj-spinOrder (set injection value) and --spinOrder (set template value).\n",default_spinO);    
+    /* check inj/rec tidal flag */
+    ppt=LALInferenceGetProcParamVal(commline, "--tidalOrder");
+    ppt_order=LALInferenceGetProcParamVal(commline, "--inj-tidalOrder");
+    if (ppt && ppt_order){
+        if (!(atoi(ppt->value)==atoi( ppt_order->value)))
+            XLALPrintWarning("WARNING: Set different tidal orders for injection (%i ) and template (%i) \n",atoi(ppt_order->value),atoi(ppt->value));   
+    }
+    else if (ppt || ppt_order){
+        if (ppt)
+            XLALPrintWarning("WARNING: You set the tidal order only for the template (%d). Injection will use default value (%i). You can change that with --inj-tidalOrder. \n",atoi(ppt->value),default_tideO);        
+        else 
+            XLALPrintWarning("WARNING: You set the tidal order only for the injection (%i). Template will use default value (%i). You can  change that with --tidalOrder\n",atoi(ppt_order->value),default_tideO);
+        }
+    else
+       XLALPrintWarning("WARNING: You did not set the tidal order. Injection and template will use default values (%i). You change that using --inj-tidalOrder (set injection value) and --tidalOrder (set template value).\n",default_tideO); 
+    return;    
+}

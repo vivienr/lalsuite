@@ -17,7 +17,6 @@
  * 02111-1307  USA
  */
 
-#define LAL_USE_OLD_COMPLEX_STRUCTS
 #include <lal/LIGOMetadataTables.h>
 #include <lal/LIGOLwXMLInspiralRead.h>
 
@@ -370,51 +369,51 @@ MultiInspiralTable    * XLALMultiInspiralTableFromLIGOLw (
       }
       else if ( tableDir[j].idx == 65 )
       {
-        thisEvent->h1quad.re = r4colData;
+        thisEvent->h1quad = crectf( r4colData, cimagf(thisEvent->h1quad) );
       }
       else if ( tableDir[j].idx == 66 )
       {
-        thisEvent->h1quad.im = r4colData;
+        thisEvent->h1quad = crectf( crealf(thisEvent->h1quad), r4colData );
       }
       else if ( tableDir[j].idx == 67 )
       {
-        thisEvent->h2quad.re = r4colData;
+        thisEvent->h2quad = crectf( r4colData, cimagf(thisEvent->h2quad) );
       }
       else if ( tableDir[j].idx == 68 )
       {
-        thisEvent->h2quad.im = r4colData;
+        thisEvent->h2quad = crectf( crealf(thisEvent->h2quad), r4colData );
       }
       else if ( tableDir[j].idx == 69 )
       {
-        thisEvent->l1quad.re = r4colData;
+        thisEvent->l1quad = crectf( r4colData, cimagf(thisEvent->l1quad) );
       }
       else if ( tableDir[j].idx == 70 )
       {
-        thisEvent->l1quad.im = r4colData;
+        thisEvent->l1quad = crectf( crealf(thisEvent->l1quad), r4colData );
       }
       else if ( tableDir[j].idx == 71 )
       {
-        thisEvent->g1quad.re = r4colData;
+        thisEvent->g1quad = crectf( r4colData, cimagf(thisEvent->g1quad) );
       }
       else if ( tableDir[j].idx == 72 )
       {
-        thisEvent->g1quad.im = r4colData;
+        thisEvent->g1quad = crectf( crealf(thisEvent->g1quad), r4colData );
       }
       else if ( tableDir[j].idx == 73 )
       {
-        thisEvent->t1quad.re = r4colData;
+        thisEvent->t1quad = crectf( r4colData, cimagf(thisEvent->t1quad) );
       }
       else if ( tableDir[j].idx == 74 )
       {
-        thisEvent->t1quad.im = r4colData;
+        thisEvent->t1quad = crectf( crealf(thisEvent->t1quad), r4colData );
       }
       else if ( tableDir[j].idx == 75 )
       {
-        thisEvent->v1quad.re = r4colData;
+        thisEvent->v1quad = crectf( r4colData, cimagf(thisEvent->v1quad) );
       }
       else if ( tableDir[j].idx == 76 )
       {
-        thisEvent->v1quad.im = r4colData;
+        thisEvent->v1quad = crectf( crealf(thisEvent->v1quad), r4colData );
       }
       else if ( tableDir[j].idx == 77 )
       {
@@ -3199,51 +3198,51 @@ LALMultiInspiralTableFromLIGOLw (
       }
       else if ( tableDir[j].idx == 97 )
       {
-        thisEvent->h1quad.re = r4colData;
+        thisEvent->h1quad = crectf( r4colData, cimagf(thisEvent->h1quad) );
       }
       else if ( tableDir[j].idx == 98 )
       {
-        thisEvent->h1quad.im = r4colData;
+        thisEvent->h1quad = crectf( crealf(thisEvent->h1quad), r4colData );
       }
       else if ( tableDir[j].idx == 99 )
       {
-        thisEvent->h2quad.re = r4colData;
+        thisEvent->h2quad = crectf( r4colData, cimagf(thisEvent->h2quad) );
       }
       else if ( tableDir[j].idx == 100 )
       {
-        thisEvent->h2quad.im = r4colData;
+        thisEvent->h2quad = crectf( crealf(thisEvent->h2quad), r4colData );
       }
       else if ( tableDir[j].idx == 101 )
       {
-        thisEvent->l1quad.re = r4colData;
+        thisEvent->l1quad = crectf( r4colData, cimagf(thisEvent->l1quad) );
       }
       else if ( tableDir[j].idx == 102 )
       {
-        thisEvent->l1quad.im = r4colData;
+        thisEvent->l1quad = crectf( crealf(thisEvent->l1quad), r4colData );
       }
       else if ( tableDir[j].idx == 103 )
       {
-        thisEvent->g1quad.re = r4colData;
+        thisEvent->g1quad = crectf( r4colData, cimagf(thisEvent->g1quad) );
       }
       else if ( tableDir[j].idx == 104 )
       {
-        thisEvent->g1quad.im = r4colData;
+        thisEvent->g1quad = crectf( crealf(thisEvent->g1quad), r4colData );
       }
       else if ( tableDir[j].idx == 105 )
       {
-        thisEvent->t1quad.re = r4colData;
+        thisEvent->t1quad = crectf( r4colData, cimagf(thisEvent->t1quad) );
       }
       else if ( tableDir[j].idx == 106 )
       {
-        thisEvent->t1quad.im = r4colData;
+        thisEvent->t1quad = crectf( crealf(thisEvent->t1quad), r4colData );
       }
       else if ( tableDir[j].idx == 107 )
       {
-        thisEvent->v1quad.re = r4colData;
+        thisEvent->v1quad = crectf( r4colData, cimagf(thisEvent->v1quad) );
       }
       else if ( tableDir[j].idx == 108 )
       {
-        thisEvent->v1quad.im = r4colData;
+        thisEvent->v1quad = crectf( crealf(thisEvent->v1quad), r4colData );
       }
       else if ( tableDir[j].idx == 109 )
       {
@@ -3286,7 +3285,7 @@ LALMultiInspiralTableFromLIGOLw (
             i8colData = env->ligo_lw.table.elt[tableDir[j].pos].data.int_8s;
           else
           {
-            i8colData = XLALLIGOLwParseIlwdChar(env, tableDir[j].pos, "multi_inspiral", "time_slide_id");
+            i8colData = XLALLIGOLwParseIlwdChar(env, tableDir[j].pos, "time_slide", "time_slide_id");
             if ( i8colData < 0 )
               return -1;
           }

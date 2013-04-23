@@ -102,7 +102,6 @@
  *
  */
 
-#define LAL_USE_OLD_COMPLEX_STRUCTS
 #include <lal/LALPSpinInspiralRD.h>
 #include <lal/LALAdaptiveRungeKutta4.h>
 
@@ -2802,7 +2801,7 @@ static int XLALPSpinInspiralRDEngine(
 	XLAL_ERROR(XLAL_EFAILED);
       }
 
-      omegaRD = modefreqs->data[0].re * unitHz / LAL_PI / 2.;
+      omegaRD = crealf(modefreqs->data[0]) * unitHz / LAL_PI / 2.;
       frOmRD = fracRD(phenPars.LNhS1,phenPars.LNhS2,phenPars.S1S1,phenPars.S1S2,phenPars.S2S2)*omegaRD;
 
       v     = cbrt(om);
@@ -3078,185 +3077,169 @@ static int XLALPSpinInspiralRDEngine(
     x1 = h2P2->data[2 * i + 1];
     x2 = h2M2->data[2 * i];
     x3 = h2M2->data[2 * i + 1];
-    sigp->data[i] +=   x0 * MultSphHarmP.re - x1 * MultSphHarmP.im + x2 * MultSphHarmM.re - x3 * MultSphHarmM.im;
-    sigc->data[i] += - x0 * MultSphHarmP.im - x1 * MultSphHarmP.re - x2 * MultSphHarmM.im - x3 * MultSphHarmM.re;
+    sigp->data[i] +=   x0 * creal(MultSphHarmP) - x1 * cimag(MultSphHarmP) + x2 * creal(MultSphHarmM) - x3 * cimag(MultSphHarmM);
+    sigc->data[i] += - x0 * cimag(MultSphHarmP) - x1 * creal(MultSphHarmP) - x2 * cimag(MultSphHarmM) - x3 * creal(MultSphHarmM);
   }
 
-  if (signalvec2==NULL) {
-    errcode  = XLALSphHarm(&MultSphHarmP, 2, 1, inc, 0.);
-    errcode += XLALSphHarm(&MultSphHarmM, 2, -1, inc, 0.);
-    if (errcode != XLAL_SUCCESS){
-      XLALDestroyREAL8Vector(h2P1);
-      XLALDestroyREAL8Vector(h2M1);
-      XLALPrintWarning("** LALPSpinInspiralRD WARNING **: impossible to create Y21\n");
-    } else {
-      for (i = 0; i < length; i++) {
-	x0 = h2P1->data[2 * i];
-	x1 = h2P1->data[2 * i + 1];
-	x2 = h2M1->data[2 * i];
-	x3 = h2M1->data[2 * i + 1];
-	sigp->data[i] +=   x0 * MultSphHarmP.re - x1 * MultSphHarmP.im + x2 * MultSphHarmM.re - x3 * MultSphHarmM.im;
-	sigc->data[i] += - x0 * MultSphHarmP.im - x1 * MultSphHarmP.re - x2 * MultSphHarmM.im - x3 * MultSphHarmM.re;
-      }
+  errcode  = XLALSphHarm(&MultSphHarmP, 2, 1, inc, 0.);
+  errcode += XLALSphHarm(&MultSphHarmM, 2, -1, inc, 0.);
+  if (errcode != XLAL_SUCCESS){
+    XLALDestroyREAL8Vector(h2P1);
+    XLALDestroyREAL8Vector(h2M1);
+    XLALPrintWarning("** LALPSpinInspiralRD WARNING **: impossible to create Y21\n");
+  } else {
+    for (i = 0; i < length; i++) {
+      x0 = h2P1->data[2 * i];
+      x1 = h2P1->data[2 * i + 1];
+      x2 = h2M1->data[2 * i];
+      x3 = h2M1->data[2 * i + 1];
+      sigp->data[i] +=   x0 * creal(MultSphHarmP) - x1 * cimag(MultSphHarmP) + x2 * creal(MultSphHarmM) - x3 * cimag(MultSphHarmM);
+      sigc->data[i] += - x0 * cimag(MultSphHarmP) - x1 * creal(MultSphHarmP) - x2 * cimag(MultSphHarmM) - x3 * creal(MultSphHarmM);
     }
 
-    errcode = XLALSphHarm(&MultSphHarmP, 2, 0, inc, 0.);
-    if (errcode != XLAL_SUCCESS) {
-      XLALDestroyREAL8Vector(h20);
-      XLALPrintWarning("** LALPSpinInspiralRD WARNING **: impossible to create Y20\n");
-    } else {
-      for (i = 0; i < length; i++) {
-	x0 = h20->data[2 * i];
-	x1 = h20->data[2 * i + 1];
-	sigp->data[i] += x1 * MultSphHarmP.re - x1 * MultSphHarmP.im;
-	sigc->data[i] -= x1 * MultSphHarmP.im + x1 * MultSphHarmP.re;
-      }
+  errcode = XLALSphHarm(&MultSphHarmP, 2, 0, inc, 0.);
+  if (errcode != XLAL_SUCCESS) {
+    XLALDestroyREAL8Vector(h20);
+    XLALPrintWarning("** LALPSpinInspiralRD WARNING **: impossible to create Y20\n");
+  } else {
+    for (i = 0; i < length; i++) {
+      x0 = h20->data[2 * i];
+      x1 = h20->data[2 * i + 1];
+      sigp->data[i] += x1 * creal(MultSphHarmP) - x1 * cimag(MultSphHarmP);
+      sigc->data[i] -= x1 * cimag(MultSphHarmP) + x1 * creal(MultSphHarmP);
     }
 
-    errcode  = XLALSphHarm(&MultSphHarmP, 3, 3, inc, 0.);
-    errcode += XLALSphHarm(&MultSphHarmM, 3, -3, inc, 0.);
-    
-    if (errcode != XLAL_SUCCESS) {
-      XLALDestroyREAL8Vector(h3P3);
-      XLALDestroyREAL8Vector(h3M3);
-      XLALPrintWarning("** LALPSpinInspiralRD WARNING **: impossible to create Y33,Y3-3\n");
-    } else {
-      for (i = 0; i < length; i++) {
-	x0 = h3P3->data[2 * i];
-	x1 = h3P3->data[2 * i + 1];
-	x2 = h3M3->data[2 * i];
-	x3 = h3M3->data[2 * i + 1];
-	sigp->data[i] += x0 * MultSphHarmP.re - x1 * MultSphHarmP.im + x2 * MultSphHarmM.re - x3 * MultSphHarmM.im;
-	sigc->data[i] -= x0 * MultSphHarmP.im + x1 * MultSphHarmP.re + x2 * MultSphHarmM.im + x3 * MultSphHarmM.re;
-      }
+  if (errcode != XLAL_SUCCESS) {
+    XLALDestroyREAL8Vector(h3P3);
+    XLALDestroyREAL8Vector(h3M3);
+    XLALPrintWarning("** LALPSpinInspiralRD WARNING **: impossible to create Y33,Y3-3\n");
+  } else {
+    for (i = 0; i < length; i++) {
+      x0 = h3P3->data[2 * i];
+      x1 = h3P3->data[2 * i + 1];
+      x2 = h3M3->data[2 * i];
+      x3 = h3M3->data[2 * i + 1];
+      sigp->data[i] += x0 * creal(MultSphHarmP) - x1 * cimag(MultSphHarmP) + x2 * creal(MultSphHarmM) - x3 * cimag(MultSphHarmM);
+      sigc->data[i] -= x0 * cimag(MultSphHarmP) + x1 * creal(MultSphHarmP) + x2 * cimag(MultSphHarmM) + x3 * creal(MultSphHarmM);
+
+  errcode  = XLALSphHarm(&MultSphHarmP, 3, 2, inc, 0.);
+  errcode += XLALSphHarm(&MultSphHarmM, 3, -2, inc, 0.);
+  if (errcode != XLAL_SUCCESS) {
+    XLALDestroyREAL8Vector(h3P2);
+    XLALDestroyREAL8Vector(h3M2);
+    XLALPrintWarning("** LALPSpinInspiralRD WARNING **: impossible to create Y32,Y3-2\n");
+  } else {
+    for (i = 0; i < length; i++) {
+      x0 = h3P2->data[2 * i];
+      x1 = h3P2->data[2 * i + 1];
+      x2 = h3M2->data[2 * i];
+      x3 = h3M2->data[2 * i + 1];
+      sigp->data[i] += x0 * creal(MultSphHarmP) - x1 * cimag(MultSphHarmP) + x2 * creal(MultSphHarmM) - x3 * cimag(MultSphHarmM);
+      sigc->data[i] -= x0 * cimag(MultSphHarmP) + x1 * creal(MultSphHarmP) + x2 * cimag(MultSphHarmM) + x3 * creal(MultSphHarmM);
+
+  errcode  = XLALSphHarm(&MultSphHarmP, 3, 1, inc, 0.);
+  errcode += XLALSphHarm(&MultSphHarmM, 3, -1, inc, 0.);
+  if (errcode != XLAL_SUCCESS) {
+    XLALDestroyREAL8Vector(h3P1);
+    XLALDestroyREAL8Vector(h3M1);
+    XLALPrintWarning("** LALPSpinInspiralRD WARNING **: impossible to create Y31,Y3-1\n");
+  } else {
+    for (i = 0; i < length; i++) {
+      x0 = h3P1->data[2 * i];
+      x1 = h3P1->data[2 * i + 1];
+      x2 = h3M1->data[2 * i];
+      x3 = h3M1->data[2 * i + 1];
+      sigp->data[i] += x0 * creal(MultSphHarmP) - x1 * cimag(MultSphHarmP) + x2 * creal(MultSphHarmM) - x3 * cimag(MultSphHarmM);
+      sigc->data[i] -= x0 * cimag(MultSphHarmP) + x1 * creal(MultSphHarmP) + x2 * cimag(MultSphHarmM) + x3 * creal(MultSphHarmM);
     }
 
-    errcode  = XLALSphHarm(&MultSphHarmP, 3, 2, inc, 0.);
-    errcode += XLALSphHarm(&MultSphHarmM, 3, -2, inc, 0.);
-    if (errcode != XLAL_SUCCESS) {
-      XLALDestroyREAL8Vector(h3P2);
-      XLALDestroyREAL8Vector(h3M2);
-      XLALPrintWarning("** LALPSpinInspiralRD WARNING **: impossible to create Y32,Y3-2\n");
-    } else {
-      for (i = 0; i < length; i++) {
-	x0 = h3P2->data[2 * i];
-	x1 = h3P2->data[2 * i + 1];
-	x2 = h3M2->data[2 * i];
-	x3 = h3M2->data[2 * i + 1];
-	sigp->data[i] += x0 * MultSphHarmP.re - x1 * MultSphHarmP.im + x2 * MultSphHarmM.re - x3 * MultSphHarmM.im;
-	sigc->data[i] -= x0 * MultSphHarmP.im + x1 * MultSphHarmP.re + x2 * MultSphHarmM.im + x3 * MultSphHarmM.re;
-      }
+  errcode  = XLALSphHarm(&MultSphHarmP, 3, 0, inc, 0.);
+  if (errcode != XLAL_SUCCESS) {
+    XLALDestroyREAL8Vector(h30);
+    XLALPrintWarning("** LALPSpinInspiralRD WARNING **: impossible to create Y30\n");
+  } else {
+    for (i = 0; i < length; i++) {
+      x0 = h30->data[2 * i];
+      x1 = h30->data[2 * i + 1];    
+      sigp->data[i] += x0 * creal(MultSphHarmP) - x1 * cimag(MultSphHarmM);
+      sigc->data[i] -= x0 * cimag(MultSphHarmP) + x1 * creal(MultSphHarmP);
     }
 
-    errcode  = XLALSphHarm(&MultSphHarmP, 3, 1, inc, 0.);
-    errcode += XLALSphHarm(&MultSphHarmM, 3, -1, inc, 0.);
-    if (errcode != XLAL_SUCCESS) {
-      XLALDestroyREAL8Vector(h3P1);
-      XLALDestroyREAL8Vector(h3M1);
-      XLALPrintWarning("** LALPSpinInspiralRD WARNING **: impossible to create Y31,Y3-1\n");
-    } else {
-      for (i = 0; i < length; i++) {
-	x0 = h3P1->data[2 * i];
-	x1 = h3P1->data[2 * i + 1];
-	x2 = h3M1->data[2 * i];
-	x3 = h3M1->data[2 * i + 1];
-	sigp->data[i] += x0 * MultSphHarmP.re - x1 * MultSphHarmP.im + x2 * MultSphHarmM.re - x3 * MultSphHarmM.im;
-	sigc->data[i] -= x0 * MultSphHarmP.im + x1 * MultSphHarmP.re + x2 * MultSphHarmM.im + x3 * MultSphHarmM.re;
-      }
+  errcode  = XLALSphHarm(&MultSphHarmP, 4, 4, inc, 0.);
+  errcode += XLALSphHarm(&MultSphHarmM, 4, -4, inc, 0.);
+  if (errcode != XLAL_SUCCESS) {
+    XLALDestroyREAL8Vector(h4P4);
+    XLALDestroyREAL8Vector(h4M4);
+    XLALPrintWarning("** LALPSpinInspiralRD WARNING **: impossible to create Y44,Y4-4\n");
+  } else {
+    for (i = 0; i < length; i++) {
+      x0 = h4P4->data[2 * i];
+      x1 = h4P4->data[2 * i + 1];
+      x2 = h4P4->data[2 * i];
+      x3 = h4M4->data[2 * i + 1];
+      sigp->data[i] += x0 * creal(MultSphHarmP) - x1 * cimag(MultSphHarmP) + x2 * creal(MultSphHarmM) - x3 * cimag(MultSphHarmM);
+      sigc->data[i] -= x0 * cimag(MultSphHarmP) + x1 * creal(MultSphHarmP) + x2 * cimag(MultSphHarmM) + x3 * creal(MultSphHarmM);
     }
 
-    errcode  = XLALSphHarm(&MultSphHarmP, 3, 0, inc, 0.);
-    if (errcode != XLAL_SUCCESS) {
-      XLALDestroyREAL8Vector(h30);
-      XLALPrintWarning("** LALPSpinInspiralRD WARNING **: impossible to create Y30\n");
-    } else {
-      for (i = 0; i < length; i++) {
-	x0 = h30->data[2 * i];
-	x1 = h30->data[2 * i + 1];    
-	sigp->data[i] += x0 * MultSphHarmP.re - x1 * MultSphHarmM.im;
-	sigc->data[i] -= x0 * MultSphHarmP.im + x1 * MultSphHarmP.re;
-      }
+  errcode  = XLALSphHarm(&MultSphHarmP, 4, 3, inc, 0.);
+  errcode += XLALSphHarm(&MultSphHarmM, 4, -3, inc, 0.);
+  if (errcode != XLAL_SUCCESS) {
+    XLALDestroyREAL8Vector(h4P3);
+    XLALDestroyREAL8Vector(h4M3);
+    XLALPrintWarning("** LALPSpinInspiralRD WARNING **: impossible to create Y43,Y4-3\n");
+  } else {
+    for (i = 0; i < length; i++) {
+      x0 = h4P3->data[2 * i];
+      x1 = h4P3->data[2 * i + 1];
+      x2 = h4M3->data[2 * i];
+      x3 = h4M3->data[2 * i + 1];
+      sigp->data[i] += x0 * creal(MultSphHarmP) - x1 * cimag(MultSphHarmP) + x2 * creal(MultSphHarmM) - x3 * cimag(MultSphHarmM);
+      sigc->data[i] -= x0 * cimag(MultSphHarmP) + x1 * creal(MultSphHarmP) + x2 * cimag(MultSphHarmM) + x3 * creal(MultSphHarmM);
     }
-
-    errcode  = XLALSphHarm(&MultSphHarmP, 4, 4, inc, 0.);
-    errcode += XLALSphHarm(&MultSphHarmM, 4, -4, inc, 0.);
-    if (errcode != XLAL_SUCCESS) {
-      XLALDestroyREAL8Vector(h4P4);
-      XLALDestroyREAL8Vector(h4M4);
-      XLALPrintWarning("** LALPSpinInspiralRD WARNING **: impossible to create Y44,Y4-4\n");
-    } else {
-      for (i = 0; i < length; i++) {
-	x0 = h4P4->data[2 * i];
-	x1 = h4P4->data[2 * i + 1];
-	x2 = h4P4->data[2 * i];
-	x3 = h4M4->data[2 * i + 1];
-	sigp->data[i] += x0 * MultSphHarmP.re - x1 * MultSphHarmP.im + x2 * MultSphHarmM.re - x3 * MultSphHarmM.im;
-	sigc->data[i] -= x0 * MultSphHarmP.im + x1 * MultSphHarmP.re + x2 * MultSphHarmM.im + x3 * MultSphHarmM.re;
-      }
-    }
-
-    errcode  = XLALSphHarm(&MultSphHarmP, 4, 3, inc, 0.);
-    errcode += XLALSphHarm(&MultSphHarmM, 4, -3, inc, 0.);
-    if (errcode != XLAL_SUCCESS) {
-      XLALDestroyREAL8Vector(h4P3);
-      XLALDestroyREAL8Vector(h4M3);
-      XLALPrintWarning("** LALPSpinInspiralRD WARNING **: impossible to create Y43,Y4-3\n");
-    } else {
-      for (i = 0; i < length; i++) {
-	x0 = h4P3->data[2 * i];
-	x1 = h4P3->data[2 * i + 1];
-	x2 = h4M3->data[2 * i];
-	x3 = h4M3->data[2 * i + 1];
-	sigp->data[i] += x0 * MultSphHarmP.re - x1 * MultSphHarmP.im + x2 * MultSphHarmM.re - x3 * MultSphHarmM.im;
-	sigc->data[i] -= x0 * MultSphHarmP.im + x1 * MultSphHarmP.re + x2 * MultSphHarmM.im + x3 * MultSphHarmM.re;
-      }
   }
 
-    errcode  = XLALSphHarm(&MultSphHarmP, 4, 2, inc, 0.);
-    errcode += XLALSphHarm(&MultSphHarmM, 4, -2, inc, 0.);
-    if (errcode != XLAL_SUCCESS) {
-      XLALDestroyREAL8Vector(h4P2);
-      XLALDestroyREAL8Vector(h4M2);
-      XLALPrintWarning("** LALPSpinInspiralRD WARNING **: impossible to create Y42,Y4-2\n");
-    } else {
-      for (i = 0; i < length; i++) {
-	x0 = h4P2->data[2 * i];
-	x1 = h4P2->data[2 * i + 1];
-	x2 = h4M2->data[2 * i];
-	x3 = h4M2->data[2 * i + 1];
-	sigp->data[i] += x0 * MultSphHarmP.re - x1 * MultSphHarmP.im + x2 * MultSphHarmM.re - x3 * MultSphHarmM.im;
-	sigc->data[i] -= x0 * MultSphHarmP.im + x1 * MultSphHarmP.re + x2 * MultSphHarmM.im + x3 * MultSphHarmM.re;
-      }
+  errcode  = XLALSphHarm(&MultSphHarmP, 4, 2, inc, 0.);
+  errcode += XLALSphHarm(&MultSphHarmM, 4, -2, inc, 0.);
+  if (errcode != XLAL_SUCCESS) {
+    XLALDestroyREAL8Vector(h4P2);
+    XLALDestroyREAL8Vector(h4M2);
+    XLALPrintWarning("** LALPSpinInspiralRD WARNING **: impossible to create Y42,Y4-2\n");
+  } else {
+    for (i = 0; i < length; i++) {
+      x0 = h4P2->data[2 * i];
+      x1 = h4P2->data[2 * i + 1];
+      x2 = h4M2->data[2 * i];
+      x3 = h4M2->data[2 * i + 1];
+      sigp->data[i] += x0 * creal(MultSphHarmP) - x1 * cimag(MultSphHarmP) + x2 * creal(MultSphHarmM) - x3 * cimag(MultSphHarmM);
+      sigc->data[i] -= x0 * cimag(MultSphHarmP) + x1 * creal(MultSphHarmP) + x2 * cimag(MultSphHarmM) + x3 * creal(MultSphHarmM);
     }
 
-    errcode  = XLALSphHarm(&MultSphHarmP, 4, 1, inc, 0.);
-    errcode += XLALSphHarm(&MultSphHarmM, 4, -1, inc, 0.);
-    if (errcode != XLAL_SUCCESS) {
-      XLALDestroyREAL8Vector(h4P1);
-      XLALDestroyREAL8Vector(h4M1);
-      XLALPrintWarning("** LALPSpinInspiralRD WARNING **: impossible to create Y41,Y4-1\n");
-    } else {
-      for (i = 0; i < length; i++) {
-	x0 = h4P1->data[2 * i];
-	x1 = h4P1->data[2 * i + 1];
-	x2 = h4M1->data[2 * i];
-	x3 = h4M1->data[2 * i + 1];
-	sigp->data[i] += x0 * MultSphHarmP.re - x1 * MultSphHarmP.im + x2 * MultSphHarmM.re - x3 * MultSphHarmM.im;
-	sigc->data[i] -= x0 * MultSphHarmP.im + x1 * MultSphHarmP.re + x2 * MultSphHarmM.im + x3 * MultSphHarmM.re;
-      }
+  errcode  = XLALSphHarm(&MultSphHarmP, 4, 1, inc, 0.);
+  errcode += XLALSphHarm(&MultSphHarmM, 4, -1, inc, 0.);
+  if (errcode != XLAL_SUCCESS) {
+    XLALDestroyREAL8Vector(h4P1);
+    XLALDestroyREAL8Vector(h4M1);
+    XLALPrintWarning("** LALPSpinInspiralRD WARNING **: impossible to create Y41,Y4-1\n");
+  } else {
+    for (i = 0; i < length; i++) {
+      x0 = h4P1->data[2 * i];
+      x1 = h4P1->data[2 * i + 1];
+      x2 = h4M1->data[2 * i];
+      x3 = h4M1->data[2 * i + 1];
+      sigp->data[i] += x0 * creal(MultSphHarmP) - x1 * cimag(MultSphHarmP) + x2 * creal(MultSphHarmM) - x3 * cimag(MultSphHarmM);
+      sigc->data[i] -= x0 * cimag(MultSphHarmP) + x1 * creal(MultSphHarmP) + x2 * cimag(MultSphHarmM) + x3 * creal(MultSphHarmM);
     }
 
-    errcode  = XLALSphHarm(&MultSphHarmP, 4, 0, inc, 0.);
-    if (errcode != XLAL_SUCCESS) {
-      XLALDestroyREAL8Vector(h40);
-      XLALPrintWarning("** LALPSpinInspiralRD WARNING **: impossible to create Y40\n");
-    } else {
-      for (i = 0; i < length; i++) {
-	x0 = h40->data[2 * i];
-	x1 = h40->data[2 * i + 1];
-	sigp->data[i] += x0 * MultSphHarmP.re - x1 * MultSphHarmP.im;
-	sigc->data[i] -= x0 * MultSphHarmP.im + x1 * MultSphHarmP.re;
-      }
+  errcode  = XLALSphHarm(&MultSphHarmP, 4, 0, inc, 0.);
+  if (errcode != XLAL_SUCCESS) {
+    XLALDestroyREAL8Vector(h40);
+    XLALPrintWarning("** LALPSpinInspiralRD WARNING **: impossible to create Y40\n");
+  } else {
+    for (i = 0; i < length; i++) {
+      x0 = h40->data[2 * i];
+      x1 = h40->data[2 * i + 1];
+      sigp->data[i] += x0 * creal(MultSphHarmP) - x1 * cimag(MultSphHarmP);
+      sigc->data[i] -= x0 * cimag(MultSphHarmP) + x1 * creal(MultSphHarmP);
     }
   }
 
