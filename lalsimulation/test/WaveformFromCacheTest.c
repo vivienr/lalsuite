@@ -62,7 +62,7 @@ int main(void) {
 
     // Generate waveform via usual ChooseTDWaveform path
     s1 = clock();
-    ret = XLALSimInspiralChooseTDWaveform(&hplus, &hcross,
+    ret = XLALSimInspiralChooseTDWaveformOLD(&hplus, &hcross,
 					  m1, m2, s1x, s1y, s1z, s2x, s2y, s2z,
 					  dist1, inc1,
 					  phiref1, 0., 0., 0., dt, f_min, f_ref,
@@ -107,7 +107,7 @@ int main(void) {
 
     // Generate another waveform via ChooseTDWaveform path
     s1 = clock();
-    ret = XLALSimInspiralChooseTDWaveform(&hplus, &hcross, m1, m2,
+    ret = XLALSimInspiralChooseTDWaveformOLD(&hplus, &hcross, m1, m2,
 					  s1x, s1y, s1z, s2x, s2y, s2z,
 					  dist2, inc2, phiref2, 0., 0., 0.,
 					  dt, f_min, f_ref,

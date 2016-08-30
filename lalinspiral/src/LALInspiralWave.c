@@ -162,11 +162,8 @@ int XLALSimInspiralChooseWaveformFromSimInspiral(
    REAL8 f_ref = 0.;
    REAL8 r = thisRow->distance * LAL_PC_SI * 1e6;
    REAL8 i = thisRow->inclination;
-   REAL8 lambda1 = 0.; /* FIXME:0 turns these terms off, these should be obtained by some other means */
-   REAL8 lambda2 = 0.; /* FIXME:0 turns these terms off, these should be obtained by some other means */
-   LALSimInspiralWaveformFlags *waveFlags=XLALSimInspiralCreateWaveformFlags();
-   LALSimInspiralTestGRParam *nonGRparams = NULL;
-   int amplitudeO = thisRow->amp_order;
+   LALDict *LALpars=XLALCreateDict();
+   XLALSimInspiralWaveformParamsInsertPNAmplitudeOrder(LALpars, thisRow->amp_order);
 
    /* get approximant */
    approximant = XLALSimInspiralGetApproximantFromString(thisRow->waveform);
@@ -196,10 +193,7 @@ int XLALSimInspiralChooseWaveformFromSimInspiral(
          ret = XLALSimInspiralChooseTDWaveform(hplus, hcross, m1, m2,
 					       S1x, S1y, S1z, S2x, S2y, S2z, r, i,
 					       phi0, 0., 0., 0., deltaT, f_min, f_ref,
-					       lambda1, lambda2, 0., 0., waveFlags, nonGRparams, amplitudeO,
-					       order, approximant);
-         XLALSimInspiralDestroyWaveformFlags(waveFlags);
-         XLALSimInspiralDestroyTestGRParam(nonGRparams);
+					       LALpars, approximant);
          if( ret == XLAL_FAILURE )
             XLAL_ERROR(XLAL_EFUNC);
    }
@@ -305,22 +299,18 @@ XLALSimInspiralChooseWaveformFromInspiralTemplate(
   /* Value of 'distance' fed to lalsim is conventional to obtain a correct template norm */
   REAL8 r = params->distance;
   REAL8 i = params->inclination;
-  REAL8 lambda1 = 0.; /* FIXME:0 turns these terms off, these should be obtained by some other means */
-  REAL8 lambda2 = 0.; /* FIXME:0 turns these terms off, these should be obtained by some other means */
-  LALSimInspiralWaveformFlags *waveFlags = XLALSimInspiralCreateWaveformFlags();
-  LALSimInspiralTestGRParam *nonGRparams = NULL;
-  LALPNOrder amplitudeO = params->ampOrder;
-  LALPNOrder order = params->order;
+  LALDict *LALpars=XLALCreateDict();
+  XLALSimInspiralWaveformParamsInsertPNAmplitudeOrder(LALpars,params->ampOrder);
+  XLALSimInspiralWaveformParamsInsertPNPhaseOrder(LALpars,params->order);
   Approximant approximant = params->approximant;
 
   /* generate +,x waveforms */
   ret = XLALSimInspiralChooseTDWaveform(hplus, hcross, m1, m2,
 					S1x, S1y, S1z, S2x, S2y, S2z, r, i,
 					phi0, 0., 0., 0., deltaT, f_min, f_ref,
-					lambda1, lambda2, 0., 0.,
-					waveFlags, nonGRparams, amplitudeO, order, approximant);
-  XLALSimInspiralDestroyWaveformFlags(waveFlags);
-  XLALSimInspiralDestroyTestGRParam(nonGRparams);
+					LALpars, approximant);
+  XLALDestroyDict(LALpars);
+
   if( ret == XLAL_FAILURE)
     XLAL_ERROR(XLAL_EFUNC);
 

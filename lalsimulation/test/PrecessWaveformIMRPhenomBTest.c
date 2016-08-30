@@ -54,7 +54,7 @@ int main(void){
   REAL8TimeSeries *hp, *hx;
   hp = NULL; hx = NULL;
 
-  ret = XLALSimInspiralChooseTDWaveform(
+  ret = XLALSimInspiralChooseTDWaveformOLD(
     &hp, &hx,
     m1, m2,
     s1x, s1y, s1z,
@@ -93,7 +93,7 @@ int main(void){
   hp = NULL; hx = NULL;
 
   inc=0;  // +z axis
-  ret = XLALSimInspiralChooseTDWaveform(
+  ret = XLALSimInspiralChooseTDWaveformOLD(
     &hp, &hx,
     m1, m2,
     s1x, s1y, s1z,

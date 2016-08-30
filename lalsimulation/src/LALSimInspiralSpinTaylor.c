@@ -100,8 +100,7 @@ static int XLALSimInspiralSpinTaylorDriver(REAL8TimeSeries **hplus,
     REAL8 s1x, REAL8 s1y, REAL8 s1z, REAL8 s2x, REAL8 s2y, REAL8 s2z,
     REAL8 lnhatx, REAL8 lnhaty, REAL8 lnhatz, REAL8 e1x, REAL8 e1y, REAL8 e1z,
     REAL8 lambda1, REAL8 lambda2, REAL8 quadparam1, REAL8 quadparam2,
-    LALSimInspiralSpinOrder spinO, LALSimInspiralTidalOrder tideO,
-    int phaseO, int amplitudeO, Approximant approx);
+    LALDict *LALparams, int phaseO, int amplitudeO, Approximant approx);
 static int XLALSimInspiralSpinTaylorPNEvolveOrbitIrregularIntervals(
     REAL8Array **yout, REAL8 m1, REAL8 m2, REAL8 fStart, REAL8 fEnd, REAL8 s1x,
     REAL8 s1y, REAL8 s1z, REAL8 s2x, REAL8 s2y, REAL8 s2z, REAL8 lnhatx,
@@ -116,8 +115,7 @@ static int XLALSimInspiralSpinTaylorDriverFourier(
     REAL8 s1y, REAL8 s1z, REAL8 s2x, REAL8 s2y, REAL8 s2z, REAL8 lnhatx,
     REAL8 lnhaty, REAL8 lnhatz, REAL8 e1x, REAL8 e1y, REAL8 e1z, REAL8 lambda1,
     REAL8 lambda2, REAL8 quadparam1, REAL8 quadparam2,
-    LALSimInspiralSpinOrder spinO, LALSimInspiralTidalOrder tideO, INT4 phaseO,
-    INT4 amplitudeO, Approximant approx, INT4 phiRefAtEnd);
+    LALDict *LALparams, INT4 phaseO, INT4 amplitudeO, Approximant approx, INT4 phiRefAtEnd);
 
 
 /* Appends the start and end time series together. Frees start and end before
@@ -1203,8 +1201,7 @@ static int XLALSimInspiralSpinTaylorDriverFourier(
         REAL8 lambda2,                  /**< (tidal deformability of mass 2) / (mass of body 2)^5 (dimensionless) */
         REAL8 quadparam1,               /**< phenom. parameter describing induced quad. moment of body 1 (=1 for BHs, ~2-12 for NSs) */
         REAL8 quadparam2,               /**< phenom. parameter describing induced quad. moment of body 2 (=1 for BHs, ~2-12 for NSs) */
-        LALSimInspiralSpinOrder spinO,  /**< twice PN order of spin effects */
-        LALSimInspiralTidalOrder tideO, /**< twice PN order of tidal effects */
+	LALDict *LALparams,
         INT4 phaseO,                    /**< twice PN phase order */
         INT4 amplitudeO,                /**< twice PN amplitude order */
         Approximant approx,             /**< PN approximant (SpinTaylorT1/T2/T4) */
@@ -1219,6 +1216,8 @@ static int XLALSimInspiralSpinTaylorDriverFourier(
     /* The Schwarzschild ISCO frequency - for sanity checking fRef, and default maximum frequency */
     REAL8 fISCO = pow(LAL_C_SI,3) / (pow(6.,3./2.)*LAL_PI*(m1+m2)*LAL_G_SI);
 
+    int spinO=XLALSimInspiralWaveformParamsLookupPNSpinOrder(LALparams);
+    int tideO=XLALSimInspiralWaveformParamsLookupPNTidalOrder(LALparams);
 
     if(kMax < 0)
     {
@@ -2724,8 +2723,7 @@ static int XLALSimInspiralSpinTaylorDriver(
 	REAL8 lambda2,                  /**< (tidal deformability of mass 2) / (mass of body 2)^5 (dimensionless) */
 	REAL8 quadparam1,               /**< phenom. parameter describing induced quad. moment of body 1 (=1 for BHs, ~2-12 for NSs) */
 	REAL8 quadparam2,               /**< phenom. parameter describing induced quad. moment of body 2 (=1 for BHs, ~2-12 for NSs) */
-	LALSimInspiralSpinOrder spinO,  /**< twice PN order of spin effects */
-	LALSimInspiralTidalOrder tideO, /**< twice PN order of tidal effects */
+	LALDict *LALparams,
 	int phaseO,                     /**< twice PN phase order */
 	int amplitudeO,                 /**< twice PN amplitude order */
     Approximant approx              /**< PN approximant (SpinTaylorT1/T2/T4) */
@@ -2738,6 +2736,9 @@ static int XLALSimInspiralSpinTaylorDriver(
     REAL8 fS, fE, phiShift;
     /* The Schwarzschild ISCO frequency - for sanity checking fRef */
     REAL8 fISCO = 1./(pow(6.,3./2.)*LAL_PI*(m1_SI+m2_SI)/LAL_MSUN_SI*LAL_MTSUN_SI);
+
+    int spinO=XLALSimInspiralWaveformParamsLookupPNSpinOrder(LALparams);
+    int tideO=XLALSimInspiralWaveformParamsLookupPNTidalOrder(LALparams);
 
     /* Sanity check fRef value */
     if( fRef < 0. )
@@ -4185,8 +4186,7 @@ int XLALSimInspiralSpinTaylorT4(
 	REAL8 lambda2,                  /**< (tidal deformability of mass 2) / (mass of body 2)^5 (dimensionless) */
 	REAL8 quadparam1,               /**< phenom. parameter describing induced quad. moment of body 1 (=1 for BHs, ~2-12 for NSs) */
 	REAL8 quadparam2,               /**< phenom. parameter describing induced quad. moment of body 2 (=1 for BHs, ~2-12 for NSs) */
-	LALSimInspiralSpinOrder spinO,  /**< twice PN order of spin effects */
-	LALSimInspiralTidalOrder tideO, /**< twice PN order of tidal effects */
+	LALDict *LALparams,
 	int phaseO,                     /**< twice PN phase order */
 	int amplitudeO                  /**< twice PN amplitude order */
 	)
@@ -4195,7 +4195,7 @@ int XLALSimInspiralSpinTaylorT4(
     int n = XLALSimInspiralSpinTaylorDriver(hplus, hcross, phiRef, v0, deltaT,
             m1, m2, fStart, fRef, r, s1x, s1y, s1z, s2x, s2y, s2z,
             lnhatx, lnhaty, lnhatz, e1x, e1y, e1z, lambda1, lambda2,
-            quadparam1, quadparam2, spinO, tideO, phaseO, amplitudeO, approx);
+            quadparam1, quadparam2, LALparams, phaseO, amplitudeO, approx);
 
     return n;
 }
@@ -4256,8 +4256,7 @@ int XLALSimInspiralSpinTaylorT1(
 	REAL8 lambda2,                  /**< (tidal deformability of mass 2) / (mass of body 2)^5 (dimensionless) */
 	REAL8 quadparam1,               /**< phenom. parameter describing induced quad. moment of body 1 (=1 for BHs, ~2-12 for NSs) */
 	REAL8 quadparam2,               /**< phenom. parameter describing induced quad. moment of body 2 (=1 for BHs, ~2-12 for NSs) */
-	LALSimInspiralSpinOrder spinO,  /**< twice PN order of spin effects */
-	LALSimInspiralTidalOrder tideO, /**< twice PN order of tidal effects */
+	LALDict *LALparams,
 	int phaseO,                     /**< twice PN phase order */
 	int amplitudeO                  /**< twice PN amplitude order */
 	)
@@ -4266,7 +4265,7 @@ int XLALSimInspiralSpinTaylorT1(
     int n = XLALSimInspiralSpinTaylorDriver(hplus, hcross, phiRef, v0, deltaT,
             m1, m2, fStart, fRef, r, s1x, s1y, s1z, s2x, s2y, s2z,
             lnhatx, lnhaty, lnhatz, e1x, e1y, e1z, lambda1, lambda2,
-            quadparam1, quadparam2, spinO, tideO, phaseO, amplitudeO, approx);
+            quadparam1, quadparam2, LALparams, phaseO, amplitudeO, approx);
 
     return n;
 }
@@ -4327,8 +4326,7 @@ int XLALSimInspiralSpinTaylorT2(
 	REAL8 lambda2,                  /**< (tidal deformability of mass 2) / (mass of body 2)^5 (dimensionless) */
 	REAL8 quadparam1,               /**< phenom. parameter describing induced quad. moment of body 1 (=1 for BHs, ~2-12 for NSs) */
 	REAL8 quadparam2,               /**< phenom. parameter describing induced quad. moment of body 2 (=1 for BHs, ~2-12 for NSs) */
-	LALSimInspiralSpinOrder spinO,  /**< twice PN order of spin effects */
-	LALSimInspiralTidalOrder tideO, /**< twice PN order of tidal effects */
+	LALDict *LALparams,
 	int phaseO,                     /**< twice PN phase order */
 	int amplitudeO                  /**< twice PN amplitude order */
 	)
@@ -4337,7 +4335,7 @@ int XLALSimInspiralSpinTaylorT2(
     int n = XLALSimInspiralSpinTaylorDriver(hplus, hcross, phiRef, v0, deltaT,
             m1, m2, fStart, fRef, r, s1x, s1y, s1z, s2x, s2y, s2z,
             lnhatx, lnhaty, lnhatz, e1x, e1y, e1z, lambda1, lambda2,
-            quadparam1, quadparam2, spinO, tideO, phaseO, amplitudeO, approx);
+	    quadparam1, quadparam2, LALparams, phaseO, amplitudeO, approx);
 
     return n;
 }
@@ -4649,8 +4647,7 @@ int XLALSimInspiralSpinTaylorT4Fourier(
         REAL8 lambda2,                  /**< (tidal deformability of mass 2) / (mass of body 2)^5 (dimensionless) */
         REAL8 quadparam1,               /**< phenom. parameter describing induced quad. moment of body 1 (=1 for BHs, ~2-12 for NSs) */
         REAL8 quadparam2,               /**< phenom. parameter describing induced quad. moment of body 2 (=1 for BHs, ~2-12 for NSs) */
-        LALSimInspiralSpinOrder spinO,  /**< twice PN order of spin effects */
-        LALSimInspiralTidalOrder tideO, /**< twice PN order of tidal effects */
+	LALDict *LALparams,
         INT4 phaseO,                     /**< twice PN phase order */
         INT4 amplitudeO,                /**< twice PN amplitude order */
         INT4 phiRefAtEnd                /**< whether phiRef corresponds to the end of the inspiral */
@@ -4661,7 +4658,7 @@ int XLALSimInspiralSpinTaylorT4Fourier(
             deltaF, kMax, phiRef, v0,
             m1, m2, fStart, fRef, r, s1x, s1y, s1z, s2x, s2y, s2z,
             lnhatx, lnhaty, lnhatz, e1x, e1y, e1z, lambda1, lambda2,
-            quadparam1, quadparam2, spinO, tideO, phaseO, amplitudeO, approx, phiRefAtEnd);
+            quadparam1, quadparam2, LALparams, phaseO, amplitudeO, approx, phiRefAtEnd);
 
     return n;
 }
@@ -4730,8 +4727,7 @@ int XLALSimInspiralSpinTaylorT2Fourier(
         REAL8 lambda2,                  /**< (tidal deformability of mass 2) / (mass of body 2)^5 (dimensionless) */
         REAL8 quadparam1,               /**< phenom. parameter describing induced quad. moment of body 1 (=1 for BHs, ~2-12 for NSs) */
         REAL8 quadparam2,               /**< phenom. parameter describing induced quad. moment of body 2 (=1 for BHs, ~2-12 for NSs) */
-        LALSimInspiralSpinOrder spinO,  /**< twice PN order of spin effects */
-        LALSimInspiralTidalOrder tideO, /**< twice PN order of tidal effects */
+	LALDict *LALparams,
         INT4 phaseO,                     /**< twice PN phase order */
         INT4 amplitudeO,                /**< twice PN amplitude order */
         INT4 phiRefAtEnd                /**< whether phiRef corresponds to the end of the inspiral */
@@ -4742,7 +4738,7 @@ int XLALSimInspiralSpinTaylorT2Fourier(
             fMax, deltaF, kMax, phiRef, v0,
             m1, m2, fStart, fRef, r, s1x, s1y, s1z, s2x, s2y, s2z,
             lnhatx, lnhaty, lnhatz, e1x, e1y, e1z, lambda1, lambda2,
-            quadparam1, quadparam2, spinO, tideO, phaseO, amplitudeO, approx, phiRefAtEnd);
+            quadparam1, quadparam2, LALparams, phaseO, amplitudeO, approx, phiRefAtEnd);
 
     return n;
 }

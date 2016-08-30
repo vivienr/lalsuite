@@ -186,4 +186,40 @@ void XLALSimInspiralDestroyTestGRParam(
 	}
 }
 
+int XLALSimInspiralWaveformParamsNonGRAreDefault(LALDict *params)
+{
+  return (XLALSimInspiralWaveformParamsNonGRPhi1IsDefault(params)
+	  && XLALSimInspiralWaveformParamsNonGRPhi2IsDefault(params)
+	  && XLALSimInspiralWaveformParamsNonGRPhi3IsDefault(params)
+	  && XLALSimInspiralWaveformParamsNonGRPhi4IsDefault(params)
+	  && XLALSimInspiralWaveformParamsNonGRDChi0IsDefault(params)
+	  && XLALSimInspiralWaveformParamsNonGRDChi1IsDefault(params)
+	  && XLALSimInspiralWaveformParamsNonGRDChi2IsDefault(params)
+	  && XLALSimInspiralWaveformParamsNonGRDChi3IsDefault(params)
+	  && XLALSimInspiralWaveformParamsNonGRDChi4IsDefault(params)
+	  && XLALSimInspiralWaveformParamsNonGRDChi5IsDefault(params)
+	  && XLALSimInspiralWaveformParamsNonGRDChi5LIsDefault(params)
+	  && XLALSimInspiralWaveformParamsNonGRDChi6IsDefault(params)
+	  && XLALSimInspiralWaveformParamsNonGRDChi6LIsDefault(params)
+	  && XLALSimInspiralWaveformParamsNonGRDChi7IsDefault(params)
+	  && XLALSimInspiralWaveformParamsNonGRDXi1IsDefault(params)
+	  && XLALSimInspiralWaveformParamsNonGRDXi2IsDefault(params)
+	  && XLALSimInspiralWaveformParamsNonGRDXi3IsDefault(params)
+	  && XLALSimInspiralWaveformParamsNonGRDXi4IsDefault(params)
+	  && XLALSimInspiralWaveformParamsNonGRDXi5IsDefault(params)
+	  && XLALSimInspiralWaveformParamsNonGRDXi6IsDefault(params)
+	  && XLALSimInspiralWaveformParamsNonGRDSigma1IsDefault(params)
+	  && XLALSimInspiralWaveformParamsNonGRDSigma2IsDefault(params)
+	  && XLALSimInspiralWaveformParamsNonGRDSigma3IsDefault(params)
+	  && XLALSimInspiralWaveformParamsNonGRDSigma4IsDefault(params)
+	  && XLALSimInspiralWaveformParamsNonGRDAlpha1IsDefault(params)
+	  && XLALSimInspiralWaveformParamsNonGRDAlpha2IsDefault(params)
+	  && XLALSimInspiralWaveformParamsNonGRDAlpha3IsDefault(params)
+	  && XLALSimInspiralWaveformParamsNonGRDAlpha4IsDefault(params)
+	  && XLALSimInspiralWaveformParamsNonGRDAlpha5IsDefault(params)
+	  && XLALSimInspiralWaveformParamsNonGRDBeta1IsDefault(params)
+	  && XLALSimInspiralWaveformParamsNonGRDBeta2IsDefault(params)
+	  && XLALSimInspiralWaveformParamsNonGRDBeta3IsDefault(params));
+}
+
 /** @} */

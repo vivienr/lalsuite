@@ -1557,30 +1557,32 @@ void LALInferenceInjectInspiralSignal(LALInferenceIFOData *IFOdata, ProcessParam
         fref = atoi(LALInferenceGetProcParamVal(commandLine,"--inj-fref")->value);
       }
 
-      LALSimInspiralWaveformFlags *waveFlags = XLALSimInspiralCreateWaveformFlags();
+      LALDict *LALpars=XLALCreateDict();
 
       /* Set the spin-frame convention */
 
       LALSimInspiralSpinOrder spinO = -1;
       if(LALInferenceGetProcParamVal(commandLine,"--inj-spinOrder")) {
         spinO = atoi(LALInferenceGetProcParamVal(commandLine,"--inj-spinOrder")->value);
-        XLALSimInspiralSetSpinOrder(waveFlags, spinO);
+        XLALSimInspiralWaveformParamsInsertPNSpinOrder(LALpars, spinO);
       }
       LALSimInspiralTidalOrder tideO = -1;
       if(LALInferenceGetProcParamVal(commandLine,"--inj-tidalOrder")) {
         tideO = atoi(LALInferenceGetProcParamVal(commandLine,"--inj-tidalOrder")->value);
-        XLALSimInspiralSetTidalOrder(waveFlags, tideO);
+        XLALSimInspiralWaveformParamsInsertPNTidalOrder(LALpars, tideO);
       }
+
       LALSimInspiralFrameAxis frameAxis = LAL_SIM_INSPIRAL_FRAME_AXIS_DEFAULT;
       if((ppt=LALInferenceGetProcParamVal(commandLine,"--inj-spin-frame"))) {
         frameAxis = XLALSimInspiralGetFrameAxisFromString(ppt->value);
       }
-      XLALSimInspiralSetFrameAxis(waveFlags,frameAxis);
+      XLALSimInspiralWaveformParamsInsertFrameAxis(LALpars,(int) frameAxis);
+
       if((ppt=LALInferenceGetProcParamVal(commandLine,"--inj-numreldata"))) {
-	XLALSimInspiralSetNumrelData(waveFlags, ppt->value);
+	XLALSimInspiralWaveformParamsInsertNumRelData(LALpars, ppt->value);
 	fprintf(stdout,"Injection will use %s.\n",ppt->value);
       }
-      LALSimInspiralTestGRParam *nonGRparams = NULL;
+
       /* Print a line with information about approximant, amporder, phaseorder, tide order and spin order */
       fprintf(stdout,"Injection will run using Approximant %i (%s), phase order %i, amp order %i, spin order %i, tidal order %i, in the time domain with a reference frequency of %f.\n",approximant,XLALSimInspiralGetStringFromApproximant(approximant),order,amporder,(int) spinO, (int) tideO, (float) fref);
 
@@ -1588,20 +1590,24 @@ void LALInferenceInjectInspiralSignal(LALInferenceIFOData *IFOdata, ProcessParam
       REAL8 f_min = XLALSimInspiralfLow2fStart(injEvent->f_lower, amporder, approximant);
       printf("Injecting with f_min = %f.\n", f_min);
 
+      XLALSimInspiralWaveformParamsInsertTidalLambda1(LALpars,lambda1);
+      XLALSimInspiralWaveformParamsInsertTidalLambda2(LALpars,lambda2);
+      XLALSimInspiralWaveformParamsInsertPNAmplitudeOrder(LALpars,amporder);
+      XLALSimInspiralWaveformParamsInsertPNPhaseOrder(LALpars,order);
+
       XLALSimInspiralChooseTDWaveform(&hplus, &hcross, injEvent->mass1*LAL_MSUN_SI, injEvent->mass2*LAL_MSUN_SI,
 				      injEvent->spin1x, injEvent->spin1y, injEvent->spin1z,
 				      injEvent->spin2x, injEvent->spin2y, injEvent->spin2z,
 				      injEvent->distance*LAL_PC_SI * 1.0e6, injEvent->inclination,
 				      injEvent->coa_phase, 0., 0., 0.,
 				      1.0/InjSampleRate, f_min, fref,
-				      lambda1, lambda2, 0., 0., waveFlags,
-                                      nonGRparams, amporder, order, approximant);
+				      LALpars,  approximant);
+      XLALDestroyDict(LALpars);
+
       if(!hplus || !hcross) {
         fprintf(stderr,"Error: XLALSimInspiralChooseWaveform() failed to produce waveform.\n");
         exit(-1);
       }
-      XLALSimInspiralDestroyWaveformFlags(waveFlags);
-      XLALSimInspiralDestroyTestGRParam(nonGRparams);
       XLALResampleREAL8TimeSeries(hplus,thisData->timeData->deltaT);
       XLALResampleREAL8TimeSeries(hcross,thisData->timeData->deltaT);
       /* XLALSimInspiralChooseTDWaveform always ends the waveform at t=0 */
@@ -2240,30 +2246,30 @@ void InjectFD(LALInferenceIFOData *IFOdata, SimInspiralTable *inj_table, Process
     fprintf(stdout,"lambda2 set to %f\n",lambda2);
   }
 
-  /* Set up wave flags */
-  LALSimInspiralWaveformFlags *waveFlags = XLALSimInspiralCreateWaveformFlags();
+  /* Set up LAL dictionary */
+  LALDict* LALpars=XLALCreateDict();
 
   /* Set the spin-frame convention */
   ppt = LALInferenceGetProcParamVal(commandLine,"--inj-spin-frame");
   if(ppt) {
       if (!strcmp(ppt->value, "view"))
-          XLALSimInspiralSetFrameAxis(waveFlags, LAL_SIM_INSPIRAL_FRAME_AXIS_VIEW);
+          XLALSimInspiralWaveformParamsInsertFrameAxis(LALpars, LAL_SIM_INSPIRAL_FRAME_AXIS_VIEW);
       else if (!strcmp(ppt->value, "orbital-l"))
-          XLALSimInspiralSetFrameAxis(waveFlags, LAL_SIM_INSPIRAL_FRAME_AXIS_ORBITAL_L);
+          XLALSimInspiralWaveformParamsInsertFrameAxis(LALpars, LAL_SIM_INSPIRAL_FRAME_AXIS_ORBITAL_L);
       else if (!strcmp(ppt->value, "total-j"))
-          XLALSimInspiralSetFrameAxis(waveFlags, LAL_SIM_INSPIRAL_FRAME_AXIS_TOTAL_J);
+          XLALSimInspiralWaveformParamsInsertFrameAxis(LALpars, LAL_SIM_INSPIRAL_FRAME_AXIS_TOTAL_J);
   }
 
   LALSimInspiralSpinOrder spinO = LAL_SIM_INSPIRAL_SPIN_ORDER_ALL;
   if(LALInferenceGetProcParamVal(commandLine, "--inj-spinOrder")) {
     spinO = atoi(LALInferenceGetProcParamVal(commandLine, "--inj-spinOrder")->value);
-    XLALSimInspiralSetSpinOrder(waveFlags, spinO);
+    XLALSimInspiralWaveformParamsInsertPNSpinOrder(LALpars, spinO);
   }
 
   LALSimInspiralTidalOrder tideO = LAL_SIM_INSPIRAL_TIDAL_ORDER_ALL;
   if(LALInferenceGetProcParamVal(commandLine, "--inj-tidalOrder")) {
     tideO = atoi(LALInferenceGetProcParamVal(commandLine, "--inj-tidalOrder")->value);
-    XLALSimInspiralSetTidalOrder(waveFlags, tideO);
+    XLALSimInspiralWaveformParamsInsertPNTidalOrder(LALpars, tideO);
   }
 
   REAL8 deltaT = IFOdata->timeData->deltaT;
@@ -2277,8 +2283,6 @@ void InjectFD(LALInferenceIFOData *IFOdata, SimInspiralTable *inj_table, Process
     fref = atoi(LALInferenceGetProcParamVal(commandLine,"--inj-fref")->value);
   }
 
-  LALSimInspiralTestGRParam *nonGRparams = NULL;
-
  /* Print a line with information about approximant, amp_order, phaseorder, tide order and spin order */
   fprintf(stdout,"\n\n---\t\t ---\n");
  fprintf(stdout,"Injection will run using Approximant %i (%s), phase order %i, amp order %i, spin order %i, tidal order %i, in the frequency domain.\n",approximant,XLALSimInspiralGetStringFromApproximant(approximant),phase_order,amp_order,(int) spinO,(int) tideO);
@@ -2291,8 +2295,8 @@ void InjectFD(LALInferenceIFOData *IFOdata, SimInspiralTable *inj_table, Process
 				  inj_table->spin2x, inj_table->spin2y, inj_table->spin2z,
 				  inj_table->distance*LAL_PC_SI * 1.0e6, inj_table->inclination,
 				  inj_table->coa_phase, 0., 0., 0., deltaF, f_min, f_max, fref,
-				  lambda1, lambda2, 0., 0., waveFlags,
-                                  nonGRparams, amp_order, phase_order, approximant);
+				  LALpars, approximant);
+  XLALDestroyDict(LALpars);
 
   /* Fail if injection waveform generation was not successful */
   errnum = *XLALGetErrnoPtr();
@@ -2300,9 +2304,6 @@ void InjectFD(LALInferenceIFOData *IFOdata, SimInspiralTable *inj_table, Process
     XLALPrintError(" ERROR in InjectFD(): error encountered when injecting waveform. errnum=%d\n",errnum);
     exit(1);
   }
-
-  XLALSimInspiralDestroyWaveformFlags(waveFlags);
-  XLALSimInspiralDestroyTestGRParam(nonGRparams);
 
   LALInferenceIFOData *dataPtr;
   REAL8 Fplus, Fcross;

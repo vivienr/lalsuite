@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <lal/LALString.h>
 #include <lal/LALSimInspiralWaveformFlags.h>
+#include <lal/LALSimInspiralWaveformParams.h>
 
 /**
  * Struct containing several enumerated flags that control specialized behavior
@@ -91,7 +92,21 @@ void XLALSimInspiralDestroyWaveformFlags(
  * Returns true if waveFlags is non-NULL and all of its fields have default
  * value; returns false otherwise.
  */
-bool XLALSimInspiralWaveformFlagsIsDefault(
+bool XLALSimInspiralWaveformParamsFlagsAreDefault(LALDict *params)
+{
+    /* Check every field of WaveformFlags, each returns 1/0 for true/false.
+     * Return true iff waveFlags is non-NULL and all checks are true. */
+  return ( XLALSimInspiralWaveformParamsPNSpinOrderIsDefault(params) &&
+	   XLALSimInspiralWaveformParamsPNTidalOrderIsDefault(params) &&
+	   XLALSimInspiralWaveformParamsFrameAxisIsDefault(params) &&
+	   XLALSimInspiralWaveformParamsModesChoiceIsDefault(params));
+}
+
+/**
+ * Returns true if waveFlags is non-NULL and all of its fields have default
+ * value; returns false otherwise.
+ */
+bool XLALSimInspiralWaveformFlagsIsDefaultOLD(
         LALSimInspiralWaveformFlags *waveFlags
         )
 {

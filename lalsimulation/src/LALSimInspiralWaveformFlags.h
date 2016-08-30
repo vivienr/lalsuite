@@ -22,6 +22,7 @@
 #include <stdbool.h>
 #include <lal/LALMalloc.h>
 #include <lal/LALError.h>
+#include <lal/LALDict.h>
 
 /**
  * @addtogroup LALSimInspiral_h
@@ -122,7 +123,8 @@ typedef struct tagLALSimInspiralWaveformFlags LALSimInspiralWaveformFlags;
 
 LALSimInspiralWaveformFlags *XLALSimInspiralCreateWaveformFlags(void);
 void XLALSimInspiralDestroyWaveformFlags(LALSimInspiralWaveformFlags *waveFlags);
-bool XLALSimInspiralWaveformFlagsIsDefault(LALSimInspiralWaveformFlags *waveFlags);
+bool XLALSimInspiralWaveformParamsFlagsAreDefault(LALDict *params);
+bool XLALSimInspiralWaveformFlagsIsDefaultOLD(LALSimInspiralWaveformFlags *waveFlags);
 bool XLALSimInspiralWaveformFlagsEqual(LALSimInspiralWaveformFlags *waveFlags1, LALSimInspiralWaveformFlags *waveFlags2);
 void XLALSimInspiralSetSpinOrder(LALSimInspiralWaveformFlags *waveFlags, LALSimInspiralSpinOrder spinO);
 LALSimInspiralSpinOrder XLALSimInspiralGetSpinOrder(LALSimInspiralWaveformFlags *waveFlags);
