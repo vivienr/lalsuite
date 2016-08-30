@@ -56,13 +56,13 @@ int main(void){
 
   ret = XLALSimInspiralChooseTDWaveform(
     &hp, &hx,
-    phi, dt,
     m1, m2,
     s1x, s1y, s1z,
     s2x, s2y, s2z,
-    f_min, f_ref,
     dist, inc,
-    lambda1, lambda2,
+    phi, 0., 0., 0.,
+    dt, f_min, f_ref,
+    lambda1, lambda2, 0., 0.,
     waveFlags,
     nonGRparams,
     amplitudeOrder, phaseOrder,
@@ -95,13 +95,13 @@ int main(void){
   inc=0;  // +z axis
   ret = XLALSimInspiralChooseTDWaveform(
     &hp, &hx,
-    phi, dt,
     m1, m2,
     s1x, s1y, s1z,
     s2x, s2y, s2z,
-    f_min, f_ref,
     dist, inc,
-    lambda1, lambda2,
+    phi, 0., 0., 0.,
+    dt, f_min, f_ref,
+    lambda1, lambda2, 0., 0.,
     waveFlags,
     NULL, // non-GR params
     amplitudeOrder, phaseOrder,

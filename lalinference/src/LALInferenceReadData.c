@@ -1588,11 +1588,13 @@ void LALInferenceInjectInspiralSignal(LALInferenceIFOData *IFOdata, ProcessParam
       REAL8 f_min = XLALSimInspiralfLow2fStart(injEvent->f_lower, amporder, approximant);
       printf("Injecting with f_min = %f.\n", f_min);
 
-      XLALSimInspiralChooseTDWaveform(&hplus, &hcross, injEvent->coa_phase, 1.0/InjSampleRate,
-                                      injEvent->mass1*LAL_MSUN_SI, injEvent->mass2*LAL_MSUN_SI, injEvent->spin1x,
-                                      injEvent->spin1y, injEvent->spin1z, injEvent->spin2x, injEvent->spin2y,
-                                      injEvent->spin2z, f_min, fref, injEvent->distance*LAL_PC_SI * 1.0e6,
-                                      injEvent->inclination, lambda1, lambda2, waveFlags,
+      XLALSimInspiralChooseTDWaveform(&hplus, &hcross, injEvent->mass1*LAL_MSUN_SI, injEvent->mass2*LAL_MSUN_SI,
+				      injEvent->spin1x, injEvent->spin1y, injEvent->spin1z,
+				      injEvent->spin2x, injEvent->spin2y, injEvent->spin2z,
+				      injEvent->distance*LAL_PC_SI * 1.0e6, injEvent->inclination,
+				      injEvent->coa_phase, 0., 0., 0.,
+				      1.0/InjSampleRate, f_min, fref,
+				      lambda1, lambda2, 0., 0., waveFlags,
                                       nonGRparams, amporder, order, approximant);
       if(!hplus || !hcross) {
         fprintf(stderr,"Error: XLALSimInspiralChooseWaveform() failed to produce waveform.\n");
@@ -2284,11 +2286,12 @@ void InjectFD(LALInferenceIFOData *IFOdata, SimInspiralTable *inj_table, Process
 
   COMPLEX16FrequencySeries *hptilde=NULL, *hctilde=NULL;
 
-  XLALSimInspiralChooseFDWaveform(&hptilde, &hctilde, inj_table->coa_phase, deltaF,
-                                  inj_table->mass1*LAL_MSUN_SI, inj_table->mass2*LAL_MSUN_SI, inj_table->spin1x,
-                                  inj_table->spin1y, inj_table->spin1z, inj_table->spin2x, inj_table->spin2y,
-                                  inj_table->spin2z, f_min, f_max, fref, inj_table->distance*LAL_PC_SI * 1.0e6,
-                                  inj_table->inclination, lambda1, lambda2, waveFlags,
+  XLALSimInspiralChooseFDWaveform(&hptilde, &hctilde, inj_table->mass1*LAL_MSUN_SI, inj_table->mass2*LAL_MSUN_SI,
+				  inj_table->spin1x, inj_table->spin1y, inj_table->spin1z,
+				  inj_table->spin2x, inj_table->spin2y, inj_table->spin2z,
+				  inj_table->distance*LAL_PC_SI * 1.0e6, inj_table->inclination,
+				  inj_table->coa_phase, 0., 0., 0., deltaF, f_min, f_max, fref,
+				  lambda1, lambda2, 0., 0., waveFlags,
                                   nonGRparams, amp_order, phase_order, approximant);
 
   /* Fail if injection waveform generation was not successful */

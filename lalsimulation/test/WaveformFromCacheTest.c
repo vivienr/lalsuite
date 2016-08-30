@@ -62,9 +62,11 @@ int main(void) {
 
     // Generate waveform via usual ChooseTDWaveform path
     s1 = clock();
-    ret = XLALSimInspiralChooseTDWaveform(&hplus, &hcross, phiref1, dt, m1, m2,
-        s1x, s1y, s1z, s2x, s2y, s2z, f_min, f_ref, dist1, inc1,
-        lambda1, lambda2, NULL, NULL, ampO, phaseO, approx);
+    ret = XLALSimInspiralChooseTDWaveform(&hplus, &hcross,
+					  m1, m2, s1x, s1y, s1z, s2x, s2y, s2z,
+					  dist1, inc1,
+					  phiref1, 0., 0., 0., dt, f_min, f_ref,
+					  lambda1, lambda2, 0., 0., NULL, NULL, ampO, phaseO, approx);
     e1 = clock();
     diff1 = (double) (e1 - s1) / CLOCKS_PER_SEC;
     if( ret == XLAL_FAILURE )
@@ -105,9 +107,11 @@ int main(void) {
 
     // Generate another waveform via ChooseTDWaveform path
     s1 = clock();
-    ret = XLALSimInspiralChooseTDWaveform(&hplus, &hcross, phiref2, dt, m1, m2,
-        s1x, s1y, s1z, s2x, s2y, s2z, f_min, f_ref, dist2, inc2,
-        lambda1, lambda2, NULL, NULL, ampO, phaseO, approx);
+    ret = XLALSimInspiralChooseTDWaveform(&hplus, &hcross, m1, m2,
+					  s1x, s1y, s1z, s2x, s2y, s2z,
+					  dist2, inc2, phiref2, 0., 0., 0.,
+					  dt, f_min, f_ref,
+					  lambda1, lambda2, 0., 0., NULL, NULL, ampO, phaseO, approx);
     e1 = clock();
     diff1 = (double) (e1 - s1) / CLOCKS_PER_SEC;
     if( ret == XLAL_FAILURE )
@@ -152,9 +156,11 @@ int main(void) {
 
     // Generate waveform via usual ChooseFDWaveform path
     s1 = clock();
-    ret = XLALSimInspiralChooseFDWaveform(&hptilde, &hctilde, phiref1, df,
-            m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, f_min, f_max, f_ref, dist1,
-            inc1, lambda1, lambda2, NULL, NULL, ampO, phaseO, approxFD);
+    ret = XLALSimInspiralChooseFDWaveform(&hptilde, &hctilde,
+					  m1, m2, s1x, s1y, s1z, s2x, s2y, s2z,
+					  dist1, inc1, phiref1, 0., 0., 0.,
+					  df,f_min, f_max, f_ref,
+					  lambda1, lambda2, 0., 0., NULL, NULL, ampO, phaseO, approxFD);
     e1 = clock();
     diff1 = (double) (e1 - s1) / CLOCKS_PER_SEC;
     if( ret == XLAL_FAILURE )
@@ -195,9 +201,13 @@ int main(void) {
 
     // Generate another waveform via ChooseFDWaveform path
     s1 = clock();
-    ret = XLALSimInspiralChooseFDWaveform(&hptilde, &hctilde, phiref2, df,
-            m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, f_min, f_max, f_ref, dist2,
-            inc2, lambda1, lambda2, NULL, NULL, ampO, phaseO, approxFD);
+    ret = XLALSimInspiralChooseFDWaveform(&hptilde, &hctilde,
+					  m1, m2, s1x, s1y, s1z, s2x, s2y, s2z,
+					  dist2, inc2,
+					  phiref2, 0., 0., 0.,
+					  df, f_min, f_max, f_ref,
+					  lambda1, lambda2, 0., 0.,
+					  NULL, NULL, ampO, phaseO, approxFD);
     e1 = clock();
     diff1 = (double) (e1 - s1) / CLOCKS_PER_SEC;
     if( ret == XLAL_FAILURE )

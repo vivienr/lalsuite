@@ -325,7 +325,7 @@ void LALInferenceROQWrapperForXLALSimInspiralChooseFDWaveformSequence(LALInferen
       /* The transformation function doesn't know fLow, so f_ref==0 isn't interpretted as a request to use the starting frequency for reference. */
       XLAL_TRY(ret=XLALSimInspiralTransformPrecessingNewInitialConditions(
                     &inclination, &spin1x, &spin1y, &spin1z, &spin2x, &spin2y, &spin2z,
-                    thetaJN, phiJL, tilt1, tilt2, phi12, a_spin1, a_spin2, m1*LAL_MSUN_SI, m2*LAL_MSUN_SI, fTemp), errnum);
+                    thetaJN, phiJL, tilt1, tilt2, phi12, a_spin1, a_spin2, m1*LAL_MSUN_SI, m2*LAL_MSUN_SI, fTemp, phi0), errnum);
       if (ret == XLAL_FAILURE)
       {
         XLALPrintError(" ERROR in XLALSimInspiralTransformPrecessingNewInitialConditions(): error converting angles. errnum=%d\n",errnum );
@@ -746,7 +746,7 @@ void LALInferenceTemplateXLALSimInspiralChooseWaveform(LALInferenceModel *model)
 
       XLAL_TRY(ret=XLALSimInspiralTransformPrecessingNewInitialConditions(
                     &inclination, &spin1x, &spin1y, &spin1z, &spin2x, &spin2y, &spin2z,
-                    thetaJN, phiJL, tilt1, tilt2, phi12, a_spin1, a_spin2, m1*LAL_MSUN_SI, m2*LAL_MSUN_SI, fTemp), errnum);
+                    thetaJN, phiJL, tilt1, tilt2, phi12, a_spin1, a_spin2, m1*LAL_MSUN_SI, m2*LAL_MSUN_SI, fTemp, phi0), errnum);
       if (ret == XLAL_FAILURE)
       {
         XLALPrintError(" ERROR in XLALSimInspiralTransformPrecessingNewInitialConditions(): error converting angles. errnum=%d: %s\n",errnum, XLALErrorString(errnum) );
@@ -1225,7 +1225,7 @@ void LALInferenceTemplateXLALSimInspiralChooseWaveformPhaseInterpolated(LALInfer
 
         XLAL_TRY(ret=XLALSimInspiralTransformPrecessingNewInitialConditions(
                                                                             &inclination, &spin1x, &spin1y, &spin1z, &spin2x, &spin2y, &spin2z,
-                                                                            thetaJN, phiJL, tilt1, tilt2, phi12, a_spin1, a_spin2, m1*LAL_MSUN_SI, m2*LAL_MSUN_SI, fTemp), errnum);
+                                                                            thetaJN, phiJL, tilt1, tilt2, phi12, a_spin1, a_spin2, m1*LAL_MSUN_SI, m2*LAL_MSUN_SI, fTemp, phi0), errnum);
         if (ret == XLAL_FAILURE)
         {
             XLALPrintError(" ERROR in XLALSimInspiralTransformPrecessingNewInitialConditions(): error converting angles. errnum=%d: %s\n",errnum, XLALErrorString(errnum) );
