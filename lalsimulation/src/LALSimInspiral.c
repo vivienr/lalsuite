@@ -39,7 +39,7 @@
 #include <lal/BandPassTimeSeries.h>
 #include <lal/Units.h>
 #include <lal/LALSimBlackHoleRingdown.h>
-
+#include <lal/LALSimRingdownFD.h>
 #include "LALSimInspiralPNCoefficients.c"
 #include "check_series_macros.h"
 #include "check_waveform_macros.h"
@@ -145,6 +145,7 @@ static const char *lalSimulationApproximantNames[] = {
     INITIALIZE_NAME(SpinTaylorT2Fourier),
     INITIALIZE_NAME(SpinDominatedWf),
     INITIALIZE_NAME(NR_hdf5),
+    INITIALIZE_NAME(RingdownFD),
 };
 #undef INITIALIZE_NAME
 
@@ -1394,7 +1395,6 @@ int XLALSimInspiralChooseFDWaveform(
             if (ret == XLAL_FAILURE) XLAL_ERROR(XLAL_EFUNC);
             break;
 
-
         default:
             XLALPrintError("FD version of approximant not implemented in lalsimulation\n");
             XLAL_ERROR(XLAL_EINVAL);
@@ -1862,7 +1862,7 @@ int XLALSimInspiralFD(
     int phaseO,                                 /**< twice post-Newtonian order */
     Approximant approximant                     /**< post-Newtonian approximant to use for waveform production */
     )
-{
+{   printf("Entered XLALSimInspiralFD\n");
     const double extra_time_fraction = 0.1; /* fraction of waveform duration to add as extra time for tapering */
     const double extra_cycles = 3.0; /* more extra time measured in cycles at the starting frequency */
     double chirplen, deltaT;
@@ -3930,6 +3930,7 @@ int XLALSimInspiralImplementedFDApproximants(
     Approximant approximant /**< post-Newtonian approximant for use in waveform production */
     )
 {
+    printf("Entered XLALSimInspiralFDApproximants\n");
     switch (approximant)
     {
         case IMRPhenomA:
@@ -3952,6 +3953,8 @@ int XLALSimInspiralImplementedFDApproximants(
         case TaylorF2RedSpin:
         case TaylorF2RedSpinTidal:
         case SpinTaylorT4Fourier:
+        case RingdownFD: 
+            printf("Noticed that RingdownFD exists\n");
         case SpinTaylorT2Fourier:
             return 1;
 
@@ -3998,7 +4001,7 @@ int XLALSimInspiralImplementedFDApproximants(
  * with the SWIG-wrapped version of this routine.
  */
 int XLALSimInspiralDecomposeWaveformString(int *approximant, int *order, int *axis, const char *waveform)
-{
+{   
     char *string;
     int found_approximant, found_order, found_axis;
     int failed = 0;
@@ -4379,6 +4382,7 @@ int XLALSimInspiralGetSpinSupportFromApproximant(Approximant approx){
     case EOBNRv2_ROM:
     case EOBNR:
     case EOB:
+    case RingdownFD:
     case IMRPhenomFA:
     case GeneratePPN:
       spin_support=LAL_SIM_INSPIRAL_SPINLESS;

@@ -256,7 +256,6 @@ void LALInferenceInitCBCThreads(LALInferenceRunState *run_state, INT4 nthreads) 
   return;
 }
 
-
 /* Setup the template generation */
 /* Defaults to using LALSimulation */
 LALInferenceTemplateFunction LALInferenceInitCBCTemplate(LALInferenceRunState *runState)
@@ -298,6 +297,9 @@ LALInferenceTemplateFunction LALInferenceInitCBCTemplate(LALInferenceRunState *r
   else if(LALInferenceGetProcParamVal(commandLine,"--roqtime_steps")){
   templt=&LALInferenceROQWrapperForXLALSimInspiralChooseFDWaveformSequence;
         fprintf(stderr, "template is \"LALInferenceROQWrapperForXLALSimInspiralChooseFDWaveformSequence\"\n");
+  }
+  else if(strstr(LALInferencePrintCommandLine(commandLine),"RingdownFD") != NULL){
+  templt=&LALInferenceTemplateRingdownFD;
   }
   else {
     fprintf(stdout,"Template function called is \"LALInferenceTemplateXLALSimInspiralChooseWaveform\"\n");
@@ -627,7 +629,7 @@ LALInferenceModel *LALInferenceInitCBCModel(LALInferenceRunState *state) {
                                                        PhenSpinTaylorRD, NumRel.\n\
                          default modeldomain=\"frequency\": TaylorF1, TaylorF2, TaylorF2RedSpin,\n\
                                                        TaylorF2RedSpinTidal, IMRPhenomA,\n\
-                                                       IMRPhenomB, IMRPhenomP, IMRPhenomPv2.\n\
+                                                       IMRPhenomB, IMRPhenomP, IMRPhenomPv2, RingdownFD.\n\
     (--amporder PNorder)            Specify a PN order in amplitude to use (defaults: LALSimulation: max available; LALInspiral: newtownian).\n\
     (--fref f_ref)                  Specify a reference frequency at which parameters are defined (default 100).\n\
     (--tidal)                   Enables tidal corrections, only with LALSimulation.\n\

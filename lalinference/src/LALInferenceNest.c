@@ -113,7 +113,6 @@ int main(int argc, char *argv[]){
   if (state){
     state->algorithm=&LALInferenceNestedSamplingAlgorithm;
     state->evolve=&LALInferenceNestedSamplingOneStep;
-
     state->proposalArgs = LALInferenceParseProposalArgs(state);
   }
 
@@ -124,8 +123,12 @@ int main(int argc, char *argv[]){
 
      }
 
-  /* Set up the threads */
-  LALInferenceInitCBCThreads(state,1);
+  if(strstr(LALInferencePrintCommandLine(state->commandLine),"RingdownFD") != NULL){
+    LALInferenceInitRingdownThreads(state,1);
+  }
+  else{LALInferenceInitCBCThreads(state,1);}
+  //LALInferenceInitCBCThreads(state,1);
+
 
   /* Init the prior */
   LALInferenceInitCBCPrior(state);

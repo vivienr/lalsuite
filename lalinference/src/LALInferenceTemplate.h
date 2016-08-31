@@ -38,6 +38,7 @@ SWIGLAL(
         LALInferenceTemplateNullTimedomain,
         LALInferenceTemplatePSTRD,
         LALInferenceTemplateSinc,
+        LALInferenceTemplateRingdownFD,
         LALInferenceTemplateSineGaussian,
         LALInferenceTemplateStatPhase,
         LALInferenceTemplateXLALSimInspiralChooseWaveform
@@ -198,6 +199,8 @@ void LALInferenceTemplateASinOmegaT(LALInferenceModel *model);
  *
  */
 void LALInferenceTemplateXLALSimInspiralChooseWaveform(LALInferenceModel *model);
+
+void LALInferenceTemplateRingdownFD(LALInferenceModel *model);
 
 void LALInferenceTemplateXLALSimBurstChooseWaveform(LALInferenceModel *model);
 

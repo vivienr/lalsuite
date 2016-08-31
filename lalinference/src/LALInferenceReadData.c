@@ -80,6 +80,7 @@
 #include <LALInferenceRemoveLines.h>
 /* LIB deps */
 #include <lal/LALInferenceBurstRoutines.h>
+#include <lal/LALSimRingdownFD.h>
 #include <lal/LIGOLwXMLBurstRead.h>
 #include <assert.h>
 
@@ -147,6 +148,15 @@ REAL8 interpolate(struct fvec *fvec, REAL8 f){
 }
 void InjectFD(LALInferenceIFOData *IFOdata, SimInspiralTable *inj_table, ProcessParamsTable *commandLine);
 void enforce_m1_larger_m2(SimInspiralTable* injEvent);
+
+static REAL8 XLALSimInspiralFinalBlackHoleSpin(REAL8 i, REAL8 m1, REAL8 m2, REAL8 S1x, REAL8 S1y, REAL8 S1z, REAL8 S2x, REAL8 S2y, REAL8 S2z);
+static REAL8 FinalBlackHoleMass(REAL8 i, REAL8 m1, REAL8 m2, REAL8 S1x, REAL8 S1y, REAL8 S1z, REAL8 S2x, REAL8 S2y, REAL8 S2z);
+static REAL8 XLALChiEffRingdown(REAL8 m1, REAL8 m2, REAL8 S1x, REAL8 S1y, REAL8 S1z, REAL8 S2x, REAL8 S2y, REAL8 S2z);
+static REAL8 LISCO(REAL8 a);
+static REAL8 EISCO(REAL8 a);
+static REAL8 risco(REAL8 a);
+static REAL8 l_fit(REAL8 a, REAL8 a_tot, REAL8 eta);
+
 
 typedef void (NoiseFunc)(LALStatus *statusPtr,REAL8 *psd,REAL8 f);
 void MetaNoiseFunc(LALStatus *status, REAL8 *psd, REAL8 f, struct fvec *interp, NoiseFunc *noisefunc);
@@ -562,6 +572,7 @@ void LALInferencePrintDataWithInjection(LALInferenceIFOData *IFOdata, ProcessPar
 LALInferenceIFOData *LALInferenceReadData(ProcessParamsTable *commandLine)
 /* Read in the data and store it in a LALInferenceIFOData structure */
 {
+    printf("Entered LALInferenceReadData\n");
     LALStatus status;
     INT4 dataseed=0;
     memset(&status,0,sizeof(status));
@@ -688,7 +699,6 @@ LALInferenceIFOData *LALInferenceReadData(ProcessParamsTable *commandLine)
         XLALPrintInfo("Detector %s will run with %g DOF if Student's T likelihood used.\n",
                 IFOdata[i].name, IFOdata[i].STDOF);
     }
-
     /* Only allocate this array if there weren't channels read in from the command line */
     if(!dataOpts && !Nchannel) channels=XLALCalloc(Nifo,sizeof(char *));
     for(i=0;i<Nifo;i++) {
@@ -1329,14 +1339,15 @@ static void makeWhiteData(LALInferenceIFOData *IFOdata) {
 
 void LALInferenceInjectInspiralSignal(LALInferenceIFOData *IFOdata, ProcessParamsTable *commandLine)
 {
+        printf("Entered LALInferenceInjectInspiralSignal\n");
 	LALStatus status;
 	memset(&status,0,sizeof(status));
 	SimInspiralTable *injTable=NULL;
-  SimInspiralTable *injEvent=NULL;
+        SimInspiralTable *injEvent=NULL;
 	UINT4 Ninj=0;
 	UINT4 event=0;
 	UINT4 i=0,j=0;
-  REAL8 responseScale=1.0;
+        REAL8 responseScale=1.0;
 	LIGOTimeGPS injstart;
 	REAL8 SNR=0,NetworkSNR=0;
 	DetectorResponse det;
@@ -1351,10 +1362,10 @@ void LALInferenceInjectInspiralSignal(LALInferenceIFOData *IFOdata, ProcessParam
 	LALInferenceIFOData *thisData=IFOdata->next;
 	REAL8 minFlow=IFOdata->fLow;
 	REAL8 MindeltaT=IFOdata->timeData->deltaT;
-  REAL8 InjSampleRate=1.0/MindeltaT;
+        REAL8 InjSampleRate=1.0/MindeltaT;
 	REAL4TimeSeries *injectionBuffer=NULL;
-  REAL8 padding=0.4; //default, set in LALInferenceReadData()
-  char SNRpath[FILENAME_MAX]="";
+        REAL8 padding=0.4; //default, set in LALInferenceReadData()
+        char SNRpath[FILENAME_MAX]="";
 
 	while(thisData){
           minFlow   = minFlow>thisData->fLow ? thisData->fLow : minFlow;
@@ -1365,15 +1376,15 @@ void LALInferenceInjectInspiralSignal(LALInferenceIFOData *IFOdata, ProcessParam
 
 	if(!LALInferenceGetProcParamVal(commandLine,"--inj")) {fprintf(stdout,"No injection file specified, not injecting\n"); return;}
 	if(LALInferenceGetProcParamVal(commandLine,"--event")){
-    event= atoi(LALInferenceGetProcParamVal(commandLine,"--event")->value);
-    fprintf(stdout,"Injecting event %d\n",event);
+            event= atoi(LALInferenceGetProcParamVal(commandLine,"--event")->value);
+            fprintf(stdout,"Injecting event %d\n",event);
 	}
 
 	ppt = LALInferenceGetProcParamVal(commandLine,"--outfile");
 	if (ppt)
 	    sprintf(SNRpath, "%s_snr.txt", ppt->value);
 	else
-		sprintf(SNRpath, "snr.txt");
+	    sprintf(SNRpath, "snr.txt");
 
 	Ninj=SimInspiralTableFromLIGOLw(&injTable,LALInferenceGetProcParamVal(commandLine,"--inj")->value,0,0);
 	REPORTSTATUS(&status);
@@ -1385,7 +1396,7 @@ void LALInferenceInjectInspiralSignal(LALInferenceIFOData *IFOdata, ProcessParam
 	while(i<event) {i++; injTable = injTable->next;} /* Select event */
 	injEvent = injTable;
 	injEvent->next = NULL;
-  enforce_m1_larger_m2(injEvent);
+        enforce_m1_larger_m2(injEvent);
 	Approximant injapprox;
 	injapprox = XLALGetApproximantFromString(injTable->waveform);
         if( (int) injapprox == XLAL_FAILURE)
@@ -1395,12 +1406,15 @@ void LALInferenceInjectInspiralSignal(LALInferenceIFOData *IFOdata, ProcessParam
 
 	/* Check for frequency domain injection. All aproximants supported by XLALSimInspiralImplementedFDApproximants will work.
    * CAVEAT: FD spinning approximants will refer the spin to the lower frequency as given in the xml table. Templates instead will refer it to the lower cutoff of the likelihood integral. This means *different* values of spin will be recovered if one doesn't pay attention! */
-	if(XLALSimInspiralImplementedFDApproximants(XLALGetApproximantFromString(injEvent->waveform)))
+       if(XLALSimInspiralImplementedFDApproximants(XLALGetApproximantFromString(injEvent->waveform)))
 	{
+         printf("Found a frequency domain waveform with XLALSimInspiralImplementedFDApproximants ...\n");
 	 InjectFD(IFOdata, injTable, commandLine);
 	 LALInferencePrintDataWithInjection(IFOdata,commandLine);
+         printf("\n");
 	 return;
 	}
+        printf("I should never get here!!\n");
 	/* Begin loop over interferometers */
 	while(thisData){
 		Approximant       approximant;        /* Get approximant value      */
@@ -2193,9 +2207,11 @@ void InjectFD(LALInferenceIFOData *IFOdata, SimInspiralTable *inj_table, Process
   if( (int) approximant == XLAL_FAILURE)
       ABORTXLAL(&status);
 
-  LALPNOrder phase_order = XLALGetOrderFromString(inj_table->waveform);
+  LALPNOrder phase_order=0;
+  if(approximant!=(int)RingdownFD){phase_order = XLALGetOrderFromString(inj_table->waveform);}
   if ( (int) phase_order == XLAL_FAILURE)
       ABORTXLAL(&status);
+  
 
   LALPNOrder amp_order = (LALPNOrder) inj_table->amp_order;
 
@@ -2275,12 +2291,33 @@ void InjectFD(LALInferenceIFOData *IFOdata, SimInspiralTable *inj_table, Process
 
   COMPLEX16FrequencySeries *hptilde=NULL, *hctilde=NULL;
 
-  XLALSimInspiralChooseFDWaveform(&hptilde, &hctilde, inj_table->coa_phase, deltaF,
+
+  if(approximant==(int)RingdownFD){  
+    //maybe the following quantities are already somewhere in a table ...
+    /* compute mass of BH */
+    REAL8 mass_BH = FinalBlackHoleMass(inj_table->inclination,inj_table->mass1,inj_table->mass2,inj_table->spin1x,inj_table->spin1y,inj_table->spin1z,inj_table->spin2x,inj_table->spin2y,inj_table->spin2z);
+
+    REAL8 eta = inj_table->mass2*inj_table->mass2/((inj_table->mass1+inj_table->mass2)*(inj_table->mass1+inj_table->mass2));
+    printf("spin_BH/mass_BH not done well: NEEDS TO BE FIXED!\n");
+    REAL8 spin_BH = 0.5; //TODO:there is something fishy here ... spins larger than 1? Should use next line or some table?
+    XLALSimInspiralFinalBlackHoleSpin(inj_table->inclination,inj_table->mass1,inj_table->mass2,inj_table->spin1x,inj_table->spin1y,inj_table->spin1z,inj_table->spin2x,inj_table->spin2y,inj_table->spin2z);
+    REAL8 chieff = XLALChiEffRingdown(inj_table->mass1, inj_table->mass2,inj_table->spin1x,inj_table->spin1y,inj_table->spin1z,inj_table->spin2x,inj_table->spin2y,inj_table->spin2z);
+    f_max = 2000.0; //TODO: hard coded! Do we want this variable?
+  
+   printf("\n Calling XLALSimRingdownFD(&hptilde,&hctilde,deltaF,inj_table->coa_phase,f_min,f_max,mass_BH*LAL_MSUN_SI,eta,spin_BH,chieff,injtime,inj_table->distance*LAL_PC_SI * 1.0e6,inj_table->inclination,nonGRparams) with the following values:\n deltaF = %f\n phase = %f\n fmin =  %f\n fmax = %f\n mBH = %f\n eta = %f\n spinBH = %f\n chieff = %f\n time = %f\n distance = %f\n inclination = %f\n\n",deltaF,inj_table->coa_phase,f_min,f_max,mass_BH*LAL_MSUN_SI,eta,spin_BH,chieff,injtime,inj_table->distance*LAL_PC_SI * 1.0e6,inj_table->inclination);
+
+    XLALSimRingdownFD(&hptilde,&hctilde,deltaF,inj_table->coa_phase,f_min,f_max,mass_BH*LAL_MSUN_SI,eta,spin_BH,chieff,injtime,inj_table->distance*LAL_PC_SI * 1.0e6,inj_table->inclination,nonGRparams);
+    printf("In ReadData, after calling XLALSimRingdownFD:\n hptilde->data->length = %i\n",hptilde->data->length);
+  }
+
+
+  else{XLALSimInspiralChooseFDWaveform(&hptilde, &hctilde, inj_table->coa_phase, deltaF,
                                   inj_table->mass1*LAL_MSUN_SI, inj_table->mass2*LAL_MSUN_SI, inj_table->spin1x,
                                   inj_table->spin1y, inj_table->spin1z, inj_table->spin2x, inj_table->spin2y,
                                   inj_table->spin2z, f_min, f_max, fref, inj_table->distance*LAL_PC_SI * 1.0e6,
                                   inj_table->inclination, lambda1, lambda2, waveFlags,
                                   nonGRparams, amp_order, phase_order, approximant);
+  }
 
   /* Fail if injection waveform generation was not successful */
   errnum = *XLALGetErrnoPtr();
@@ -2315,6 +2352,7 @@ void InjectFD(LALInferenceIFOData *IFOdata, SimInspiralTable *inj_table, Process
   dataPtr = IFOdata;
 
   while (dataPtr != NULL) {
+    printf("I expect to see this message twice (for Hannford and Livingston), now dealing with %s\n",dataPtr->name);
     /*-- WF to inject is now in hptilde and hctilde. --*/
     /* determine beam pattern response (Fplus and Fcross) for given Ifo: */
     XLALComputeDetAMResponse(&Fplus, &Fcross,
@@ -2349,6 +2387,8 @@ void InjectFD(LALInferenceIFOData *IFOdata, SimInspiralTable *inj_table, Process
 
     re = cos(twopit * deltaF * lower);
     im = -sin(twopit * deltaF * lower);
+    printf("lower = %i, upper = %i\n",lower,upper);
+    printf("hptilde->data->length = %i\n",hptilde->data->length);
     for (i=lower; i<=upper; ++i){
       /* derive template (involving location/orientation parameters) from given plus/cross waveforms: */
       if (i < hptilde->data->length) {
@@ -2388,6 +2428,7 @@ void InjectFD(LALInferenceIFOData *IFOdata, SimInspiralTable *inj_table, Process
 
     fclose(outInj);
   }
+  printf("IS ALWAYS ZERO? SOMETHING FISHY ...\n");
   printf("injected Network SNR %.1f \n",sqrt(NetSNR));
   ppt=LALInferenceGetProcParamVal(commandLine,"--dont-dump-extras");
   if (!ppt){
@@ -2425,6 +2466,152 @@ static void PrintSNRsToFile(LALInferenceIFOData *IFOdata , char SNRpath[] ){
   }
   fclose(snrout);
 }
+
+REAL8 XLALChiEffRingdown(REAL8 m1, REAL8 m2, REAL8 S1x, REAL8 S1y, REAL8 S1z, REAL8 S2x, REAL8 S2y, REAL8 S2z)
+{
+  REAL8 chi1, chi2, chiEff, chim, eta;
+  eta = (m1*m2)/(m1 + m2)/(m1 + m2);
+  chi1 = sqrt(S1x*S1x + S1y*S1y + S1z*S1z);
+  chi2 = sqrt(S2x*S2x + S2y*S2y + S2z*S2z);
+  chim = (m1*chi1 - m2*chi2)/(m1 + m2);
+  chiEff = 1./2.*(sqrt(1. - 4.*eta)*chi1 + chim);
+  return chiEff;
+}
+
+/** 
+ * Computes the final spin of a Kerr black hole depending on the masses and spins of the 
+ * initial components. Following arXiv:1605.01938.
+ * TODO: returns non physical values for some mass/spin compbinations ...
+ **/
+static REAL8 XLALSimInspiralFinalBlackHoleSpin(REAL8 i, REAL8 m1, REAL8 m2, REAL8 S1x, REAL8 S1y, REAL8 S1z, REAL8 S2x, REAL8 S2y, REAL8 S2z){
+
+    REAL8 chi = 0.474046; //use coefficients for nm=3, nj=4, arXiv:1605.01938
+
+    /*definitions involving masses*/
+    REAL8 q = m2/m1;
+    REAL8 eta = m1*m2/((m1+m2)*(m1+m2));
+
+    /*orbital angular momentum*/
+    REAL8 Lhatx = sin(i);
+    REAL8 Lhaty = 0;
+    REAL8 Lhatz = cos(i);
+
+    /*component momenta*/
+    REAL8 S1 = sqrt(S1x*S1x+S1y*S1y+S1z*S1z);
+    REAL8 S2 = sqrt(S2x*S2x+S2y*S2y+S2z*S2z);
+
+    /*definitions to compute final spin: need to be made at initial binary seperation (TODO: check convention)*/
+    REAL8 cos_alpha = (S1x*S2x+S1y*S2y+S1z*S2z)/(S1*S2);
+    REAL8 cos_beta = (Lhatx*S1x+Lhaty*S1y+Lhatz*S1z)/S1;
+    REAL8 cos_gamma = (Lhatx*S2x+Lhaty*S2y+Lhatz*S2z)/S2;
+    if(S1==0){cos_beta = 0; cos_alpha = 0;}
+    if(S2==0){cos_gamma = 0; cos_alpha = 0;}
+
+
+    REAL8 a_tot = (S1*cos_beta+S2*cos_gamma*q*q)/((1+q)*(1+q));
+    REAL8 a_eff = a_tot+chi*eta*(S1*cos_beta+S2*cos_gamma);
+    REAL8 l=l_fit(a_eff, a_tot, eta);
+    REAL8 a_fin =1/((1+q)*(1+q))*sqrt(S1*S1+S2*S2*q*q*q*q+2*S1*S2*q*q*cos_alpha+2*(S1*cos_beta+S2*q*q*cos_gamma)*l*q+l*l*q*q);
+    return a_fin;
+}
+
+
+/** 
+ * Computes the final mass of a Kerr black hole depending on the masses and spins of the 
+ * initial components. Following arXiv:1206.3803.
+ **/
+static REAL8 FinalBlackHoleMass(REAL8 i, REAL8 m1, REAL8 m2, REAL8 S1x, REAL8 S1y, REAL8 S1z, REAL8 S2x, REAL8 S2y, REAL8 S2z){
+    /*definitions involving masses*/
+    REAL8 q = m2/m1;
+    REAL8 eta = m1*m2/((m1+m2)*(m1+m2));
+
+    /*orbital angular momentum*/
+    REAL8 Lhatx = sin(i);
+    REAL8 Lhaty = 0;
+    REAL8 Lhatz = cos(i);
+
+    /*component momenta*/
+    REAL8 S1 = sqrt(S1x*S1x+S1y*S1y+S1z*S1z);
+    REAL8 S2 = sqrt(S2x*S2x+S2y*S2y+S2z*S2z);
+
+    /*useful definitions*/
+    REAL8 cos_beta = (Lhatx*S1x+Lhaty*S1y+Lhatz*S1z)/S1;
+    REAL8 cos_gamma = (Lhatx*S2x+Lhaty*S2y+Lhatz*S2z)/S2;
+    if(S1==0){cos_beta = 0;}
+    if(S2==0){cos_gamma = 0;}
+
+    /*final mass*/
+    REAL8 p0 =0.04827;
+    REAL8 p1=0.01707;
+    REAL8 a = (S1*cos_beta+S2*cos_gamma*q*q)/((1+q)*(1+q));
+    REAL8 EradOverM = (1-EISCO(a))*eta+4*eta*eta*(4*p0+16*p1*a*(a+1)+EISCO(a)-1);
+    return (1-EradOverM)*(m1+m2);
+}
+
+static REAL8 LISCO(REAL8 a){
+    return 2/(3*sqrt(3))*(1+2*sqrt(3*risco(a)-2));
+}
+
+static REAL8 EISCO(REAL8 a){
+    return sqrt(1-2/(3*risco(a)));
+}
+
+static REAL8 risco(REAL8 a){
+    REAL8 Z1 = 1+pow((1-a*a),1/3)*(pow((1+a),1/3)+pow((1-a),1/3));
+    REAL8 Z2 = sqrt(3*a*a+Z1*Z1);
+    if (a > 0) return 3+Z2-a*sqrt((3-Z1)*(3+Z1+2*Z2));
+    if (a < 0) return 3+Z2+a*sqrt((3-Z1)*(3+Z1+2*Z2));
+    return 3+Z2;
+}
+
+static REAL8 l_fit(REAL8 a, REAL8 a_tot, REAL8 eta){
+    /*use coefficients for nm=3, nj=4, arXiv:1605.01938*/
+    printf("In l_fit: initially a_eff = %f, a_tot = %f, eta = %f\n", a, a_tot,eta);
+    REAL8 l = LISCO(a)-2*a_tot*(EISCO(a)-1);
+    printf("Before adding the sum l = %f\n",l);
+    //n=0,m=1
+    l+=3.39221*eta*a;
+    //n=0,m=2
+    l+=4.48865*eta*a*a;
+    //n=0,m=3
+    l-=5.77101*eta*a*a*a;
+    //n=0,m=4
+    l-=13.0459*eta*a*a*a*a;
+    //n=1,m=0
+    l+=35.1278*eta*eta;
+    //n=1,m=1
+    l-=72.9336*eta*eta*a;
+    //n=1,m=2
+    l-=86.0036*eta*eta*a*a;
+    //n=1,m=3
+    l+=93.7371*eta*eta*a*a*a;
+    //n=1,m=4
+    l+=200.975*eta*eta*a*a*a*a;
+    //n=2,m=0
+    l-=146.822*eta*eta*eta;
+    //n=2,m=1
+    l+=387.184*eta*eta*eta*a;
+    //n=2,m=2
+    l+=447.009*eta*eta*eta*a*a;
+    //n=2,m=3
+    l-=467.383*eta*eta*eta*a*a*a;
+    //n=2,m=4
+    l-=884.339*eta*eta*eta*a*a*a*a;
+    //n=3,m=0
+    l+=223.911*eta*eta*eta*eta;
+    //n=3,m=1
+    l-=648.502*eta*eta*eta*eta*a;
+    //n=3,m=2
+    l-=697.177*eta*eta*eta*eta*a*a;
+    //n=3,m=3
+    l+=753.738*eta*eta*eta*eta*a*a*a;
+    //n=3,m=4
+    l+=1166.89*eta*eta*eta*eta*a*a*a*a;
+
+    if(l<0){return -l;}
+    return l;
+}
+
 
 /**
 * Fill the variables passed in vars with the parameters of the injection passed in event
@@ -2529,7 +2716,12 @@ void LALInferencePrintInjectionSample(LALInferenceRunState *runState) {
     FILE *outfile=NULL;
 
     SimInspiralTable *injTable=NULL, *theEventTable=NULL;
-    LALInferenceModel *model = LALInferenceInitCBCModel(runState);
+    //LALInferenceModel *model = LALInferenceInitCBCModel(runState);
+
+    LALInferenceModel *model;
+    if(strstr(LALInferencePrintCommandLine(runState->commandLine),"RingdownFD")){model = LALInferenceInitRingdownModel(runState);}
+    else{model = LALInferenceInitCBCModel(runState);}
+
     if (LALInferenceGetProcParamVal(runState->commandLine, "--roqtime_steps")){
       LALInferenceSetupROQmodel(model, runState->commandLine);
       fprintf(stderr, "done LALInferenceSetupROQmodel\n");
@@ -2538,6 +2730,7 @@ void LALInferencePrintInjectionSample(LALInferenceRunState *runState) {
     }
     LALInferenceVariables *injparams = XLALCalloc(1, sizeof(LALInferenceVariables));
     LALInferenceCopyVariables(model->params, injparams);
+
 
     ProcessParamsTable *ppt = LALInferenceGetProcParamVal(runState->commandLine,"--inj");
     if (!ppt)

@@ -70,4 +70,5 @@ void LALInferencePrintInjectionSample(LALInferenceRunState *runState);
 void LALInferenceInjectFromMDC(ProcessParamsTable *commandLine, LALInferenceIFOData *IFOdata);
 /*@}*/
 
+
 #endif
