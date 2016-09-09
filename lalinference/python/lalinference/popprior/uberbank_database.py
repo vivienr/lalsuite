@@ -111,12 +111,12 @@ class Bank(object):
 #Cannot load h5py file: uberbank/bank_739_overlaps.hdf
 #Cannot load h5py file: uberbank/bank_839_overlaps.hdf
 
-if sys.argv[1] == "make_sqlite":
+if sys.argv[-1] == "make_sqlite":
     start_time = time.time()
     Bank.make_db("uberbank_database.sqlite",glob.glob("uberbank/*hdf")) # make sqlite file
     x = Bank(sqlite3.connect("uberbank_database.sqlite"))
     print "Seconds taken to create database:", time.time()-start_time
-if sys.argv[1] == "make_ram":
-    start_time = time.time()
-    x = Bank(Bank.make_db(":memory:", glob.glob("uberbank/*.hdf")) # in RAM version
-    print "Seconds taken to create database:", time.time()-start_time
+#if sys.argv[1] == "make_ram":
+#    start_time = time.time()
+#    x = Bank(Bank.make_db(":memory:", glob.glob("uberbank/*.hdf")) # in RAM version
+#    #print "Seconds taken to create database:", time.time()-start_time

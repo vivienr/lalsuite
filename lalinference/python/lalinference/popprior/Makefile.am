@@ -8,6 +8,9 @@ if HAVE_PYTHON
 pymoduledir = $(pkgpythondir)/popprior
 
 pymodule_PYTHON = \
-	#__init__.py
+	__init__.py \
+	lagrangian_fit.py \
+	uberbank_database.py \
+	$(END_OF_LIST)
 
 endif

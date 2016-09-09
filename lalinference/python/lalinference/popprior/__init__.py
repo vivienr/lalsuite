@@ -111,11 +111,8 @@ def ln_p_k_den(tjtk, rho, acc=0.001):
 
 def source_population(srcfile):
     data = np.loadtxt(srcfile,unpack=True)
-    arr = np.zeros(np.shape(data))
-    arr[0] = np.linspace(0.5,2.5,len(data[0])) # masses
-    arr[1] = np.cumsum(data[1]) # probability density
-    x = arr[0]
-    y = arr[1]/np.trapz(arr[1],x)
+    x = data[0]
+    y = data[1]/np.trapz(data[1],x) # normalize the probability
     f = lambda x, *p: p[0]*np.exp(-p[1]*(x-p[2])**2)
     popt, pcov = curve_fit(f, x, y, [2.5,1.,1.3]) # fit p(m) to a Gaussian curve
     return f, popt
