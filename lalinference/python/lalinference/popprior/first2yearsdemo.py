@@ -20,10 +20,13 @@ import sqlite3
 import lalinference.popprior.uberbank_database as ud
 from glue.text_progress_bar import ProgressBar
 from lalinference import popprior
+import time
 
 start_time = time.time()
 
-x = ud.Bank(sqlite3.connect("uberbank_database.sqlite")
+x = ud.Bank(sqlite3.connect("uberbank_database.sqlite"))
+
+'''
 plots=False
 datetime=time.strftime('%Y%m%d')
 bank = x.get_templates()
@@ -73,3 +76,4 @@ if save_data:
         f.create_dataset('masses', data=mass)
         f.close()
         print "Data saved. Time elapsed:", time.time()-start_time
+'''

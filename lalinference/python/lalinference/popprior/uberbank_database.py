@@ -64,6 +64,7 @@ class Bank(object):
                 for i, (m1, m2, chi1, chi2) in enumerate(zip(f[f.keys()[0]]['mass1'].value, f[f.keys()[0]]['mass2'].value, f[f.keys()[0]]['spin1z'].value, f[f.keys()[0]]['spin2z'].value)):
                     cursor.execute("INSERT INTO bank (filename_id, m1, m2, chi1, chi2, row, column) VALUES ((SELECT filename_id FROM fname WHERE filename = ?),?,?,?,?,?,?)", (filename, m1, m2, chi1, chi2, i if i <= nrows else None, i))
                     #FIXME: After building the database, confirm that each template only appears once in one row of the hdf5 files
+                f.close() # keeps the open file count down
             except: # ignore corrupted/broken subbank files
                 print "Cannot load h5py file:", filename
         cursor.execute("CREATE INDEX template_index ON bank (m1, m2, chi1, chi2)")
@@ -113,8 +114,9 @@ class Bank(object):
 
 if sys.argv[-1] == "make_sqlite":
     start_time = time.time()
-    Bank.make_db("uberbank_database.sqlite",glob.glob("uberbank/*hdf")) # make sqlite file
-    x = Bank(sqlite3.connect("uberbank_database.sqlite"))
+    #Bank.make_db("uberbank_database.sqlite",glob.glob("/home/heather.fong/rankingstatistic/uberbank/*hdf")) # make sqlite file
+    Bank.make_db("uberbank_database.sqlite",glob.glob("/home/pankow/research-projects/overlap/uberbank/full_run/*hdf"))
+    #x = Bank(sqlite3.connect("uberbank_database.sqlite"))
     print "Seconds taken to create database:", time.time()-start_time
 #if sys.argv[1] == "make_ram":
 #    start_time = time.time()

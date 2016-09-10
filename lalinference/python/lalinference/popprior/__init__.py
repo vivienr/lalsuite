@@ -44,11 +44,16 @@ def find_ln_p_j_voronoi(m, f, popt):
     all_i = []
     vtot = 0
     new_points = []
-    for i, p in enumerate(vor.points):
+    length = len(vor.points)
+    progress = ProgressBar(max=length)
+    for i, p in enumerate(vor.points): # vor.points = coordinates of input points, where coordinates = [m1, m2, chi1, chi2]
+        progress.increment(text=str(p)+"/"+str(length))
         region = vor.regions[vor.point_region[i]]
+        # vor.point_region[i] = index of Voronoi region for each input point
+        # vor.regions[...] = indices of the Voronoi vertices forming Voronoi region (vor.vertices = coordinates of the Voronoi vertices)
         if -1 not in region:
-            pvol = vol(vor, region)
-            if pvol > 0.05:
+            pvol = vol(vor, region) # calculates hypervolume of the Voronoi region around the input point
+            if pvol > 0.05: # if volume is too large, it probably means the input point is a template near the edge of the bank. So ignore it.
                 continue
             all_vols.append(pvol)
             all_p.append(p)
@@ -65,17 +70,25 @@ def find_ln_p_j_voronoi(m, f, popt):
     return np.log(p_tj), all_p, all_i
 
 def trivol((a, b, c)):
-    # Calculates area of triangle
+    # Calculates area of triangle, for templates with coordinates (m1, m2)
     return abs(np.cross((c-a),(c-b)))/2.
 
 def tetravol((a, b, c, d)):
-    # Calculates volume of tetrahedron, given vertices a, b, c, d (triplets)
+    # Calculates volume of tetrahedron, given vertices a, b, c, d (triplets), for templates with coordinates (m1, m2, chi_eff)
     return abs(np.dot((a-d), np.cross(b-d),(c-d)))/6.
 
-def vol(vor, region):
-    dpoints = vor.vertices[region]
-    return sum(trivol(dpoints[simplex]) for simplex in Delaunay(dpoints).simplices)
+def hypertetravol((a, b, c, d, e)):
+    # Calculates a Delaunay triangulated section of the Voronoi region for templates with coordinates (m1, m2, chi1, chi2)
+    # Calculates hypervolume of 4d tetrahedron (5-cell), given vertices a, b, c, d, e (quadruplets)
+    return abs( (1./12.)*np.linalg.det((a-e, b-e, c-e, d-e)) )
 
+def vol(vor, region):
+    # Computes the volume of the Voronoi region using Delaunay triangulation
+    dpoints = vor.vertices[region] # finds Voronoi vertices coordinates in the Voronoi region, these are the points to triangulate
+    #return sum(tetravol(dpoints[simplex]) for simplex in Delaunay(dpoints).simplices)
+    #return sum(trivol(dpoints[simplex]) for simplex in Delaunay(dpoints).simplices)
+    return sum(hypertetravol(dpoints[simplex]) for simplex in Delaunay(dpoints).simplices) # takes dpoints and triangulates the region. simplices calls the indices of the points forming the simplices of the triangulation. Sum up all the hypervolumes to get total volume for the Voronoi region.
+    
 def ln_p_k(ovrlp, rho, t_k, acc=0.001):
     # Finds probability of template t_k fitting data, given that the signal is rho*t_j
     # ovrlp = vector of the overlaps of (t_j, t_k) for one t_j
