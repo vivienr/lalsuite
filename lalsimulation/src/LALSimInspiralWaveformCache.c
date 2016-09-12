@@ -51,12 +51,7 @@ static CacheVariableDiffersBitmask CacheArgsDifferenceBitmask(
         REAL8 f_min, REAL8 f_ref, REAL8 f_max,
         REAL8 r,
         REAL8 i,
-        REAL8 lambda1,
-        REAL8 lambda2,
-        LALSimInspiralWaveformFlags *waveFlags,
-        LALSimInspiralTestGRParam *nonGRparams,
-        int amplitudeO,
-        int phaseO,
+	LALDict *LALpars,
         Approximant approximant,
         REAL8Sequence *frequencies);
 
@@ -75,11 +70,7 @@ static int StoreTDHCache(LALSimInspiralWaveformCache *cache,
         REAL8 f_min, REAL8 f_ref,
         REAL8 r,
         REAL8 i,
-        REAL8 lambda1, REAL8 lambda2,
-        LALSimInspiralWaveformFlags *waveFlags,
-        LALSimInspiralTestGRParam *nonGRparams,
-        int amplitudeO,
-        int phaseO,
+        LALDict *LALpars,
         Approximant approximant);
 
 static int StoreFDHCache(LALSimInspiralWaveformCache *cache,
@@ -93,11 +84,7 @@ static int StoreFDHCache(LALSimInspiralWaveformCache *cache,
         REAL8 f_min, REAL8 f_ref, REAL8 f_max,
         REAL8 r,
         REAL8 i,
-        REAL8 lambda1, REAL8 lambda2,
-        LALSimInspiralWaveformFlags *waveFlags,
-        LALSimInspiralTestGRParam *nonGRparams,
-        int amplitudeO,
-        int phaseO,
+        LALDict *LALpars,
         Approximant approximant,
         REAL8Sequence *frequencies);
 
@@ -134,12 +121,7 @@ int XLALSimInspiralChooseTDWaveformFromCache(
         REAL8 f_ref,                            /**< reference GW frequency (Hz) */
         REAL8 r,                                /**< distance of source (m) */
         REAL8 i,                                /**< inclination of source (rad) */
-        REAL8 lambda1,                          /**< (tidal deformability of mass 1) / m1^5 (dimensionless) */
-        REAL8 lambda2,                          /**< (tidal deformability of mass 2) / m2^5 (dimensionless) */
-        LALSimInspiralWaveformFlags *waveFlags, /**< Set of flags to control special behavior of some waveform families. Pass in NULL (or None in python) for default flags */
-        LALSimInspiralTestGRParam *nonGRparams, /**< Linked list of non-GR parameters. Pass in NULL (or None in python) for standard GR waveforms */
-        int amplitudeO,                         /**< twice post-Newtonian amplitude order */
-        int phaseO,                             /**< twice post-Newtonian order */
+        LALDict *LALpars,
         Approximant approximant,                /**< post-Newtonian approximant to use for waveform production */
         LALSimInspiralWaveformCache *cache      /**< waveform cache structure; use NULL for no caching */
         )
@@ -151,19 +133,16 @@ int XLALSimInspiralChooseTDWaveformFromCache(
     CacheVariableDiffersBitmask changedParams;
 
     // If nonGRparams are not NULL, don't even try to cache.
-    if ( nonGRparams != NULL || (!cache) )
+    if ( !XLALSimInspiralWaveformParamsNonGRAreDefault(LALpars) || (!cache) )
 
-      return XLALSimInspiralChooseTDWaveformOLD(hplus, hcross, m1, m2, S1x, S1y, S1z, S2x, S2y, S2z,
-					     r, i, phiRef, 0., 0., 0., deltaT, f_min, f_ref,
-					     lambda1, lambda2, 0., 0.,
-					     waveFlags, nonGRparams, amplitudeO, phaseO,
+      return XLALSimInspiralChooseTDWaveform(hplus, hcross, m1, m2, S1x, S1y, S1z, S2x, S2y, S2z,
+					     r, i, phiRef, 0., 0., 0., deltaT, f_min, f_ref, LALpars,
 					     approximant);
 
     // Check which parameters have changed
     changedParams = CacheArgsDifferenceBitmask(cache, phiRef, deltaT,
             m1, m2, S1x, S1y, S1z, S2x, S2y, S2z, f_min, f_ref, 0., r, i,
-            lambda1, lambda2, waveFlags, nonGRparams, amplitudeO,
-            phaseO, approximant, NULL);
+            LALpars, approximant, NULL);
 
     // No parameters have changed! Copy the cached polarizations
     if( changedParams == NO_DIFFERENCE ) {
@@ -184,69 +163,61 @@ int XLALSimInspiralChooseTDWaveformFromCache(
     // Intrinsic parameters have changed. We must generate a new waveform
     if( (changedParams & INTRINSIC) != 0 ) {
 
-        status = XLALSimInspiralChooseTDWaveformOLD(hplus, hcross, m1, m2, S1x, S1y, S1z, S2x, S2y, S2z,
-						 r, i, phiRef, 0., 0., 0., deltaT, f_min, f_ref,
-						 lambda1, lambda2, 0., 0.,
-						 waveFlags, nonGRparams, amplitudeO, phaseO,
+        status = XLALSimInspiralChooseTDWaveform(hplus, hcross, m1, m2, S1x, S1y, S1z, S2x, S2y, S2z,
+						 r, i, phiRef, 0., 0., 0., deltaT, f_min, f_ref, LALpars,
 						 approximant);
         if (status == XLAL_FAILURE) return status;
 
         // FIXME: Need to add hlms, dynamic variables, etc. in cache
         return StoreTDHCache(cache, *hplus, *hcross, phiRef, deltaT, m1, m2,
-            S1x, S1y, S1z, S2x, S2y, S2z, f_min, f_ref, r, i, lambda1, lambda2,
-            waveFlags, nonGRparams, amplitudeO, phaseO, approximant);
+			     S1x, S1y, S1z, S2x, S2y, S2z, f_min, f_ref, r, i, LALpars, approximant);
     }
 
+    INT4 ampO=XLALSimInspiralWaveformParamsLookupPNAmplitudeOrder(LALpars);
     // case 1: Precessing waveforms
     if( approximant == SpinTaylorT4 || approximant == SpinTaylorT2 ) {
         // If polarizations are not cached we must generate a fresh waveform
         // FIXME: Will need to check hlms and/or dynamical variables as well
         if( cache->hplus == NULL || cache->hcross == NULL) {
-            status = XLALSimInspiralChooseTDWaveformOLD(hplus, hcross, m1, m2,
+            status = XLALSimInspiralChooseTDWaveform(hplus, hcross, m1, m2,
 						     S1x, S1y, S1z, S2x, S2y, S2z, r, i,
-						     phiRef, 0., 0., 0., deltaT, f_min, f_ref,
-						     lambda1, lambda2, 0., 0.,
-						     waveFlags, nonGRparams, amplitudeO, phaseO, approximant);
+						     phiRef, 0., 0., 0., deltaT, f_min, f_ref, LALpars,
+						     approximant);
             if (status == XLAL_FAILURE) return status;
 
             // FIXME: Need to add hlms, dynamic variables, etc. in cache
             return StoreTDHCache(cache, *hplus, *hcross, phiRef, deltaT, m1, m2,
                     S1x, S1y, S1z, S2x, S2y, S2z, f_min, f_ref, r, i,
-                    lambda1, lambda2, waveFlags, nonGRparams,
-                    amplitudeO, phaseO, approximant);
+		    LALpars, approximant);
         }
 
         if( changedParams & INCLINATION ) {
             // FIXME: For now just treat as intrinsic parameter.
             // Will come back and put in transformation
-            status = XLALSimInspiralChooseTDWaveformOLD(hplus, hcross, m1, m2,
+            status = XLALSimInspiralChooseTDWaveform(hplus, hcross, m1, m2,
 						     S1x, S1y, S1z, S2x, S2y, S2z, r, i,
 						     phiRef, 0., 0., 0., deltaT, f_min, f_ref,
-						     lambda1, lambda2, 0., 0.,
-						     waveFlags, nonGRparams, amplitudeO, phaseO, approximant);
+						     LALpars, approximant);
             if (status == XLAL_FAILURE) return status;
 
             // FIXME: Need to add hlms, dynamic variables, etc. in cache
             return StoreTDHCache(cache, *hplus, *hcross, phiRef, deltaT, m1, m2,
                     S1x, S1y, S1z, S2x, S2y, S2z, f_min, f_ref, r, i,
-                    lambda1, lambda2, waveFlags, nonGRparams, amplitudeO,
-                    phaseO, approximant);
+                    LALpars, approximant);
         }
         if( changedParams & PHI_REF ) {
             // FIXME: For now just treat as intrinsic parameter.
             // Will come back and put in transformation
-            status = XLALSimInspiralChooseTDWaveformOLD(hplus, hcross, m1, m2,
+            status = XLALSimInspiralChooseTDWaveform(hplus, hcross, m1, m2,
 						     S1x, S1y, S1z, S2x, S2y, S2z, r, i,
 						     phiRef, 0., 0., 0., deltaT, f_min, f_ref,
-						     lambda1, lambda2, 0., 0.,
-						     waveFlags, nonGRparams, amplitudeO, phaseO, approximant);
+						     LALpars, approximant);
             if (status == XLAL_FAILURE) return status;
 
             // FIXME: Need to add hlms, dynamic variables, etc. in cache
             return StoreTDHCache(cache, *hplus, *hcross, phiRef, deltaT, m1, m2,
                     S1x, S1y, S1z, S2x, S2y, S2z, f_min, f_ref, r, i,
-                    lambda1, lambda2, waveFlags, nonGRparams, amplitudeO,
-                    phaseO, approximant);
+		    LALpars, approximant);
         }
         if( (changedParams & DISTANCE) != 0 ) {
             // Return rescaled copy of cached polarizations
@@ -279,23 +250,20 @@ int XLALSimInspiralChooseTDWaveformFromCache(
     }
 
     // case 2: Non-precessing, ampO = 0
-    else if( amplitudeO==0 && (approximant==TaylorT1 || approximant==TaylorT2
+    else if( ampO==0 && (approximant==TaylorT1 || approximant==TaylorT2
                 || approximant==TaylorT3 || approximant==TaylorT4
                 || approximant==EOBNRv2 || approximant==SEOBNRv1) ) {
         // If polarizations are not cached we must generate a fresh waveform
         if( cache->hplus == NULL || cache->hcross == NULL) {
-            status = XLALSimInspiralChooseTDWaveformOLD(hplus, hcross, m1, m2,
+            status = XLALSimInspiralChooseTDWaveform(hplus, hcross, m1, m2,
 						     S1x, S1y, S1z, S2x, S2y, S2z, r, i,
-						     phiRef, 0., 0., 0., deltaT, f_min, f_ref,
-						     lambda1, lambda2, 0., 0.,
-						     waveFlags, nonGRparams, amplitudeO, phaseO, approximant);
+						     phiRef, 0., 0., 0., deltaT, f_min, f_ref, LALpars, approximant);
             if (status == XLAL_FAILURE) return status;
 
             // FIXME: Need to add hlms, dynamic variables, etc. in cache
             return StoreTDHCache(cache, *hplus, *hcross, phiRef, deltaT, m1, m2,
                     S1x, S1y, S1z, S2x, S2y, S2z, f_min, f_ref, r, i,
-                    lambda1, lambda2, waveFlags, nonGRparams,
-                    amplitudeO, phaseO, approximant);
+                    LALpars, approximant);
         }
 
         // Set transformation coefficients for identity transformation.
@@ -354,59 +322,51 @@ int XLALSimInspiralChooseTDWaveformFromCache(
     // case 3: Non-precessing, ampO > 0
     // FIXME: EOBNRv2HM actually ignores ampO. If it's given with ampO==0,
     // it will fall to the catch-all and not be cached.
-    else if( (amplitudeO==-1 || amplitudeO>0) && (approximant==TaylorT1
+    else if( (ampO==-1 || ampO>0) && (approximant==TaylorT1
                 || approximant==TaylorT2 || approximant==TaylorT3
                 || approximant==TaylorT4 || approximant==EOBNRv2HM) ) {
         // If polarizations are not cached we must generate a fresh waveform
         // FIXME: Add in check that hlms non-NULL
         if( cache->hplus == NULL || cache->hcross == NULL) {
             // FIXME: This will change to a code-path: inputs->hlms->{h+,hx}
-            status = XLALSimInspiralChooseTDWaveformOLD(hplus, hcross, m1, m2,
+            status = XLALSimInspiralChooseTDWaveform(hplus, hcross, m1, m2,
 						     S1x, S1y, S1z, S2x, S2y, S2z, r, i,
-						     phiRef, 0., 0., 0., deltaT, f_min, f_ref,
-						     lambda1, lambda2, 0., 0.,
-						     waveFlags, nonGRparams, amplitudeO, phaseO, approximant);
+						     phiRef, 0., 0., 0., deltaT, f_min, f_ref, LALpars, approximant);
             if (status == XLAL_FAILURE) return status;
 
             // FIXME: Need to add hlms, dynamic variables, etc. in cache
             return StoreTDHCache(cache, *hplus, *hcross, phiRef, deltaT, m1, m2,
                     S1x, S1y, S1z, S2x, S2y, S2z, f_min, f_ref, r, i,
-                    lambda1, lambda2, waveFlags, nonGRparams,
-                    amplitudeO, phaseO, approximant);
+                    LALpars, approximant);
         }
 
         if( changedParams & INCLINATION) {
             // FIXME: For now just treat as intrinsic parameter.
             // Will come back and put in transformation
-            status = XLALSimInspiralChooseTDWaveformOLD(hplus, hcross, m1, m2,
+            status = XLALSimInspiralChooseTDWaveform(hplus, hcross, m1, m2,
 						     S1x, S1y, S1z, S2x, S2y, S2z, r, i,
-						     phiRef, 0., 0., 0., deltaT, f_min, f_ref,
-						     lambda1, lambda2, 0., 0.,
-						     waveFlags, nonGRparams, amplitudeO, phaseO, approximant);
+						     phiRef, 0., 0., 0., deltaT, f_min, f_ref, LALpars, approximant);
             if (status == XLAL_FAILURE) return status;
 
             // FIXME: Need to add hlms, dynamic variables, etc. in cache
             return StoreTDHCache(cache, *hplus, *hcross, phiRef, deltaT, m1, m2,
                     S1x, S1y, S1z, S2x, S2y, S2z, f_min, f_ref, r, i,
-                    lambda1, lambda2, waveFlags, nonGRparams, amplitudeO,
-                    phaseO, approximant);
+                    LALpars, approximant);
 
         }
         if( changedParams & PHI_REF ) {
             // FIXME: For now just treat as intrinsic parameter.
             // Will come back and put in transformation
-            status = XLALSimInspiralChooseTDWaveformOLD(hplus, hcross, m1, m2,
+            status = XLALSimInspiralChooseTDWaveform(hplus, hcross, m1, m2,
 						     S1x, S1y, S1z, S2x, S2y, S2z, r, i,
-						     phiRef, 0., 0., 0., deltaT, f_min, f_ref,
-						     lambda1, lambda2, 0., 0.,
-						     waveFlags, nonGRparams, amplitudeO, phaseO, approximant);
+						     phiRef, 0., 0., 0., deltaT, f_min, f_ref, LALpars,
+						     approximant);
             if (status == XLAL_FAILURE) return status;
 
             // FIXME: Need to add hlms, dynamic variables, etc. in cache
             return StoreTDHCache(cache, *hplus, *hcross, phiRef, deltaT, m1, m2,
                     S1x, S1y, S1z, S2x, S2y, S2z, f_min, f_ref, r, i,
-                    lambda1, lambda2, waveFlags, nonGRparams, amplitudeO,
-                    phaseO, approximant);
+                    LALpars, approximant);
 
         }
         if( changedParams & DISTANCE ) {
@@ -443,11 +403,9 @@ int XLALSimInspiralChooseTDWaveformFromCache(
     // Basically, you requested a waveform type which is not setup for caching
     // b/c of lack of interest or it's unclear what/how to cache for that model
     else {
-        return XLALSimInspiralChooseTDWaveformOLD(hplus, hcross, m1, m2,
+        return XLALSimInspiralChooseTDWaveform(hplus, hcross, m1, m2,
 					       S1x, S1y, S1z, S2x, S2y, S2z, r, i,
-					       phiRef, 0., 0., 0., deltaT, f_min, f_ref,
-					       lambda1, lambda2, 0., 0.,
-					       waveFlags, nonGRparams, amplitudeO, phaseO, approximant);
+					       phiRef, 0., 0., 0., deltaT, f_min, f_ref, LALpars, approximant);
     }
 }
 
@@ -479,12 +437,7 @@ int XLALSimInspiralChooseFDWaveformFromCache(
         REAL8 f_ref,                            /**< Reference GW frequency (Hz) */
         REAL8 r,                                /**< distance of source (m) */
         REAL8 i,                                /**< inclination of source (rad) */
-        REAL8 lambda1,                          /**< (tidal deformability of mass 1) / m1^5 (dimensionless) */
-        REAL8 lambda2,                          /**< (tidal deformability of mass 2) / m2^5 (dimensionless) */
-        LALSimInspiralWaveformFlags *waveFlags, /**< Set of flags to control special behavior of some waveform families. Pass in NULL (or None in python) for default flags */
-        LALSimInspiralTestGRParam *nonGRparams, /**< Linked list of non-GR parameters. Pass in NULL (or None in python) for standard GR waveforms */
-        int amplitudeO,                         /**< twice post-Newtonian amplitude order */
-        int phaseO,                             /**< twice post-Newtonian order */
+        LALDict *LALpars,
         Approximant approximant,                /**< post-Newtonian approximant to use for waveform production */
         LALSimInspiralWaveformCache *cache,     /**< waveform cache structure */
         REAL8Sequence *frequencies              /**< sequence of frequencies for which the waveform will be computed. Pass in NULL (or None in python) for standard f_min to f_max sequence. */
@@ -498,25 +451,24 @@ int XLALSimInspiralChooseFDWaveformFromCache(
 
 
     // If nonGRparams are not NULL, don't even try to cache.
-    if ( nonGRparams != NULL || (!cache) ){
+    if ( !XLALSimInspiralWaveformParamsNonGRAreDefault(LALpars) || (!cache) ) {
         if (frequencies != NULL)
             return XLALSimInspiralChooseFDWaveformSequence(hptilde, hctilde, phiRef,
                                                            m1, m2, S1x, S1y, S1z, S2x, S2y, S2z, f_ref,
-                                                           r, i, lambda1, lambda2, waveFlags, nonGRparams, amplitudeO,
-                                                           phaseO, approximant,frequencies);
+                                                           r, i,
+                                                           LALpars, approximant,frequencies);
         else
             return XLALSimInspiralChooseFDWaveform(hptilde, hctilde, m1, m2,
 				S1x, S1y, S1z, S2x, S2y, S2z, r, i, phiRef,
 				0., 0., 0., deltaF, f_min, f_ref, f_max,
-				NULL,
+				LALpars,
 				approximant);
     }
 
     // Check which parameters have changed
     changedParams = CacheArgsDifferenceBitmask(cache, phiRef, deltaF,
             m1, m2, S1x, S1y, S1z, S2x, S2y, S2z, f_min, f_ref, f_max, r, i,
-            lambda1, lambda2, waveFlags, nonGRparams, amplitudeO,
-            phaseO, approximant, frequencies);
+	    LALpars, approximant, frequencies);
 
     // No parameters have changed! Copy the cached polarizations
     if( changedParams == NO_DIFFERENCE ) {
@@ -539,21 +491,19 @@ int XLALSimInspiralChooseFDWaveformFromCache(
         if ( frequencies != NULL ){
             status =  XLALSimInspiralChooseFDWaveformSequence(hptilde, hctilde, phiRef,
                 m1, m2, S1x, S1y, S1z, S2x, S2y, S2z, f_ref,
-                r, i, lambda1, lambda2, waveFlags, nonGRparams, amplitudeO,
-                phaseO, approximant,frequencies);
+	        r, i, LALpars, approximant, frequencies);
         }
         else {
 	  status = XLALSimInspiralChooseFDWaveform(hptilde, hctilde, m1, m2,
 						   S1x, S1y, S1z, S2x, S2y, S2z,
 						   r, i, phiRef, 0., 0., 0.,
 						   deltaF, f_min, f_max, f_ref,
-						   NULL, approximant);
+						   LALpars, approximant);
         }
         if (status == XLAL_FAILURE) return status;
 
         return StoreFDHCache(cache, *hptilde, *hctilde, phiRef, deltaF, m1, m2,
-            S1x, S1y, S1z, S2x, S2y, S2z, f_min, f_ref, f_max, r, i, lambda1, lambda2,
-            waveFlags, nonGRparams, amplitudeO, phaseO, approximant, frequencies);
+			     S1x, S1y, S1z, S2x, S2y, S2z, f_min, f_ref, f_max, r, i, LALpars, approximant, frequencies);
     }
 
     // case 1: Non-precessing, 2nd harmonic only
@@ -567,21 +517,19 @@ int XLALSimInspiralChooseFDWaveformFromCache(
             if ( frequencies != NULL ){
                 status =  XLALSimInspiralChooseFDWaveformSequence(hptilde, hctilde, phiRef,
                     m1, m2, S1x, S1y, S1z, S2x, S2y, S2z, f_ref,
-                    r, i, lambda1, lambda2, waveFlags, nonGRparams, amplitudeO,
-                    phaseO, approximant,frequencies);
+		    r, i, LALpars, approximant,frequencies);
             }
             else {
 	      status = XLALSimInspiralChooseFDWaveform(hptilde, hctilde, m1, m2,
 						       S1x, S1y, S1z, S2x, S2y, S2z, r, i, phiRef,
 						       0., 0., 0., deltaF, f_min, f_ref, f_max,
-						       NULL, approximant);
+						       LALpars, approximant);
             }
             if (status == XLAL_FAILURE) return status;
 
             return StoreFDHCache(cache, *hptilde, *hctilde, phiRef, deltaF,
                     m1, m2, S1x, S1y, S1z, S2x, S2y, S2z, f_min, f_ref, f_max, r, i,
-                    lambda1, lambda2, waveFlags, nonGRparams, amplitudeO,
-                    phaseO, approximant, frequencies);
+                    LALpars, approximant, frequencies);
         }
 
         // Set transformation coefficients for identity transformation.
@@ -648,8 +596,7 @@ int XLALSimInspiralChooseFDWaveformFromCache(
         if ( frequencies != NULL ){
             return XLALSimInspiralChooseFDWaveformSequence(hptilde, hctilde, phiRef,
                     m1, m2, S1x, S1y, S1z, S2x, S2y, S2z, f_ref,
-                    r, i, lambda1, lambda2, waveFlags, nonGRparams, amplitudeO,
-                    phaseO, approximant,frequencies);
+                    r, i, LALpars, approximant,frequencies);
         }
         else {
 	  return XLALSimInspiralChooseFDWaveform(hptilde, hctilde, m1, m2,
@@ -707,12 +654,7 @@ static CacheVariableDiffersBitmask CacheArgsDifferenceBitmask(
         REAL8 f_min, REAL8 f_ref, REAL8 f_max,
         REAL8 r,
         REAL8 i,
-        REAL8 lambda1,
-        REAL8 lambda2,
-        LALSimInspiralWaveformFlags *waveFlags,
-        LALSimInspiralTestGRParam *nonGRparams,
-        int amplitudeO,
-        int phaseO,
+	LALDict *LALpars,
         Approximant approximant,
         REAL8Sequence *frequencies
         )
@@ -721,7 +663,7 @@ static CacheVariableDiffersBitmask CacheArgsDifferenceBitmask(
 
     if (cache == NULL) return INTRINSIC;
 
-    if ( !XLALSimInspiralWaveformFlagsEqual(waveFlags, cache->waveFlags) )
+    if ( !XLALSimInspiralWaveformFlagsEqual(LALpars, cache->LALpars) )
         return INTRINSIC;
 
     if ( deltaTF != cache->deltaTF) return INTRINSIC;
@@ -736,11 +678,11 @@ static CacheVariableDiffersBitmask CacheArgsDifferenceBitmask(
     if ( f_min != cache->f_min) return INTRINSIC;
     if ( f_ref != cache->f_ref) return INTRINSIC;
     if ( f_max != cache->f_max) return INTRINSIC;
-    if ( lambda1 != cache->lambda1) return INTRINSIC;
-    if ( lambda2 != cache->lambda2) return INTRINSIC;
-    if ( nonGRparams != cache->nonGRparams) return INTRINSIC;
-    if ( amplitudeO != cache->amplitudeO) return INTRINSIC;
-    if ( phaseO != cache->phaseO) return INTRINSIC;
+    if ( XLALSimInspiralWaveformParamsLookupTidalLambda1(LALpars) != XLALSimInspiralWaveformParamsLookupTidalLambda1(cache->LALpars)) return INTRINSIC;
+    if ( XLALSimInspiralWaveformParamsLookupTidalLambda2(LALpars) != XLALSimInspiralWaveformParamsLookupTidalLambda2(cache->LALpars)) return INTRINSIC;
+    if ( XLALSimInspiralWaveformParamsLookupPNAmplitudeOrder(LALpars) != XLALSimInspiralWaveformParamsLookupPNAmplitudeOrder(cache->LALpars)) return INTRINSIC;
+    if ( XLALSimInspiralWaveformParamsLookupPNAmplitudeOrder(LALpars) != XLALSimInspiralWaveformParamsLookupPNAmplitudeOrder(cache->LALpars)) return INTRINSIC;
+
     if ( approximant != cache->approximant) return INTRINSIC;
 
     if (r != cache->r) difference = difference | DISTANCE;
@@ -784,11 +726,7 @@ static int StoreTDHCache(LALSimInspiralWaveformCache *cache,
         REAL8 f_min, REAL8 f_ref,
         REAL8 r,
         REAL8 i,
-        REAL8 lambda1, REAL8 lambda2,
-        LALSimInspiralWaveformFlags *waveFlags,
-        LALSimInspiralTestGRParam *nonGRparams,
-        int amplitudeO,
-        int phaseO,
+        LALDict *LALpars,
         Approximant approximant
         )
 {
@@ -818,12 +756,7 @@ static int StoreTDHCache(LALSimInspiralWaveformCache *cache,
     cache->f_ref = f_ref;
     cache->r = r;
     cache->i = i;
-    cache->lambda1 = lambda1;
-    cache->lambda2 = lambda2;
-    cache->waveFlags = waveFlags;
-    cache->nonGRparams = nonGRparams;
-    cache->amplitudeO = amplitudeO;
-    cache->phaseO = phaseO;
+    cache->LALpars = LALpars;
     cache->approximant = approximant;
     cache->frequencies = NULL;
 
@@ -861,11 +794,7 @@ static int StoreFDHCache(LALSimInspiralWaveformCache *cache,
         REAL8 f_min, REAL8 f_ref, REAL8 f_max,
         REAL8 r,
         REAL8 i,
-        REAL8 lambda1, REAL8 lambda2,
-        LALSimInspiralWaveformFlags *waveFlags,
-        LALSimInspiralTestGRParam *nonGRparams,
-        int amplitudeO,
-        int phaseO,
+	LALDict *LALpars,
         Approximant approximant,
         REAL8Sequence *frequencies
         )
@@ -897,12 +826,7 @@ static int StoreFDHCache(LALSimInspiralWaveformCache *cache,
     cache->f_max = f_max;
     cache->r = r;
     cache->i = i;
-    cache->lambda1 = lambda1;
-    cache->lambda2 = lambda2;
-    cache->waveFlags = waveFlags;
-    cache->nonGRparams = nonGRparams;
-    cache->amplitudeO = amplitudeO;
-    cache->phaseO = phaseO;
+    cache->LALpars = LALpars;
     cache->approximant = approximant;
 
     XLALDestroyREAL8Sequence(cache->frequencies);
@@ -948,12 +872,7 @@ int XLALSimInspiralChooseFDWaveformSequence(
     REAL8 f_ref,                            /**< Reference frequency (Hz) */
     REAL8 distance,                         /**< distance of source (m) */
     REAL8 inclination,                      /**< inclination of source (rad) */
-    REAL8 lambda1,                          /**< (tidal deformability of mass 1) / m1^5 (dimensionless) */
-    REAL8 lambda2,                          /**< (tidal deformability of mass 2) / m2^5 (dimensionless) */
-    LALSimInspiralWaveformFlags *waveFlags, /**< Set of flags to control special behavior of some waveform families. Pass in NULL (or None in python) for default flags */
-    LALSimInspiralTestGRParam *nonGRparams, /**< Linked list of non-GR parameters. Pass in NULL (or None in python) for standard GR waveforms */
-    int amplitudeO,                         /**< twice post-Newtonian amplitude order */
-    int phaseO,                             /**< twice post-Newtonian order */
+    LALDict *LALpars,
     Approximant approximant,                /**< post-Newtonian approximant to use for waveform production */
     REAL8Sequence *frequencies              /**< sequence of frequencies for which the waveform will be computed. Pass in NULL (or None in python) for standard f_min to f_max sequence. */
 )
@@ -961,7 +880,10 @@ int XLALSimInspiralChooseFDWaveformSequence(
     int ret;
     unsigned int j;
     REAL8 pfac, cfac;
-    REAL8 quadparam1 = 1., quadparam2 = 1.; /* FIXME: This cannot yet be set in the interface */
+    REAL8 quadparam1 = 1.+XLALSimInspiralWaveformParamsLookupdQuadMon1(LALpars);
+    REAL8 quadparam2 = 1.+XLALSimInspiralWaveformParamsLookupdQuadMon2(LALpars);
+    REAL8 lambda1 = 1.+XLALSimInspiralWaveformParamsLookupTidalLambda1(LALpars);
+    REAL8 lambda2 = 1.+XLALSimInspiralWaveformParamsLookupTidalLambda2(LALpars);
     REAL8 LNhatx, LNhaty, LNhatz;
 
     /* Support variables for precessing wfs*/
@@ -977,8 +899,8 @@ int XLALSimInspiralChooseFDWaveformSequence(
      * If non-GR approximants are added, include them in
      * XLALSimInspiralApproximantAcceptTestGRParams()
      */
-    if( nonGRparams && XLALSimInspiralApproximantAcceptTestGRParams(approximant) != LAL_SIM_INSPIRAL_TESTGR_PARAMS ) {
-        XLALPrintError("XLAL Error - %s: Passed in non-NULL pointer to LALSimInspiralTestGRParam for an approximant that does not use LALSimInspiralTestGRParam\n", __func__);
+    if ( !XLALSimInspiralWaveformParamsNonGRAreDefault(LALpars) && XLALSimInspiralApproximantAcceptTestGRParams(approximant) != LAL_SIM_INSPIRAL_TESTGR_PARAMS ) {
+        XLALPrintError("XLAL Error - %s: Passed in non-NULL testGRparams for an approximant that does not use them\n", __func__);
         XLAL_ERROR(XLAL_EINVAL);
     }
     if (!frequencies) XLAL_ERROR(XLAL_EFAULT);
@@ -1008,24 +930,25 @@ int XLALSimInspiralChooseFDWaveformSequence(
      */
     cfac = cos(inclination);
     pfac = 0.5 * (1. + cfac*cfac);
+    INT4 ampO=XLALSimInspiralWaveformParamsLookupPNAmplitudeOrder(LALpars);
+    INT4 phO=XLALSimInspiralWaveformParamsLookupPNPhaseOrder(LALpars);
+
 
     switch (approximant)
     {
         /* inspiral-only models */
         case TaylorF2:
             /* Waveform-specific sanity checks */
-            if( !XLALSimInspiralFrameAxisIsDefault(
-                    XLALSimInspiralGetFrameAxis(waveFlags) ) )
-                ABORT_NONDEFAULT_FRAME_AXIS_OLD(waveFlags);
-            if( !XLALSimInspiralModesChoiceIsDefault(
-                    XLALSimInspiralGetModesChoice(waveFlags) ) )
-                ABORT_NONDEFAULT_MODES_CHOICE_OLD(waveFlags);
+            if( !XLALSimInspiralWaveformParamsFrameAxisIsDefault(LALpars) )
+                ABORT_NONDEFAULT_FRAME_AXIS(LALpars);
+            if( !XLALSimInspiralWaveformParamsModesChoiceIsDefault(LALpars) )
+                ABORT_NONDEFAULT_MODES_CHOICE(LALpars);
             if( !checkTransverseSpinsZero(S1x, S1y, S2x, S2y) )
-                ABORT_NONZERO_TRANSVERSE_SPINS_OLD(waveFlags);
+                ABORT_NONZERO_TRANSVERSE_SPINS(LALpars);
 
             /* Call the waveform driver routine */
             ret = XLALSimInspiralTaylorF2Core(hptilde, frequencies, phiRef,
-                    m1, m2, S1z, S2z, f_ref, 0., distance, quadparam1, quadparam2, lambda1, lambda2, phaseO, amplitudeO, NULL);
+                    m1, m2, S1z, S2z, f_ref, 0., distance, quadparam1, quadparam2, lambda1, lambda2, phO, ampO, NULL);
             if (ret == XLAL_FAILURE) XLAL_ERROR(XLAL_EFUNC);
             /* Produce both polarizations */
             *hctilde = XLALCreateCOMPLEX16FrequencySeries("FD hcross",
@@ -1036,16 +959,19 @@ int XLALSimInspiralChooseFDWaveformSequence(
                 (*hptilde)->data->data[j] *= pfac;
             }
             break;
-
         /* inspiral-merger-ringdown models */
         case SEOBNRv1_ROM_EffectiveSpin:
             /* Waveform-specific sanity checks */
-            if( !XLALSimInspiralWaveformFlagsIsDefaultOLD(waveFlags) )
-                ABORT_NONDEFAULT_WAVEFORM_FLAGS(waveFlags);
+            if( !XLALSimInspiralWaveformParamsFlagsAreDefault(LALpars) )
+                ABORT_NONDEFAULT_LALDICT_FLAGS(LALpars);
+            if (!checkAlignedSpinsEqual(S1z, S2z))
+                ABORT_NONZERO_TRANSVERSE_SPINS(LALpars);
             if( !checkTransverseSpinsZero(S1x, S1y, S2x, S2y) )
-                ABORT_NONZERO_TRANSVERSE_SPINS_OLD(waveFlags);
+                ABORT_NONZERO_TRANSVERSE_SPINS(LALpars);
             if( !checkTidesZero(lambda1, lambda2) )
-                ABORT_NONZERO_TIDES_OLD(waveFlags);
+                ABORT_NONZERO_TIDES(LALpars);
+            if( !checkTidesZero(lambda1, lambda2) )
+                ABORT_NONZERO_TIDES(LALpars);
 
             ret = XLALSimIMRSEOBNRv1ROMEffectiveSpinFrequencySequence(hptilde, hctilde, frequencies,
                     phiRef, f_ref, distance, inclination, m1, m2, XLALSimIMRPhenomBComputeChi(m1, m2, S1z, S2z));
@@ -1053,12 +979,12 @@ int XLALSimInspiralChooseFDWaveformSequence(
 
         case SEOBNRv1_ROM_DoubleSpin:
             /* Waveform-specific sanity checks */
-            if( !XLALSimInspiralWaveformFlagsIsDefaultOLD(waveFlags) )
-                ABORT_NONDEFAULT_WAVEFORM_FLAGS(waveFlags);
+            if( !XLALSimInspiralWaveformParamsFlagsAreDefault(LALpars) )
+                ABORT_NONDEFAULT_LALDICT_FLAGS(LALpars);
             if( !checkTransverseSpinsZero(S1x, S1y, S2x, S2y) )
-                ABORT_NONZERO_TRANSVERSE_SPINS_OLD(waveFlags);
+                ABORT_NONZERO_TRANSVERSE_SPINS(LALpars);
             if( !checkTidesZero(lambda1, lambda2) )
-                ABORT_NONZERO_TIDES_OLD(waveFlags);
+                ABORT_NONZERO_TIDES(LALpars);
 
             ret = XLALSimIMRSEOBNRv1ROMDoubleSpinFrequencySequence(hptilde, hctilde, frequencies,
                     phiRef, f_ref, distance, inclination, m1, m2, S1z, S2z);
@@ -1066,12 +992,12 @@ int XLALSimInspiralChooseFDWaveformSequence(
 
         case SEOBNRv2_ROM_EffectiveSpin:
             /* Waveform-specific sanity checks */
-            if( !XLALSimInspiralWaveformFlagsIsDefaultOLD(waveFlags) )
-                ABORT_NONDEFAULT_WAVEFORM_FLAGS(waveFlags);
+            if( !XLALSimInspiralWaveformParamsFlagsAreDefault(LALpars) )
+                ABORT_NONDEFAULT_LALDICT_FLAGS(LALpars);
             if( !checkTransverseSpinsZero(S1x, S1y, S2x, S2y) )
-                ABORT_NONZERO_TRANSVERSE_SPINS_OLD(waveFlags);
+                ABORT_NONZERO_TRANSVERSE_SPINS(LALpars);
             if( !checkTidesZero(lambda1, lambda2) )
-                ABORT_NONZERO_TIDES_OLD(waveFlags);
+                ABORT_NONZERO_TIDES(LALpars);
 
             ret = XLALSimIMRSEOBNRv2ROMEffectiveSpinFrequencySequence(hptilde, hctilde, frequencies,
                     phiRef, f_ref, distance, inclination, m1, m2, XLALSimIMRPhenomBComputeChi(m1, m2, S1z, S2z));
@@ -1079,12 +1005,12 @@ int XLALSimInspiralChooseFDWaveformSequence(
 
         case SEOBNRv2_ROM_DoubleSpin:
             /* Waveform-specific sanity checks */
-            if( !XLALSimInspiralWaveformFlagsIsDefaultOLD(waveFlags) )
-                ABORT_NONDEFAULT_WAVEFORM_FLAGS(waveFlags);
+            if( !XLALSimInspiralWaveformParamsFlagsAreDefault(LALpars) )
+                ABORT_NONDEFAULT_LALDICT_FLAGS(LALpars);
             if( !checkTransverseSpinsZero(S1x, S1y, S2x, S2y) )
-                ABORT_NONZERO_TRANSVERSE_SPINS_OLD(waveFlags);
+                ABORT_NONZERO_TRANSVERSE_SPINS(LALpars);
             if( !checkTidesZero(lambda1, lambda2) )
-                ABORT_NONZERO_TIDES_OLD(waveFlags);
+                ABORT_NONZERO_TIDES(LALpars);
 
             ret = XLALSimIMRSEOBNRv2ROMDoubleSpinFrequencySequence(hptilde, hctilde, frequencies,
                     phiRef, f_ref, distance, inclination, m1, m2, S1z, S2z);
@@ -1092,12 +1018,12 @@ int XLALSimInspiralChooseFDWaveformSequence(
 
         case SEOBNRv2_ROM_DoubleSpin_HI:
             /* Waveform-specific sanity checks */
-            if( !XLALSimInspiralWaveformFlagsIsDefaultOLD(waveFlags) )
-                ABORT_NONDEFAULT_WAVEFORM_FLAGS(waveFlags);
+            if( !XLALSimInspiralWaveformParamsFlagsAreDefault(LALpars) )
+                ABORT_NONDEFAULT_LALDICT_FLAGS(LALpars);
             if( !checkTransverseSpinsZero(S1x, S1y, S2x, S2y) )
-                ABORT_NONZERO_TRANSVERSE_SPINS_OLD(waveFlags);
+                ABORT_NONZERO_TRANSVERSE_SPINS(LALpars);
             if( !checkTidesZero(lambda1, lambda2) )
-                ABORT_NONZERO_TIDES_OLD(waveFlags);
+                ABORT_NONZERO_TIDES(LALpars);
 
             ret = XLALSimIMRSEOBNRv2ROMDoubleSpinHIFrequencySequence(hptilde, hctilde, frequencies,
                     phiRef, f_ref, distance, inclination, m1, m2, S1z, S2z, -1);
@@ -1105,27 +1031,25 @@ int XLALSimInspiralChooseFDWaveformSequence(
 
         case Lackey_Tidal_2013_SEOBNRv2_ROM:
             /* Waveform-specific sanity checks */
-            if( !XLALSimInspiralWaveformFlagsIsDefaultOLD(waveFlags) )
-                ABORT_NONDEFAULT_WAVEFORM_FLAGS(waveFlags);
+            if( !XLALSimInspiralWaveformParamsFlagsAreDefault(LALpars) )
+                ABORT_NONDEFAULT_LALDICT_FLAGS(LALpars);
             if( !checkTransverseSpinsZero(S1x, S1y, S2x, S2y) )
-                ABORT_NONZERO_TRANSVERSE_SPINS_OLD(waveFlags);
+                ABORT_NONZERO_TRANSVERSE_SPINS(LALpars);
 
             ret = XLALSimIMRLackeyTidal2013FrequencySequence(hptilde, hctilde, frequencies,
                     phiRef, f_ref, distance, inclination, m1, m2, S1z, lambda2);
             break;
 
         case IMRPhenomP:
-            XLALSimInspiralInitialConditionsPrecessingApproxs(&incl,&spin1x,&spin1y,&spin1z,&spin2x,&spin2y,&spin2z,inclination,S1x,S1y,S1z,S2x,S2y,S2z,m1,m2,f_ref,phiRef,XLALSimInspiralGetFrameAxis(waveFlags));
-
+	    XLALSimInspiralInitialConditionsPrecessingApproxs(&incl,&spin1x,&spin1y,&spin1z,&spin2x,&spin2y,&spin2z,inclination,S1x,S1y,S1z,S2x,S2y,S2z,m1,m2,f_ref,phiRef,XLALSimInspiralWaveformParamsLookupFrameAxis(LALpars));
             /* Waveform-specific sanity checks */
-            if( !XLALSimInspiralFrameAxisIsDefault(
-                    XLALSimInspiralGetFrameAxis(waveFlags) ) ) /* Default is LAL_SIM_INSPIRAL_FRAME_AXIS_VIEW : z-axis along direction of GW propagation (line of sight). */
-                ABORT_NONDEFAULT_FRAME_AXIS_OLD(waveFlags);
-            if( !XLALSimInspiralModesChoiceIsDefault(          /* Default is (2,2) or l=2 modes. */
-                    XLALSimInspiralGetModesChoice(waveFlags) ) )
-                ABORT_NONDEFAULT_MODES_CHOICE_OLD(waveFlags);
+            if( !XLALSimInspiralWaveformParamsFrameAxisIsDefault(LALpars) )
+                ABORT_NONDEFAULT_FRAME_AXIS(LALpars);/* Default is LAL_SIM_INSPIRAL_FRAME_AXIS_VIEW : z-axis along direction of GW propagation (line of sight). */
+            if( !XLALSimInspiralWaveformParamsModesChoiceIsDefault(LALpars) )
+                ABORT_NONDEFAULT_MODES_CHOICE(LALpars);
+          /* Default is (2,2) or l=2 modes. */
             if( !checkTidesZero(lambda1, lambda2) )
-                ABORT_NONZERO_TIDES_OLD(waveFlags);
+                ABORT_NONZERO_TIDES(LALpars);
             LNhatx = sin(incl);
             LNhaty = 0.;
             LNhatz = cos(incl);
@@ -1146,23 +1070,22 @@ int XLALSimInspiralChooseFDWaveformSequence(
             break;
 
         case IMRPhenomPv2:
-	    XLALSimInspiralInitialConditionsPrecessingApproxs(&incl,&spin1x,&spin1y,&spin1z,&spin2x,&spin2y,&spin2z,inclination,S1x,S1y,S1z,S2x,S2y,S2z,m1,m2,f_ref,phiRef, XLALSimInspiralGetFrameAxis(waveFlags) );
+	    XLALSimInspiralInitialConditionsPrecessingApproxs(&incl,&spin1x,&spin1y,&spin1z,&spin2x,&spin2y,&spin2z,inclination,S1x,S1y,S1z,S2x,S2y,S2z,m1,m2,f_ref,phiRef,XLALSimInspiralWaveformParamsLookupFrameAxis(LALpars));
 
             /* Waveform-specific sanity checks */
-            if( !XLALSimInspiralFrameAxisIsDefault(
-                    XLALSimInspiralGetFrameAxis(waveFlags) ) ) /* Default is LAL_SIM_INSPIRAL_FRAME_AXIS_VIEW : z-axis along direction of GW propagation (line of sight). */
-                ABORT_NONDEFAULT_FRAME_AXIS_OLD(waveFlags);
-            if( !XLALSimInspiralModesChoiceIsDefault(          /* Default is (2,2) or l=2 modes. */
-                    XLALSimInspiralGetModesChoice(waveFlags) ) )
-                ABORT_NONDEFAULT_MODES_CHOICE_OLD(waveFlags);
+            if( !XLALSimInspiralWaveformParamsFrameAxisIsDefault(LALpars) )
+                ABORT_NONDEFAULT_FRAME_AXIS(LALpars);/* Default is LAL_SIM_INSPIRAL_FRAME_AXIS_VIEW : z-axis along direction of GW propagation (line of sight). */
+            if( !XLALSimInspiralWaveformParamsModesChoiceIsDefault(LALpars) )
+                ABORT_NONDEFAULT_MODES_CHOICE(LALpars);
+          /* Default is (2,2) or l=2 modes. */
             if( !checkTidesZero(lambda1, lambda2) )
-                ABORT_NONZERO_TIDES_OLD(waveFlags);
+	        ABORT_NONZERO_TIDES(LALpars);
             LNhatx = sin(incl);
             LNhaty = 0.;
             LNhatz = cos(incl);
             /* Tranform to model parameters */
             if(f_ref==0.0)
-                f_ref = f_min; /* Default reference frequency is minimum frequency */
+	      f_ref = f_min; /* Default reference frequency is minimum frequency */
             XLALSimIMRPhenomPCalculateModelParameters(
                 &chi1_l, &chi2_l, &chip, &thetaJ, &alpha0,
                 m1, m2, f_ref,
@@ -1185,5 +1108,3 @@ int XLALSimInspiralChooseFDWaveformSequence(
 
     return ret;
 }
-
-

@@ -70,6 +70,7 @@ bool XLALSimInspiralTestGRParamExists(const LALSimInspiralTestGRParam *parameter
 int XLALSimInspiralPrintTestGRParam(FILE *fp, LALSimInspiralTestGRParam *parameter);
 void XLALSimInspiralDestroyTestGRParam(LALSimInspiralTestGRParam *parameter);
 int XLALSimInspiralWaveformParamsNonGRAreDefault(LALDict *params);
+int XLALSimInspiralWaveformParamsInsertNonGRParamsGeneric(LALDict *LALpars, const char *name, const REAL8 value);
 #if 0
 { /* so that editors will match succeeding brace */
 #elif defined(__cplusplus)

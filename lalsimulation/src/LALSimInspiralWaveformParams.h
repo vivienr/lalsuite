@@ -59,7 +59,24 @@ int XLALSimInspiralWaveformParamsInsertNonGRDAlpha5(LALDict *params, REAL8 value
 int XLALSimInspiralWaveformParamsInsertNonGRDBeta1(LALDict *params, REAL8 value);
 int XLALSimInspiralWaveformParamsInsertNonGRDBeta2(LALDict *params, REAL8 value);
 int XLALSimInspiralWaveformParamsInsertNonGRDBeta3(LALDict *params, REAL8 value);
-
+int XLALSimInspiralWaveformParamsInsertNonGRAlphaPPE(LALDict *params, REAL8 value);
+int XLALSimInspiralWaveformParamsInsertNonGRBetaPPE(LALDict *params, REAL8 value);
+int XLALSimInspiralWaveformParamsInsertNonGRAlphaPPE0(LALDict *params, REAL8 value);
+int XLALSimInspiralWaveformParamsInsertNonGRBetaPPE0(LALDict *params, REAL8 value);
+int XLALSimInspiralWaveformParamsInsertNonGRAlphaPPE1(LALDict *params, REAL8 value);
+int XLALSimInspiralWaveformParamsInsertNonGRBetaPPE1(LALDict *params, REAL8 value);
+int XLALSimInspiralWaveformParamsInsertNonGRAlphaPPE2(LALDict *params, REAL8 value);
+int XLALSimInspiralWaveformParamsInsertNonGRBetaPPE2(LALDict *params, REAL8 value);
+int XLALSimInspiralWaveformParamsInsertNonGRAlphaPPE3(LALDict *params, REAL8 value);
+int XLALSimInspiralWaveformParamsInsertNonGRBetaPPE3(LALDict *params, REAL8 value);
+int XLALSimInspiralWaveformParamsInsertNonGRAlphaPPE4(LALDict *params, REAL8 value);
+int XLALSimInspiralWaveformParamsInsertNonGRBetaPPE4(LALDict *params, REAL8 value);
+int XLALSimInspiralWaveformParamsInsertNonGRAlphaPPE5(LALDict *params, REAL8 value);
+int XLALSimInspiralWaveformParamsInsertNonGRBetaPPE5(LALDict *params, REAL8 value);
+int XLALSimInspiralWaveformParamsInsertNonGRAlphaPPE6(LALDict *params, REAL8 value);
+int XLALSimInspiralWaveformParamsInsertNonGRBetaPPE6(LALDict *params, REAL8 value);
+int XLALSimInspiralWaveformParamsInsertNonGRAlphaPPE7(LALDict *params, REAL8 value);
+int XLALSimInspiralWaveformParamsInsertNonGRBetaPPE7(LALDict *params, REAL8 value);
 
 INT4 XLALSimInspiralWaveformParamsLookupModesChoice(LALDict *params);
 INT4 XLALSimInspiralWaveformParamsLookupFrameAxis(LALDict *params);
@@ -108,7 +125,24 @@ REAL8 XLALSimInspiralWaveformParamsLookupNonGRDAlpha5(LALDict *params);
 REAL8 XLALSimInspiralWaveformParamsLookupNonGRDBeta1(LALDict *params);
 REAL8 XLALSimInspiralWaveformParamsLookupNonGRDBeta2(LALDict *params);
 REAL8 XLALSimInspiralWaveformParamsLookupNonGRDBeta3(LALDict *params);
-
+REAL8 XLALSimInspiralWaveformParamsLookupNonGRAlphaPPE(LALDict *params);
+REAL8 XLALSimInspiralWaveformParamsLookupNonGRBetaPPE(LALDict *params);
+REAL8 XLALSimInspiralWaveformParamsLookupNonGRAlphaPPE0(LALDict *params);
+REAL8 XLALSimInspiralWaveformParamsLookupNonGRBetaPPE0(LALDict *params);
+REAL8 XLALSimInspiralWaveformParamsLookupNonGRAlphaPPE1(LALDict *params);
+REAL8 XLALSimInspiralWaveformParamsLookupNonGRBetaPPE1(LALDict *params);
+REAL8 XLALSimInspiralWaveformParamsLookupNonGRAlphaPPE2(LALDict *params);
+REAL8 XLALSimInspiralWaveformParamsLookupNonGRBetaPPE2(LALDict *params);
+REAL8 XLALSimInspiralWaveformParamsLookupNonGRAlphaPPE3(LALDict *params);
+REAL8 XLALSimInspiralWaveformParamsLookupNonGRBetaPPE3(LALDict *params);
+REAL8 XLALSimInspiralWaveformParamsLookupNonGRAlphaPPE4(LALDict *params);
+REAL8 XLALSimInspiralWaveformParamsLookupNonGRBetaPPE4(LALDict *params);
+REAL8 XLALSimInspiralWaveformParamsLookupNonGRAlphaPPE5(LALDict *params);
+REAL8 XLALSimInspiralWaveformParamsLookupNonGRBetaPPE5(LALDict *params);
+REAL8 XLALSimInspiralWaveformParamsLookupNonGRAlphaPPE6(LALDict *params);
+REAL8 XLALSimInspiralWaveformParamsLookupNonGRBetaPPE6(LALDict *params);
+REAL8 XLALSimInspiralWaveformParamsLookupNonGRAlphaPPE7(LALDict *params);
+REAL8 XLALSimInspiralWaveformParamsLookupNonGRBetaPPE7(LALDict *params);
 
 int XLALSimInspiralWaveformParamsModesChoiceIsDefault(LALDict *params);
 int XLALSimInspiralWaveformParamsFrameAxisIsDefault(LALDict *params);
@@ -153,6 +187,24 @@ int XLALSimInspiralWaveformParamsNonGRDAlpha5IsDefault(LALDict *params);
 int XLALSimInspiralWaveformParamsNonGRDBeta1IsDefault(LALDict *params);
 int XLALSimInspiralWaveformParamsNonGRDBeta2IsDefault(LALDict *params);
 int XLALSimInspiralWaveformParamsNonGRDBeta3IsDefault(LALDict *params);
+int XLALSimInspiralWaveformParamsNonGRAlphaPPEIsDefault(LALDict *params);
+int XLALSimInspiralWaveformParamsNonGRBetaPPEIsDefault(LALDict *params);
+int XLALSimInspiralWaveformParamsNonGRAlphaPPE0IsDefault(LALDict *params);
+int XLALSimInspiralWaveformParamsNonGRBetaPPE0IsDefault(LALDict *params);
+int XLALSimInspiralWaveformParamsNonGRAlphaPPE1IsDefault(LALDict *params);
+int XLALSimInspiralWaveformParamsNonGRBetaPPE1IsDefault(LALDict *params);
+int XLALSimInspiralWaveformParamsNonGRAlphaPPE2IsDefault(LALDict *params);
+int XLALSimInspiralWaveformParamsNonGRBetaPPE2IsDefault(LALDict *params);
+int XLALSimInspiralWaveformParamsNonGRAlphaPPE3IsDefault(LALDict *params);
+int XLALSimInspiralWaveformParamsNonGRBetaPPE3IsDefault(LALDict *params);
+int XLALSimInspiralWaveformParamsNonGRAlphaPPE4IsDefault(LALDict *params);
+int XLALSimInspiralWaveformParamsNonGRBetaPPE4IsDefault(LALDict *params);
+int XLALSimInspiralWaveformParamsNonGRAlphaPPE5IsDefault(LALDict *params);
+int XLALSimInspiralWaveformParamsNonGRBetaPPE5IsDefault(LALDict *params);
+int XLALSimInspiralWaveformParamsNonGRAlphaPPE6IsDefault(LALDict *params);
+int XLALSimInspiralWaveformParamsNonGRBetaPPE6IsDefault(LALDict *params);
+int XLALSimInspiralWaveformParamsNonGRAlphaPPE7IsDefault(LALDict *params);
+int XLALSimInspiralWaveformParamsNonGRBetaPPE7IsDefault(LALDict *params);
 
 #if 0
 { /* so that editors will match succeeding brace */

@@ -219,7 +219,126 @@ int XLALSimInspiralWaveformParamsNonGRAreDefault(LALDict *params)
 	  && XLALSimInspiralWaveformParamsNonGRDAlpha5IsDefault(params)
 	  && XLALSimInspiralWaveformParamsNonGRDBeta1IsDefault(params)
 	  && XLALSimInspiralWaveformParamsNonGRDBeta2IsDefault(params)
-	  && XLALSimInspiralWaveformParamsNonGRDBeta3IsDefault(params));
+	  && XLALSimInspiralWaveformParamsNonGRDBeta3IsDefault(params)
+	  && XLALSimInspiralWaveformParamsNonGRAlphaPPEIsDefault(params)
+	  && XLALSimInspiralWaveformParamsNonGRAlphaPPE0IsDefault(params)
+	  && XLALSimInspiralWaveformParamsNonGRAlphaPPE1IsDefault(params)
+	  && XLALSimInspiralWaveformParamsNonGRAlphaPPE2IsDefault(params)
+	  && XLALSimInspiralWaveformParamsNonGRAlphaPPE3IsDefault(params)
+	  && XLALSimInspiralWaveformParamsNonGRAlphaPPE4IsDefault(params)
+	  && XLALSimInspiralWaveformParamsNonGRAlphaPPE5IsDefault(params)
+	  && XLALSimInspiralWaveformParamsNonGRAlphaPPE6IsDefault(params)
+	  && XLALSimInspiralWaveformParamsNonGRAlphaPPE7IsDefault(params));
+}
+
+int XLALSimInspiralWaveformParamsInsertNonGRParamsGeneric(LALDict *LALpars, const char *name, const REAL8 value)
+{
+  if (strcmp(name,"Phi1")==0)
+    XLALSimInspiralWaveformParamsInsertNonGRPhi1(LALpars,value);
+  else if (strcmp(name,"Phi2")==0)
+    XLALSimInspiralWaveformParamsInsertNonGRPhi2(LALpars,value);
+  else if (strcmp(name,"Phi3")==0)
+    XLALSimInspiralWaveformParamsInsertNonGRPhi3(LALpars,value);
+  else if (strcmp(name,"Phi4")==0)
+    XLALSimInspiralWaveformParamsInsertNonGRPhi4(LALpars,value);
+  else if (strcmp(name,"DChi0")==0)
+    XLALSimInspiralWaveformParamsInsertNonGRDChi0(LALpars,value);
+  else if (strcmp(name,"DChi1")==0)
+    XLALSimInspiralWaveformParamsInsertNonGRDChi1(LALpars,value);
+  else if (strcmp(name,"DChi2")==0)
+    XLALSimInspiralWaveformParamsInsertNonGRDChi2(LALpars,value);
+  else if (strcmp(name,"DChi3")==0)
+    XLALSimInspiralWaveformParamsInsertNonGRDChi3(LALpars,value);
+  else if (strcmp(name,"DChi4")==0)
+    XLALSimInspiralWaveformParamsInsertNonGRDChi4(LALpars,value);
+  else if (strcmp(name,"DChi5")==0)
+    XLALSimInspiralWaveformParamsInsertNonGRDChi5(LALpars,value);
+  else if (strcmp(name,"DChi5L")==0)
+    XLALSimInspiralWaveformParamsInsertNonGRDChi5L(LALpars,value);
+  else if (strcmp(name,"DChi6")==0)
+    XLALSimInspiralWaveformParamsInsertNonGRDChi6(LALpars,value);
+  else if (strcmp(name,"DChi6L")==0)
+    XLALSimInspiralWaveformParamsInsertNonGRDChi6L(LALpars,value);
+  else if (strcmp(name,"DChi7")==0)
+    XLALSimInspiralWaveformParamsInsertNonGRDChi7(LALpars,value);
+  else if (strcmp(name,"DXi1")==0)
+    XLALSimInspiralWaveformParamsInsertNonGRDXi1(LALpars,value);
+  else if (strcmp(name,"DXi2")==0)
+    XLALSimInspiralWaveformParamsInsertNonGRDXi2(LALpars,value);
+  else if (strcmp(name,"DXi3")==0)
+    XLALSimInspiralWaveformParamsInsertNonGRDXi3(LALpars,value);
+  else if (strcmp(name,"DXi4")==0)
+    XLALSimInspiralWaveformParamsInsertNonGRDXi4(LALpars,value);
+  else if (strcmp(name,"DXi5")==0)
+    XLALSimInspiralWaveformParamsInsertNonGRDXi5(LALpars,value);
+  else if (strcmp(name,"DXi6")==0)
+    XLALSimInspiralWaveformParamsInsertNonGRDXi6(LALpars,value);
+  else if (strcmp(name,"DSigma1")==0)
+    XLALSimInspiralWaveformParamsInsertNonGRDSigma1(LALpars,value);
+  else if (strcmp(name,"DSigma2")==0)
+    XLALSimInspiralWaveformParamsInsertNonGRDSigma2(LALpars,value);
+  else if (strcmp(name,"DSigma3")==0)
+    XLALSimInspiralWaveformParamsInsertNonGRDSigma3(LALpars,value);
+  else if (strcmp(name,"DSigma4")==0)
+    XLALSimInspiralWaveformParamsInsertNonGRDSigma4(LALpars,value);
+  else if (strcmp(name,"DAlpha1")==0)
+    XLALSimInspiralWaveformParamsInsertNonGRDAlpha1(LALpars,value);
+  else if (strcmp(name,"DAlpha2")==0)
+    XLALSimInspiralWaveformParamsInsertNonGRDAlpha2(LALpars,value);
+  else if (strcmp(name,"DAlpha3")==0)
+    XLALSimInspiralWaveformParamsInsertNonGRDAlpha3(LALpars,value);
+  else if (strcmp(name,"DAlpha4")==0)
+    XLALSimInspiralWaveformParamsInsertNonGRDAlpha4(LALpars,value);
+  else if (strcmp(name,"DAlpha5")==0)
+    XLALSimInspiralWaveformParamsInsertNonGRDAlpha5(LALpars,value);
+  else if (strcmp(name,"DBeta1")==0)
+    XLALSimInspiralWaveformParamsInsertNonGRDBeta1(LALpars,value);
+  else if (strcmp(name,"DBeta2")==0)
+    XLALSimInspiralWaveformParamsInsertNonGRDBeta2(LALpars,value);
+  else if (strcmp(name,"DBeta3")==0)
+    XLALSimInspiralWaveformParamsInsertNonGRDBeta3(LALpars,value);
+  else if (strcmp(name,"aPPE")==0 || strcmp(name,"alphaPPE")==0 )
+    XLALSimInspiralWaveformParamsInsertNonGRAlphaPPE(LALpars,value);
+  else if (strcmp(name,"bPPE")==0 ||  strcmp(name,"betaPPE")==0 )
+    XLALSimInspiralWaveformParamsInsertNonGRBetaPPE(LALpars,value);
+  else if (strcmp(name,"aPPE0")==0 || strcmp(name,"alphaPPE0")==0 )
+    XLALSimInspiralWaveformParamsInsertNonGRAlphaPPE0(LALpars,value);
+  else if (strcmp(name,"bPPE0")==0 ||  strcmp(name,"betaPPE0")==0 )
+    XLALSimInspiralWaveformParamsInsertNonGRBetaPPE0(LALpars,value);
+  else if (strcmp(name,"alPPE1")==0 || strcmp(name,"alphaPPE1")==0 )
+    XLALSimInspiralWaveformParamsInsertNonGRAlphaPPE1(LALpars,value);
+  else if (strcmp(name,"bPPE1")==0 ||  strcmp(name,"betaPPE1")==0 )
+    XLALSimInspiralWaveformParamsInsertNonGRBetaPPE1(LALpars,value);
+  else if (strcmp(name,"alPPE2")==0 || strcmp(name,"alphaPPE2")==0 )
+    XLALSimInspiralWaveformParamsInsertNonGRAlphaPPE2(LALpars,value);
+  else if (strcmp(name,"bPPE2")==0 ||  strcmp(name,"betaPPE2")==0 )
+    XLALSimInspiralWaveformParamsInsertNonGRBetaPPE2(LALpars,value);
+  else if (strcmp(name,"alPPE3")==0 || strcmp(name,"alphaPPE3")==0 )
+    XLALSimInspiralWaveformParamsInsertNonGRAlphaPPE3(LALpars,value);
+  else if (strcmp(name,"bPPE3")==0 ||  strcmp(name,"betaPPE3")==0 )
+    XLALSimInspiralWaveformParamsInsertNonGRBetaPPE3(LALpars,value);
+  else if (strcmp(name,"alPPE4")==0 || strcmp(name,"alphaPPE4")==0 )
+    XLALSimInspiralWaveformParamsInsertNonGRAlphaPPE4(LALpars,value);
+  else if (strcmp(name,"bPPE4")==0 ||  strcmp(name,"betaPPE4")==0 )
+    XLALSimInspiralWaveformParamsInsertNonGRBetaPPE4(LALpars,value);
+  else if (strcmp(name,"alPPE5")==0 || strcmp(name,"alphaPPE5")==0 )
+    XLALSimInspiralWaveformParamsInsertNonGRAlphaPPE5(LALpars,value);
+  else if (strcmp(name,"bPPE5")==0 ||  strcmp(name,"betaPPE5")==0 )
+    XLALSimInspiralWaveformParamsInsertNonGRBetaPPE5(LALpars,value);
+  else if (strcmp(name,"alPPE6")==0 || strcmp(name,"alphaPPE6")==0 )
+    XLALSimInspiralWaveformParamsInsertNonGRAlphaPPE6(LALpars,value);
+  else if (strcmp(name,"bPPE6")==0 ||  strcmp(name,"betaPPE6")==0 )
+    XLALSimInspiralWaveformParamsInsertNonGRBetaPPE6(LALpars,value);
+  else if (strcmp(name,"alPPE7")==0 || strcmp(name,"alphaPPE7")==0 )
+    XLALSimInspiralWaveformParamsInsertNonGRAlphaPPE7(LALpars,value);
+  else if (strcmp(name,"bPPE7")==0 ||  strcmp(name,"betaPPE7")==0 )
+    XLALSimInspiralWaveformParamsInsertNonGRBetaPPE7(LALpars,value);
+  else {
+    XLALPrintError("XLAL Error - %s: Invalid nonGR param name %s\n",  __func__, name);
+    XLAL_ERROR(XLAL_EINVAL);
+  }
+
+  return XLAL_SUCCESS;
 }
 
 /** @} */
