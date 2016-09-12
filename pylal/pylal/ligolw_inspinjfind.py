@@ -50,11 +50,6 @@ from glue.text_progress_bar import ProgressBar
 from pylal import git_version
 from pylal import ligolw_thinca
 from pylal import SimInspiralUtils
-from pylal.xlal import tools as xlaltools
-from pylal.xlal.datatypes.ligotimegps import LIGOTimeGPS
-
-
-lsctables.CoincMapTable.RowType = lsctables.CoincMap = xlaltools.CoincMap
 
 
 __author__ = "Kipp Cannon <kipp.cannon@ligo.org>"
@@ -69,9 +64,6 @@ __date__ = git_version.date
 #
 # =============================================================================
 #
-
-
-lsctables.LIGOTimeGPS = LIGOTimeGPS
 
 
 def sngl_inspiral___cmp__(self, other):
@@ -242,7 +234,7 @@ class DocContents(object):
 		# this it is *impossible* for them to match one another.
 		#
 
-                self.end_time_bisect_window = LIGOTimeGPS(end_time_bisect_window)
+                self.end_time_bisect_window = lsctables.LIGOTimeGPS(end_time_bisect_window)
 
 
 	def inspirals_near_endtime(self, t):

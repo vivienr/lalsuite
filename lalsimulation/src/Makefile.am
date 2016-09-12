@@ -100,6 +100,7 @@ noinst_HEADERS = \
 	LALSimIMRSpinAlignedEOBHcapDerivative.c \
 	LALSimIMRSpinAlignedEOBHcapDerivativeOptimized.c \
 	LALSimIMRSpinEOB.h \
+	LALSimIMRLackeyTidal2013.h \
 	LALSimIMRSpinEOBAuxFuncs.c \
 	LALSimIMRSpinEOBAuxFuncsPrec.c \
 	LALSimIMRSpinEOBComputeAmpPhasefromEOMSoln.c \
@@ -136,7 +137,9 @@ liblalsimulation_la_SOURCES = \
 	LALSimIMRSEOBNRv2ROMDoubleSpin.c \
 	LALSimIMRSEOBNRv2ROMDoubleSpinHI.c \
 	LALSimIMRSEOBNRv2ChirpTime.c \
+	LALSimIMRSEOBNRv4ROM.c \
 	LALSimIMREOBNRv2HMROM.c \
+	LALSimIMRLackeyTidal2013.c \
 	LALSimIMRPhenom.c \
 	LALSimIMRPhenomC.c \
 	LALSimIMRPhenomD.c \
@@ -168,7 +171,7 @@ liblalsimulation_la_SOURCES = \
 	LALSimInspiralTaylorLength.c \
 	LALSimInspiralWaveformCache.c \
 	LALSimInspiralWaveformTaper.c \
-        LALSimIMRNRWaveforms.c \
+	LALSimIMRNRWaveforms.c \
 	LALSimulation.c \
 	LALSimulationVCSInfo.c \
 	LALSimNeutronStarEOS.c \
