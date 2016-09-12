@@ -1105,13 +1105,13 @@ int XLALSimInspiralChooseFDWaveformSequence(
 
         case Lackey_Tidal_2013_SEOBNRv2_ROM:
             /* Waveform-specific sanity checks */
-            if( !XLALSimInspiralWaveformFlagsIsDefault(waveFlags) )
+            if( !XLALSimInspiralWaveformFlagsIsDefaultOLD(waveFlags) )
                 ABORT_NONDEFAULT_WAVEFORM_FLAGS(waveFlags);
             if( !checkTransverseSpinsZero(S1x, S1y, S2x, S2y) )
-                ABORT_NONZERO_TRANSVERSE_SPINS(waveFlags);
+                ABORT_NONZERO_TRANSVERSE_SPINS_OLD(waveFlags);
 
             ret = XLALSimIMRLackeyTidal2013FrequencySequence(hptilde, hctilde, frequencies,
-                    phiRef, f_ref, r, i, m1, m2, S1z, lambda2);
+                    phiRef, f_ref, distance, inclination, m1, m2, S1z, lambda2);
             break;
 
         case IMRPhenomP:

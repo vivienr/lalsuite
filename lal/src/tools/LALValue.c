@@ -381,7 +381,6 @@ void XLALValuePrint(const LALValue *value, int fd)
 	default:
 		XLAL_ERROR_VOID(XLAL_ETYPE, "Unsupported LALTYPECODE value 0%o", (unsigned int)value->type);
 	}
-	fprintf(fp, "\n");
 	fclose(fp);
 	return;
 }

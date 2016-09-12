@@ -268,9 +268,8 @@ static double fixReferenceFrequency(const double f_ref, const double f_min, cons
 /*
  * some helper routines for XLALSimInspiralTD
  */
-static int XLALSimInspiralTDFromTD(REAL8TimeSeries **hplus, REAL8TimeSeries **hcross, REAL8 phiRef, REAL8 deltaT, REAL8 m1, REAL8 m2, REAL8 S1x, REAL8 S1y, REAL8 S1z, REAL8 S2x, REAL8 S2y, REAL8 S2z, REAL8 f_min, REAL8 f_ref, REAL8 r, REAL8 z, REAL8 i, REAL8 lambda1, REAL8 lambda2, LALSimInspiralWaveformFlags *waveFlags, LALSimInspiralTestGRParam *nonGRparams, int amplitudeO, int phaseO, Approximant approximant);
-static int XLALSimInspiralTDFromFD(REAL8TimeSeries **hplus, REAL8TimeSeries **hcross, REAL8 phiRef, REAL8 deltaT, REAL8 m1, REAL8 m2, REAL8 S1x, REAL8 S1y, REAL8 S1z, REAL8 S2x, REAL8 S2y, REAL8 S2z, REAL8 f_min, REAL8 f_ref, REAL8 r, REAL8 z, REAL8 i, REAL8 lambda1, REAL8 lambda2, LALSimInspiralWaveformFlags *waveFlags, LALSimInspiralTestGRParam *nonGRparams, int amplitudeO, int phaseO, Approximant approximant);
-
+static int XLALSimInspiralTDFromTD(REAL8TimeSeries **hplus, REAL8TimeSeries **hcross, REAL8 m1, REAL8 m2, REAL8 S1x, REAL8 S1y, REAL8 S1z, REAL8 S2x, REAL8 S2y, REAL8 S2z, REAL8 distance, REAL8 inclination, REAL8 phiRef, REAL8 longAscNodes, REAL8 eccentricity, REAL8 meanPerAno, REAL8 deltaT, REAL8 f_min, REAL8 f_ref, LALDict *LALparams, Approximant approximant);
+static int XLALSimInspiralTDFromFD(REAL8TimeSeries **hplus, REAL8TimeSeries **hcross, REAL8 m1, REAL8 m2, REAL8 S1x, REAL8 S1y, REAL8 S1z, REAL8 S2x, REAL8 S2y, REAL8 S2z, REAL8 distance, REAL8 inclination, REAL8 phiRef, REAL8 longAscNodes, REAL8 eccentricity, REAL8 meanPerAno, REAL8 deltaT, REAL8 f_min, REAL8 f_ref, LALDict *LALparams, Approximant approximant);
 
 /**
  * @addtogroup LALSimInspiral_c
@@ -312,7 +311,7 @@ int XLALSimInspiralChooseTDWaveform(
     const REAL8 deltaT,                         /**< sampling interval (s) */
     const REAL8 f_min,                          /**< starting GW frequency (Hz) */
     REAL8 f_ref,                                /**< reference GW frequency (Hz) */
-    LALDict *LALparams,                         /**< LAL list containing accessory parameters */
+    LALDict *LALparams,                         /**< LAL dictionary containing accessory parameters */
     const Approximant approximant               /**< post-Newtonian approximant to use for waveform production */
     )
 {
@@ -682,10 +681,7 @@ int XLALSimInspiralChooseTDWaveform(
 	    // generate TD waveforms with zero inclincation so that amplitude can be
 	    // calculated from hplus and hcross, apply inclination-dependent factors
 	    // in loop below
-	    // FIXME: the two NULLs should be replaced by the LALDict structure
-	    ret = XLALSimInspiralTDFromFD(hplus, hcross, phiRef, deltaT, m1, m2, S1x, S1y, S1z,
-			    S2x, S2y, S2z, f_min, f_ref, distance, 0, 0, lambda1, lambda2,
-			    NULL, NULL, amplitudeO, phaseO, approximant);
+	    ret = XLALSimInspiralTDFromFD(hplus, hcross, m1, m2, S1x, S1y, S1z, S2x, S2y, S2z, distance, inclination, phiRef, longAscNodes, eccentricity, meanPerAno, deltaT, f_min, f_ref, LALparams, approximant);
 	    REAL8 maxamp=0;
 	    REAL8TimeSeries *hp = *hplus;
 	    REAL8TimeSeries *hc = *hcross;
@@ -711,10 +707,7 @@ int XLALSimInspiralChooseTDWaveform(
 	    break;
 
 	case IMRPhenomPv2:
-	  //FIXME: The 2 NULL pointers should be replaced by a LALDict structure
-	    ret = XLALSimInspiralTDFromFD(hplus, hcross, phiRef, deltaT, m1, m2, S1x, S1y, S1z,
-			    S2x, S2y, S2z, f_min, f_ref, distance, 0, inclination, lambda1, lambda2,
-			    NULL, NULL, amplitudeO, phaseO, approximant);
+	    ret = XLALSimInspiralTDFromFD(hplus, hcross, m1, m2, S1x, S1y, S1z, S2x, S2y, S2z, distance, inclination, phiRef, longAscNodes, eccentricity, meanPerAno, deltaT, f_min, f_ref, LALparams, approximant);
 	    break;
 
         case PhenSpinTaylorRD:
@@ -895,7 +888,7 @@ int XLALSimInspiralChooseFDWaveform(
     const REAL8 f_min,                      /**< starting GW frequency (Hz) */
     const REAL8 f_max,                      /**< ending GW frequency (Hz) */
     REAL8 f_ref,                            /**< Reference frequency (Hz) */
-    LALDict *LALparams,
+    LALDict *LALparams,                     /**< LAL dictionary containing accessory parameters */
     const Approximant approximant           /**< post-Newtonian approximant to use for waveform production */
     )
 {
@@ -1295,26 +1288,25 @@ int XLALSimInspiralChooseFDWaveform(
 
         case SEOBNRv4_ROM:
             /* Waveform-specific sanity checks */
-            if( !XLALSimInspiralWaveformFlagsIsDefault(waveFlags) )
-                ABORT_NONDEFAULT_WAVEFORM_FLAGS(waveFlags);
+            if( !XLALSimInspiralWaveformParamsFlagsAreDefault(LALparams) )
+                ABORT_NONDEFAULT_LALDICT_FLAGS(LALparams);
             if( !checkTransverseSpinsZero(S1x, S1y, S2x, S2y) )
-                ABORT_NONZERO_TRANSVERSE_SPINS(waveFlags);
+                ABORT_NONZERO_TRANSVERSE_SPINS(LALparams);
             if( !checkTidesZero(lambda1, lambda2) )
-                ABORT_NONZERO_TIDES(waveFlags);
+                ABORT_NONZERO_TIDES(LALparams);
 
             ret = XLALSimIMRSEOBNRv4ROM(hptilde, hctilde,
-                    phiRef, deltaF, f_min, f_max, f_ref, r, i, m1, m2, S1z, S2z, -1);
+                    phiRef, deltaF, f_min, f_max, f_ref, distance, inclination, m1, m2, S1z, S2z, -1);
             break;
 
         case Lackey_Tidal_2013_SEOBNRv2_ROM:
             /* Waveform-specific sanity checks */
-            if( !XLALSimInspiralWaveformFlagsIsDefault(waveFlags) )
-                ABORT_NONDEFAULT_WAVEFORM_FLAGS(waveFlags);
+            if( !XLALSimInspiralWaveformParamsFlagsAreDefault(LALparams) )
+	        ABORT_NONDEFAULT_LALDICT_FLAGS(LALparams);
             if( !checkTransverseSpinsZero(S1x, S1y, S2x, S2y) )
-                ABORT_NONZERO_TRANSVERSE_SPINS(waveFlags);
-
+                ABORT_NONZERO_TRANSVERSE_SPINS(LALparams);
             ret = XLALSimIMRLackeyTidal2013(hptilde, hctilde,
-                    phiRef, deltaF, f_min, f_max, f_ref, r, i, m1, m2, S1z, lambda2);
+                    phiRef, deltaF, f_min, f_max, f_ref, distance, inclination, m1, m2, S1z, lambda2);
             break;
 
         case IMRPhenomP:
@@ -1498,7 +1490,6 @@ int XLALSimInspiralChooseFDWaveform(
  * @note The parameters passed must be in SI units.
  */
 SphHarmTimeSeries* XLALSimInspiralTDModesFromPolarizations(
-    REAL8 deltaT,                               /**< sampling interval (s) */
     REAL8 m1,                                   /**< mass of companion 1 (kg) */
     REAL8 m2,                                   /**< mass of companion 2 (kg) */
     REAL8 S1x,                                  /**< x-component of the dimensionless spin of object 1 */
@@ -1507,16 +1498,16 @@ SphHarmTimeSeries* XLALSimInspiralTDModesFromPolarizations(
     REAL8 S2x,                                  /**< x-component of the dimensionless spin of object 2 */
     REAL8 S2y,                                  /**< y-component of the dimensionless spin of object 2 */
     REAL8 S2z,                                  /**< z-component of the dimensionless spin of object 2 */
+    REAL8 distance,                             /**< distance of source (m) */
+    REAL8 inclination,                          /**< inclination of source (rad) */
+    REAL8 phiRef,                               /**< reference orbital phase (rad) */
+    REAL8 longAscNodes,                         /**< longitude of ascending nodes, degenerate with the polarization angle, Omega in documentation */
+    REAL8 eccentricity,                         /**< eccentrocity at reference epoch */
+    REAL8 meanPerAno,                           /**< mean anomaly of periastron */
+    REAL8 deltaT,                               /**< sampling interval (s) */
     REAL8 f_min,                                /**< starting GW frequency (Hz) */
     REAL8 f_ref,                                /**< reference GW frequency (Hz) */
-    REAL8 r,                                    /**< distance of source (m) */
-    REAL8 z,                                    /**< redshift of source frame relative to observer frame */
-    REAL8 lambda1,                              /**< (tidal deformability of mass 1) / m1^5 (dimensionless) */
-    REAL8 lambda2,                              /**< (tidal deformability of mass 2) / m2^5 (dimensionless) */
-    LALSimInspiralWaveformFlags *waveFlags,     /**< Set of flags to control special behavior of some waveform families. Pass in NULL (or None in python) for default flags */
-    LALSimInspiralTestGRParam *nonGRparams, 	/**< Linked list of non-GR parameters. Pass in NULL (or None in python) for standard GR waveforms */
-    int amplitudeO,                             /**< twice post-Newtonian amplitude order */
-    int phaseO,                                 /**< twice post-Newtonian order */
+    LALDict *LALparams,                         /**< LAL dictionary containing accessory parameters */
     Approximant approximant                     /**< post-Newtonian approximant to use for waveform production */
     )
 {
@@ -1528,7 +1519,7 @@ SphHarmTimeSeries* XLALSimInspiralTDModesFromPolarizations(
     float fac = XLALSpinWeightedSphericalHarmonic(0., 0., -2, 2,2);
 
     /* Generate waveform via on-axis emission. Assumes only (2,2) and (2,-2) emission */
-    retval = XLALSimInspiralTD(&hplus, &hcross, 0.0, deltaT, m1, m2, S1x, S1y, S1z, S2x, S2y, S2z, f_min, f_ref, r, z, 0.0, lambda1, lambda2, waveFlags, nonGRparams, amplitudeO, phaseO, approximant);
+    retval = XLALSimInspiralTD(&hplus, &hcross, m1, m2, S1x, S1y, S1z, S2x, S2y, S2z, distance, inclination, phiRef, longAscNodes, eccentricity, meanPerAno, deltaT, f_min, f_ref, LALparams, approximant);
     if (retval < 0)
         XLAL_ERROR_NULL(XLAL_EFUNC);
 
@@ -1557,8 +1548,6 @@ SphHarmTimeSeries* XLALSimInspiralTDModesFromPolarizations(
 static int XLALSimInspiralTDFromTD(
     REAL8TimeSeries **hplus,                    /**< +-polarization waveform */
     REAL8TimeSeries **hcross,                   /**< x-polarization waveform */
-    REAL8 phiRef,                               /**< reference orbital phase (rad) */
-    REAL8 deltaT,                               /**< sampling interval (s) */
     REAL8 m1,                                   /**< mass of companion 1 (kg) */
     REAL8 m2,                                   /**< mass of companion 2 (kg) */
     REAL8 S1x,                                  /**< x-component of the dimensionless spin of object 1 */
@@ -1567,17 +1556,16 @@ static int XLALSimInspiralTDFromTD(
     REAL8 S2x,                                  /**< x-component of the dimensionless spin of object 2 */
     REAL8 S2y,                                  /**< y-component of the dimensionless spin of object 2 */
     REAL8 S2z,                                  /**< z-component of the dimensionless spin of object 2 */
+    REAL8 distance,                             /**< distance of source (m) */
+    REAL8 inclination,                          /**< inclination of source (rad) */
+    REAL8 phiRef,                               /**< reference orbital phase (rad) */
+    REAL8 longAscNodes,                         /**< longitude of ascending nodes, degenerate with the polarization angle, Omega in documentation */
+    REAL8 eccentricity,                         /**< eccentrocity at reference epoch */
+    REAL8 meanPerAno,                           /**< mean anomaly of periastron */
+    REAL8 deltaT,                               /**< sampling interval (s) */
     REAL8 f_min,                                /**< starting GW frequency (Hz) */
     REAL8 f_ref,                                /**< reference GW frequency (Hz) */
-    REAL8 r,                                    /**< distance of source (m) */
-    REAL8 z,                                    /**< redshift of source frame relative to observer frame */
-    REAL8 i,                                    /**< inclination of source (rad) */
-    REAL8 lambda1,                              /**< (tidal deformability of mass 1) / m1^5 (dimensionless) */
-    REAL8 lambda2,                              /**< (tidal deformability of mass 2) / m2^5 (dimensionless) */
-    LALSimInspiralWaveformFlags *waveFlags,     /**< Set of flags to control special behavior of some waveform families. Pass in NULL (or None in python) for default flags */
-    LALSimInspiralTestGRParam *nonGRparams, 	/**< Linked list of non-GR parameters. Pass in NULL (or None in python) for standard GR waveforms */
-    int amplitudeO,                             /**< twice post-Newtonian amplitude order */
-    int phaseO,                                 /**< twice post-Newtonian order */
+    LALDict *LALparams,                         /**< LAL dictionary containing accessory parameters */
     Approximant approximant                     /**< post-Newtonian approximant to use for waveform production */
 )
 {
@@ -1596,15 +1584,6 @@ static int XLALSimInspiralTDFromTD(
      * if that approximate interprets f_ref==0 to be f_min, set f_ref=f_min;
      * otherwise do nothing */
     f_ref = fixReferenceFrequency(f_ref, f_min, approximant);
-
-    /* apply redshift correction to dimensionful source-frame quantities */
-    if (z != 0.0) {
-        m1 *= (1.0 + z);
-        m2 *= (1.0 + z);
-        r *= (1.0 + z);  /* change from comoving (transverse) distance to luminosity distance */
-    }
-    /* set redshift to zero so we don't accidentally apply it again later */
-    z = 0.0;
 
     /* if the requested low frequency is below the lowest Kerr ISCO
      * frequency then change it to that frequency */
@@ -1633,7 +1612,7 @@ static int XLALSimInspiralTDFromTD(
     fstart = XLALSimInspiralChirpStartFrequencyBound((1.0 + extra_time_fraction) * tchirp + tmerge + textra, m1, m2);
 
     /* generate the waveform in the time domain starting at fstart */
-    retval = XLALSimInspiralChooseTDWaveformOLD(hplus, hcross, m1, m2, S1x, S1y, S1z, S2x, S2y, S2z, r, i, phiRef, 0., 0., 0., deltaT, fstart, f_ref, lambda1, lambda2, 0., 0., waveFlags, nonGRparams, amplitudeO, phaseO, approximant);
+    retval = XLALSimInspiralChooseTDWaveform(hplus, hcross, m1, m2, S1x, S1y, S1z, S2x, S2y, S2z, distance, inclination, phiRef, longAscNodes, eccentricity, meanPerAno, deltaT, fstart, f_ref, LALparams, approximant);
     if (retval < 0)
         XLAL_ERROR(XLAL_EFUNC);
 
@@ -1656,8 +1635,6 @@ static int XLALSimInspiralTDFromTD(
 static int XLALSimInspiralTDFromFD(
     REAL8TimeSeries **hplus,                    /**< +-polarization waveform */
     REAL8TimeSeries **hcross,                   /**< x-polarization waveform */
-    REAL8 phiRef,                               /**< reference orbital phase (rad) */
-    REAL8 deltaT,                               /**< sampling interval (s) */
     REAL8 m1,                                   /**< mass of companion 1 (kg) */
     REAL8 m2,                                   /**< mass of companion 2 (kg) */
     REAL8 S1x,                                  /**< x-component of the dimensionless spin of object 1 */
@@ -1666,17 +1643,16 @@ static int XLALSimInspiralTDFromFD(
     REAL8 S2x,                                  /**< x-component of the dimensionless spin of object 2 */
     REAL8 S2y,                                  /**< y-component of the dimensionless spin of object 2 */
     REAL8 S2z,                                  /**< z-component of the dimensionless spin of object 2 */
+    REAL8 distance,                             /**< distance of source (m) */
+    REAL8 inclination,                          /**< inclination of source (rad) */
+    REAL8 phiRef,                               /**< reference orbital phase (rad) */
+    REAL8 longAscNodes,                         /**< longitude of ascending nodes, degenerate with the polarization angle, Omega in documentation */
+    REAL8 eccentricity,                         /**< eccentrocity at reference epoch */
+    REAL8 meanPerAno,                           /**< mean anomaly of periastron */
+    REAL8 deltaT,                               /**< sampling interval (s) */
     REAL8 f_min,                                /**< starting GW frequency (Hz) */
     REAL8 f_ref,                                /**< reference GW frequency (Hz) */
-    REAL8 r,                                    /**< distance of source (m) */
-    REAL8 z,                                    /**< redshift of source frame relative to observer frame */
-    REAL8 i,                                    /**< inclination of source (rad) */
-    REAL8 lambda1,                              /**< (tidal deformability of mass 1) / m1^5 (dimensionless) */
-    REAL8 lambda2,                              /**< (tidal deformability of mass 2) / m2^5 (dimensionless) */
-    LALSimInspiralWaveformFlags *waveFlags,     /**< Set of flags to control special behavior of some waveform families. Pass in NULL (or None in python) for default flags */
-    LALSimInspiralTestGRParam *nonGRparams, 	/**< Linked list of non-GR parameters. Pass in NULL (or None in python) for standard GR waveforms */
-    int amplitudeO,                             /**< twice post-Newtonian amplitude order */
-    int phaseO,                                 /**< twice post-Newtonian order */
+    LALDict *LALparams,                         /**< LAL dictionary containing accessory parameters */
     Approximant approximant                     /**< post-Newtonian approximant to use for waveform production */
 )
 {
@@ -1688,6 +1664,7 @@ static int XLALSimInspiralTDFromFD(
     const double extra_time_fraction = 0.1; /* fraction of waveform duration to add as extra time for tapering */
     const double extra_cycles = 3.0; /* more extra time measured in cycles at the starting frequency */
     double original_f_min = f_min; /* f_min might be overwritten below, so keep original value */
+    double f_max = 0.5 / deltaT;
     double tchirp, tmerge, textra;
     double fisco, fstart;
     double s;
@@ -1700,15 +1677,6 @@ static int XLALSimInspiralTDFromFD(
      * if that approximate interprets f_ref==0 to be f_min, set f_ref=f_min;
      * otherwise do nothing */
     f_ref = fixReferenceFrequency(f_ref, f_min, approximant);
-
-    /* apply redshift correction to dimensionful source-frame quantities */
-    if (z != 0.0) {
-        m1 *= (1.0 + z);
-        m2 *= (1.0 + z);
-        r *= (1.0 + z);  /* change from comoving (transverse) distance to luminosity distance */
-    }
-    /* set redshift to zero so we don't accidentally apply it again later */
-    z = 0.0;
 
     /* if the requested low frequency is below the lowest Kerr ISCO
      * frequency then change it to that frequency */
@@ -1733,7 +1701,7 @@ static int XLALSimInspiralTDFromFD(
     /* generate the conditioned waveform in the frequency domain */
     /* note: redshift factor has already been applied above */
     /* set deltaF = 0 to get a small enough resolution */
-    retval = XLALSimInspiralFD(&hptilde, &hctilde, phiRef, 0.0, m1, m2, S1x, S1y, S1z, S2x, S2y, S2z, f_min, 0.5/deltaT, f_ref, r, 0.0, i, lambda1, lambda2, waveFlags, nonGRparams, amplitudeO, phaseO, approximant);
+    retval = XLALSimInspiralFD(&hptilde, &hctilde, m1, m2, S1x, S1y, S1z, S2x, S2y, S2z, distance, inclination, phiRef, longAscNodes, eccentricity, meanPerAno, 0.0, f_min, f_max, f_ref, LALparams, approximant);
     if (retval < 0)
         XLAL_ERROR(XLAL_EFUNC);
 
@@ -1829,8 +1797,6 @@ static int XLALSimInspiralTDFromFD(
 int XLALSimInspiralTD(
     REAL8TimeSeries **hplus,                    /**< +-polarization waveform */
     REAL8TimeSeries **hcross,                   /**< x-polarization waveform */
-    REAL8 phiRef,                               /**< reference orbital phase (rad) */
-    REAL8 deltaT,                               /**< sampling interval (s) */
     REAL8 m1,                                   /**< mass of companion 1 (kg) */
     REAL8 m2,                                   /**< mass of companion 2 (kg) */
     REAL8 S1x,                                  /**< x-component of the dimensionless spin of object 1 */
@@ -1839,26 +1805,25 @@ int XLALSimInspiralTD(
     REAL8 S2x,                                  /**< x-component of the dimensionless spin of object 2 */
     REAL8 S2y,                                  /**< y-component of the dimensionless spin of object 2 */
     REAL8 S2z,                                  /**< z-component of the dimensionless spin of object 2 */
+    REAL8 distance,                             /**< distance of source (m) */
+    REAL8 inclination,                          /**< inclination of source (rad) */
+    REAL8 phiRef,                               /**< reference orbital phase (rad) */
+    REAL8 longAscNodes,                         /**< longitude of ascending nodes, degenerate with the polarization angle, Omega in documentation */
+    REAL8 eccentricity,                         /**< eccentrocity at reference epoch */
+    REAL8 meanPerAno,                           /**< mean anomaly of periastron */
+    REAL8 deltaT,                               /**< sampling interval (s) */
     REAL8 f_min,                                /**< starting GW frequency (Hz) */
     REAL8 f_ref,                                /**< reference GW frequency (Hz) */
-    REAL8 r,                                    /**< distance of source (m) */
-    REAL8 z,                                    /**< redshift of source frame relative to observer frame */
-    REAL8 i,                                    /**< inclination of source (rad) */
-    REAL8 lambda1,                              /**< (tidal deformability of mass 1) / m1^5 (dimensionless) */
-    REAL8 lambda2,                              /**< (tidal deformability of mass 2) / m2^5 (dimensionless) */
-    LALSimInspiralWaveformFlags *waveFlags,     /**< Set of flags to control special behavior of some waveform families. Pass in NULL (or None in python) for default flags */
-    LALSimInspiralTestGRParam *nonGRparams, 	/**< Linked list of non-GR parameters. Pass in NULL (or None in python) for standard GR waveforms */
-    int amplitudeO,                             /**< twice post-Newtonian amplitude order */
-    int phaseO,                                 /**< twice post-Newtonian order */
+    LALDict *LALparams,                         /**< LAL dictionary containing accessory parameters */
     Approximant approximant                     /**< post-Newtonian approximant to use for waveform production */
     )
 {
     /* call the appropriate helper routine */
     if (XLALSimInspiralImplementedTDApproximants(approximant)) {
-        if (XLALSimInspiralTDFromTD(hplus, hcross, phiRef, deltaT, m1, m2, S1x, S1y, S1z, S2x, S2y, S2z, f_min, f_ref, r, z, i, lambda1, lambda2, waveFlags, nonGRparams, amplitudeO, phaseO, approximant) < 0)
+        if (XLALSimInspiralTDFromTD(hplus, hcross, m1, m2, S1x, S1y, S1z, S2x, S2y, S2z, distance, inclination, phiRef, longAscNodes, eccentricity, meanPerAno, deltaT, f_min, f_ref, LALparams, approximant) < 0)
             XLAL_ERROR(XLAL_EFUNC);
     } else if (XLALSimInspiralImplementedFDApproximants(approximant)) {
-        if (XLALSimInspiralTDFromFD(hplus, hcross, phiRef, deltaT, m1, m2, S1x, S1y, S1z, S2x, S2y, S2z, f_min, f_ref, r, z, i, lambda1, lambda2, waveFlags, nonGRparams, amplitudeO, phaseO, approximant) < 0)
+        if (XLALSimInspiralTDFromFD(hplus, hcross, m1, m2, S1x, S1y, S1z, S2x, S2y, S2z, distance, inclination, phiRef, longAscNodes, eccentricity, meanPerAno, deltaT, f_min, f_ref, LALparams, approximant) < 0)
             XLAL_ERROR(XLAL_EFUNC);
     } else
         XLAL_ERROR(XLAL_EINVAL, "Invalid approximant");
@@ -1902,31 +1867,28 @@ int XLALSimInspiralTD(
  * @note The parameters passed must be in SI units.
  */
 int XLALSimInspiralFD(
-    COMPLEX16FrequencySeries **hptilde,         /**< +-polarization waveform */
-    COMPLEX16FrequencySeries **hctilde,         /**< x-polarization waveform */
-    REAL8 phiRef,                               /**< reference orbital phase (rad) */
-    REAL8 deltaF,                               /**< frequency interval (Hz), or 0 to compute necessary interval */
-    REAL8 m1,                                   /**< mass of companion 1 (kg) */
-    REAL8 m2,                                   /**< mass of companion 2 (kg) */
-    REAL8 S1x,                                  /**< x-component of the dimensionless spin of object 1 */
-    REAL8 S1y,                                  /**< y-component of the dimensionless spin of object 1 */
-    REAL8 S1z,                                  /**< z-component of the dimensionless spin of object 1 */
-    REAL8 S2x,                                  /**< x-component of the dimensionless spin of object 2 */
-    REAL8 S2y,                                  /**< y-component of the dimensionless spin of object 2 */
-    REAL8 S2z,                                  /**< z-component of the dimensionless spin of object 2 */
-    REAL8 f_min,                                /**< starting GW frequency (Hz) */
-    REAL8 f_max,                                /**< ending GW frequency (Hz) */
-    REAL8 f_ref,                                /**< reference GW frequency (Hz) */
-    REAL8 r,                                    /**< distance of source (m) */
-    REAL8 z,                                    /**< redshift of source frame relative to observer frame */
-    REAL8 i,                                    /**< inclination of source (rad) */
-    REAL8 lambda1,                              /**< (tidal deformability of mass 1) / m1^5 (dimensionless) */
-    REAL8 lambda2,                              /**< (tidal deformability of mass 2) / m2^5 (dimensionless) */
-    LALSimInspiralWaveformFlags *waveFlags,     /**< Set of flags to control special behavior of some waveform families. Pass in NULL (or None in python) for default flags */
-    LALSimInspiralTestGRParam *nonGRparams, 	/**< Linked list of non-GR parameters. Pass in NULL (or None in python) for standard GR waveforms */
-    int amplitudeO,                             /**< twice post-Newtonian amplitude order */
-    int phaseO,                                 /**< twice post-Newtonian order */
-    Approximant approximant                     /**< post-Newtonian approximant to use for waveform production */
+    COMPLEX16FrequencySeries **hptilde,     /**< FD plus polarization */
+    COMPLEX16FrequencySeries **hctilde,     /**< FD cross polarization */
+    REAL8 m1,                               /**< mass of companion 1 (kg) */
+    REAL8 m2,                               /**< mass of companion 2 (kg) */
+    REAL8 S1x,                              /**< x-component of the dimensionless spin of object 1 */
+    REAL8 S1y,                              /**< y-component of the dimensionless spin of object 1 */
+    REAL8 S1z,                              /**< z-component of the dimensionless spin of object 1 */
+    REAL8 S2x,                              /**< x-component of the dimensionless spin of object 2 */
+    REAL8 S2y,                              /**< y-component of the dimensionless spin of object 2 */
+    REAL8 S2z,                              /**< z-component of the dimensionless spin of object 2 */
+    REAL8 distance,                         /**< distance of source (m) */
+    REAL8 inclination,                      /**< inclination of source (rad) */
+    REAL8 phiRef,                           /**< reference orbital phase (rad) */
+    REAL8 longAscNodes,                     /**< longitude of ascending nodes, degenerate with the polarization angle, Omega in documentation */
+    REAL8 eccentricity,                     /**< eccentricity at reference epoch */
+    REAL8 meanPerAno,                       /**< mean anomaly of periastron */
+    REAL8 deltaF,                           /**< sampling interval (Hz) */
+    REAL8 f_min,                            /**< starting GW frequency (Hz) */
+    REAL8 f_max,                            /**< ending GW frequency (Hz) */
+    REAL8 f_ref,                            /**< Reference frequency (Hz) */
+    LALDict *LALparams,                     /**< LAL dictionary containing accessory parameters */
+    Approximant approximant                 /**< post-Newtonian approximant to use for waveform production */
     )
 {
     const double extra_time_fraction = 0.1; /* fraction of waveform duration to add as extra time for tapering */
@@ -1939,15 +1901,6 @@ int XLALSimInspiralFD(
      * if that approximate interprets f_ref==0 to be f_min, set f_ref=f_min;
      * otherwise do nothing */
     f_ref = fixReferenceFrequency(f_ref, f_min, approximant);
-
-    /* apply redshift correction to dimensionful source-frame quantities */
-    if (z != 0.0) {
-        m1 *= (1.0 + z);
-        m2 *= (1.0 + z);
-        r *= (1.0 + z);  /* change from comoving (transverse) distance to luminosity distance */
-    }
-    /* set redshift to zero so we don't accidentally apply it again later */
-    z = 0.0;
 
     /* FIXME: assume that f_max is the Nyquist frequency, and use it
      * to compute the requested deltaT */
@@ -2019,9 +1972,7 @@ int XLALSimInspiralFD(
             XLAL_PRINT_WARNING("Specified frequency interval of %g Hz is too large for a chirp of duration %g s", deltaF, chirplen * deltaT);
 
         /* generate the waveform in the frequency domain starting at fstart */
-
-        retval = XLALSimInspiralChooseFDWaveformOLD(hptilde, hctilde, m1, m2, S1x, S1y, S1z, S2x, S2y, S2z, r, i, phiRef, 0., 0., 0., deltaF, fstart, f_max, f_ref, lambda1, lambda2, 0., 0., waveFlags, nonGRparams, amplitudeO, phaseO, approximant);
-
+        retval = XLALSimInspiralChooseFDWaveform(hptilde, hctilde, m1, m2, S1x, S1y, S1z, S2x, S2y, S2z, distance, inclination, phiRef, longAscNodes, eccentricity, meanPerAno, deltaF, f_min, f_max, f_ref, LALparams, approximant);
         if (retval < 0)
             XLAL_ERROR(XLAL_EFUNC);
 
@@ -2066,8 +2017,7 @@ int XLALSimInspiralFD(
         REAL8FFTPlan *plan;
 
         /* generate conditioned waveform in time domain */
-        /* note: redshift factor has already been applied */
-        retval = XLALSimInspiralTD(&hplus, &hcross, phiRef, deltaT, m1, m2, S1x, S1y, S1z, S2x, S2y, S2z, f_min, f_ref, r, 0.0, i, lambda1, lambda2, waveFlags, nonGRparams, amplitudeO, phaseO, approximant);
+        retval = XLALSimInspiralTD(&hplus, &hcross, m1, m2, S1x, S1y, S1z, S2x, S2y, S2z, distance, inclination, phiRef, longAscNodes, eccentricity, meanPerAno, deltaT, f_min, f_ref, LALparams, approximant);
         if (retval < 0)
             XLAL_ERROR(XLAL_EFUNC);
 
@@ -2147,7 +2097,7 @@ int XLALSimInspiralChooseWaveform(
     const REAL8 deltaT,                               /**< sampling interval (s) */
     const REAL8 f_min,                                /**< starting GW frequency (Hz) */
     const REAL8 f_ref,                                /**< reference GW frequency (Hz) */
-    LALDict *LALpars,
+    LALDict *LALpars,                                 /**< LAL dictionary containing accessory parameters */
     const Approximant approximant                     /**< post-Newtonian approximant to use for waveform production */)
 {
     XLAL_PRINT_DEPRECATION_WARNING("XLALSimInspiralChooseTDWaveform");
@@ -5563,10 +5513,8 @@ int XLALSimInspiralChooseTDWaveformOLD(
 	    // generate TD waveforms with zero inclincation so that amplitude can be
 	    // calculated from hplus and hcross, apply inclination-dependent factors
 	    // in loop below
-	    // FIXME: the 2 NULLs should be replaced by the LALDict structure
-	    ret = XLALSimInspiralTDFromFD(hplus, hcross, phiRef, deltaT, m1, m2, S1x, S1y, S1z,
-			    S2x, S2y, S2z, f_min, f_ref, distance, 0, 0, lambda1, lambda2,
-			    NULL, NULL, amplitudeO, phaseO, approximant);
+            /* FIXME: BUSTED -- EXTRA PARAMS NOT IMPLEMENTED */
+	    ret = XLALSimInspiralTDFromFD(hplus, hcross, m1, m2, S1x, S1y, S1z, S2x, S2y, S2z, distance, 0.0, phiRef, 0.0, 0.0, 0.0, deltaT, f_min, f_ref, NULL, approximant);
 	    REAL8 maxamp=0;
 	    REAL8TimeSeries *hp = *hplus;
 	    REAL8TimeSeries *hc = *hcross;
@@ -5592,9 +5540,8 @@ int XLALSimInspiralChooseTDWaveformOLD(
 	    break;
 
 	case IMRPhenomPv2:
-	    ret = XLALSimInspiralTDFromFD(hplus, hcross, phiRef, deltaT, m1, m2, S1x, S1y, S1z,
-			    S2x, S2y, S2z, f_min, f_ref, distance, 0, inclination, lambda1, lambda2,
-			    waveFlags, nonGRparams, amplitudeO, phaseO, approximant);
+            /* FIXME: BUSTED -- EXTRA PARAMS NOT IMPLEMENTED */
+	    ret = XLALSimInspiralTDFromFD(hplus, hcross, m1, m2, S1x, S1y, S1z, S2x, S2y, S2z, distance, inclination, phiRef, 0.0, 0.0, 0.0, deltaT, f_min, f_ref, NULL, approximant);
 	    break;
 
         case PhenSpinTaylorRD:

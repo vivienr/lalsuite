@@ -1467,6 +1467,7 @@ static void test_signal_amplitude_model(
     {
         COMPLEX16FrequencySeries
             *Htemplate = NULL, *Hsignal = NULL, *Hcross = NULL;
+        LALDict *params;
         double h = 0, Fplus, Fcross;
         int ret;
 
@@ -1493,10 +1494,13 @@ static void test_signal_amplitude_model(
         }
 
         /* "Template" waveform with inclination angle of zero */
+        params = XLALCreateDict();
+        XLALSimInspiralWaveformParamsInsertPNPhaseOrder(params, LAL_PNORDER_NEWTONIAN);
+        XLALSimInspiralWaveformParamsInsertPNAmplitudeOrder(params, LAL_PNORDER_NEWTONIAN);
         ret = XLALSimInspiralFD(
-            &Htemplate, &Hcross, 0, 1, 1.4 * LAL_MSUN_SI, 1.4 * LAL_MSUN_SI,
-            0, 0, 0, 0, 0, 0, 100, 101, 100, 1, 0, 0, 0, 0,
-            NULL, NULL, LAL_PNORDER_NEWTONIAN, LAL_PNORDER_NEWTONIAN, TaylorF2);
+            &Htemplate, &Hcross, 1.4 * LAL_MSUN_SI, 1.4 * LAL_MSUN_SI,
+            0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 100, 101, 100, params,
+            TaylorF2);
         assert(ret == XLAL_SUCCESS);
 
         /* Discard any non-quadrature phase component of "template" */
@@ -1516,9 +1520,9 @@ static void test_signal_amplitude_model(
 
         /* "Signal" waveform with requested inclination angle */
         ret = XLALSimInspiralFD(
-            &Hsignal, &Hcross, 0, 1, 1.4 * LAL_MSUN_SI, 1.4 * LAL_MSUN_SI,
-            0, 0, 0, 0, 0, 0, 100, 101, 100, 1, 0, inclination, 0, 0,
-            NULL, NULL, LAL_PNORDER_NEWTONIAN, LAL_PNORDER_NEWTONIAN, TaylorF2);
+            &Hsignal, &Hcross, 1.4 * LAL_MSUN_SI, 1.4 * LAL_MSUN_SI,
+            0, 0, 0, 0, 0, 0, 1, inclination, 0, 0, 0, 0, 1, 100, 101, 100,
+            params, TaylorF2);
         assert(ret == XLAL_SUCCESS);
 
         /* Project "signal" using antenna factors */
@@ -1537,6 +1541,7 @@ static void test_signal_amplitude_model(
         XLALDestroyCOMPLEX16FrequencySeries(Hsignal);
         XLALDestroyCOMPLEX16FrequencySeries(Htemplate);
         Hsignal = Htemplate = NULL;
+        XLALDestroyDict(params);
     }
 
     /* Test to nearly float (32-bit) precision because

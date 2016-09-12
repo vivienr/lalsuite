@@ -68,7 +68,7 @@ int XLALSimInspiralTaylorF2AlignedPhasing(
         const REAL8 chi2,	/**< aligned spin parameter of body 2 */
         const REAL8 qm_def1,	/**< quadrupole-monopole parameter of body 1 (set 1 for BH) */
         const REAL8 qm_def2,	/**< quadrupole-monopole parameter of body 2 (set 1 for BH) */
-        LALDict *p
+        LALDict *p              /**< LAL dictionary containing accessory parameters */
 	)
 {
     PNPhasingSeries *pfa;

@@ -18,6 +18,7 @@
 */
 
 #include <stdint.h>
+#include <unistd.h>
 #include <lal/LALStdio.h>
 #include <lal/LALStdlib.h>
 #include <lal/LALList.h>
@@ -530,7 +531,12 @@ DEFINE_ADD_FUNC(COMPLEX16, LAL_Z_TYPE_CODE)
 #undef DEFINE_ADD_FUNC
 static void XLALListValuePrintFunc(LALValue *value, void *thunk)
 {
-	XLALValuePrint(value, *(int *)(thunk));
+	int fd = *(int *)(thunk);
+	int fd2 = dup(fd);
+	FILE *fp = fdopen(fd2, "w");
+	XLALValuePrint(value, fd);
+	fprintf(fp, "\n");
+	fclose(fp);
 	return;
 }
 

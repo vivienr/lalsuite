@@ -459,7 +459,7 @@ XLALSimInspiralPNPhasing_F2(
 	const REAL8 chi1dotchi2, /**< Dot product of dimensionles spin 1 and spin 2 */
 	const REAL8 qm_def1, /**< Quadrupole deformation parameter of body 1 (dimensionless) */
 	const REAL8 qm_def2, /**< Quadrupole deformation parameter of body 2 (dimensionless) */
-	LALDict *p
+	LALDict *p /**< LAL dictionary containing accessory parameters */
 	)
 {
     const REAL8 mtot = m1 + m2;

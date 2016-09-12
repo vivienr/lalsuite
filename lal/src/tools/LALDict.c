@@ -428,8 +428,9 @@ static void XLALDictEntryPrintFunc(char *key, LALValue *value, void *thunk)
 	int fd2 = dup(fd);
 	FILE *fp = fdopen(fd2, "w");
 	fprintf(fp, "\"%s\": ", key);
-	fclose(fp);
 	XLALValuePrint(value, fd);
+	fprintf(fp, "\n");
+	fclose(fp);
 	return;
 }
 

@@ -1201,7 +1201,7 @@ static int XLALSimInspiralSpinTaylorDriverFourier(
         REAL8 lambda2,                  /**< (tidal deformability of mass 2) / (mass of body 2)^5 (dimensionless) */
         REAL8 quadparam1,               /**< phenom. parameter describing induced quad. moment of body 1 (=1 for BHs, ~2-12 for NSs) */
         REAL8 quadparam2,               /**< phenom. parameter describing induced quad. moment of body 2 (=1 for BHs, ~2-12 for NSs) */
-	LALDict *LALparams,
+	LALDict *LALparams,             /**< LAL dictionary containing accessory parameters */
         INT4 phaseO,                    /**< twice PN phase order */
         INT4 amplitudeO,                /**< twice PN amplitude order */
         Approximant approx,             /**< PN approximant (SpinTaylorT1/T2/T4) */
@@ -2723,7 +2723,7 @@ static int XLALSimInspiralSpinTaylorDriver(
 	REAL8 lambda2,                  /**< (tidal deformability of mass 2) / (mass of body 2)^5 (dimensionless) */
 	REAL8 quadparam1,               /**< phenom. parameter describing induced quad. moment of body 1 (=1 for BHs, ~2-12 for NSs) */
 	REAL8 quadparam2,               /**< phenom. parameter describing induced quad. moment of body 2 (=1 for BHs, ~2-12 for NSs) */
-	LALDict *LALparams,
+	LALDict *LALparams,             /**< LAL dictionary containing accessory parameters */
 	int phaseO,                     /**< twice PN phase order */
 	int amplitudeO,                 /**< twice PN amplitude order */
     Approximant approx              /**< PN approximant (SpinTaylorT1/T2/T4) */
@@ -4186,7 +4186,7 @@ int XLALSimInspiralSpinTaylorT4(
 	REAL8 lambda2,                  /**< (tidal deformability of mass 2) / (mass of body 2)^5 (dimensionless) */
 	REAL8 quadparam1,               /**< phenom. parameter describing induced quad. moment of body 1 (=1 for BHs, ~2-12 for NSs) */
 	REAL8 quadparam2,               /**< phenom. parameter describing induced quad. moment of body 2 (=1 for BHs, ~2-12 for NSs) */
-	LALDict *LALparams,
+	LALDict *LALparams,             /**< LAL dictionary containing accessory parameters */
 	int phaseO,                     /**< twice PN phase order */
 	int amplitudeO                  /**< twice PN amplitude order */
 	)
@@ -4256,7 +4256,7 @@ int XLALSimInspiralSpinTaylorT1(
 	REAL8 lambda2,                  /**< (tidal deformability of mass 2) / (mass of body 2)^5 (dimensionless) */
 	REAL8 quadparam1,               /**< phenom. parameter describing induced quad. moment of body 1 (=1 for BHs, ~2-12 for NSs) */
 	REAL8 quadparam2,               /**< phenom. parameter describing induced quad. moment of body 2 (=1 for BHs, ~2-12 for NSs) */
-	LALDict *LALparams,
+	LALDict *LALparams,             /**< LAL dictionary containing accessory parameters */
 	int phaseO,                     /**< twice PN phase order */
 	int amplitudeO                  /**< twice PN amplitude order */
 	)
@@ -4326,7 +4326,7 @@ int XLALSimInspiralSpinTaylorT2(
 	REAL8 lambda2,                  /**< (tidal deformability of mass 2) / (mass of body 2)^5 (dimensionless) */
 	REAL8 quadparam1,               /**< phenom. parameter describing induced quad. moment of body 1 (=1 for BHs, ~2-12 for NSs) */
 	REAL8 quadparam2,               /**< phenom. parameter describing induced quad. moment of body 2 (=1 for BHs, ~2-12 for NSs) */
-	LALDict *LALparams,
+	LALDict *LALparams,             /**< LAL dictionary containing accessory parameters */
 	int phaseO,                     /**< twice PN phase order */
 	int amplitudeO                  /**< twice PN amplitude order */
 	)
@@ -4647,7 +4647,7 @@ int XLALSimInspiralSpinTaylorT4Fourier(
         REAL8 lambda2,                  /**< (tidal deformability of mass 2) / (mass of body 2)^5 (dimensionless) */
         REAL8 quadparam1,               /**< phenom. parameter describing induced quad. moment of body 1 (=1 for BHs, ~2-12 for NSs) */
         REAL8 quadparam2,               /**< phenom. parameter describing induced quad. moment of body 2 (=1 for BHs, ~2-12 for NSs) */
-	LALDict *LALparams,
+	LALDict *LALparams,             /**< LAL dictionary containing accessory parameters */
         INT4 phaseO,                     /**< twice PN phase order */
         INT4 amplitudeO,                /**< twice PN amplitude order */
         INT4 phiRefAtEnd                /**< whether phiRef corresponds to the end of the inspiral */
@@ -4727,7 +4727,7 @@ int XLALSimInspiralSpinTaylorT2Fourier(
         REAL8 lambda2,                  /**< (tidal deformability of mass 2) / (mass of body 2)^5 (dimensionless) */
         REAL8 quadparam1,               /**< phenom. parameter describing induced quad. moment of body 1 (=1 for BHs, ~2-12 for NSs) */
         REAL8 quadparam2,               /**< phenom. parameter describing induced quad. moment of body 2 (=1 for BHs, ~2-12 for NSs) */
-	LALDict *LALparams,
+	LALDict *LALparams,             /**< LAL dictionary containing accessory parameters */
         INT4 phaseO,                     /**< twice PN phase order */
         INT4 amplitudeO,                /**< twice PN amplitude order */
         INT4 phiRefAtEnd                /**< whether phiRef corresponds to the end of the inspiral */

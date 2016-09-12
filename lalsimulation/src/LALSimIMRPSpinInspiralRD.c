@@ -169,7 +169,7 @@ static INT4 XLALSimIMRPhenSpinParamsSetup(LALSimInspiralPhenSpinTaylorT4Coeffs  
 					 REAL8 quadparam2,   /**< Quad-monop par2*/
 					 int spinO,                 /**< Spin interaction */
 					 int tideO,                /**< Tidal iteraction interaction */
-					 LALDict *LALparams,
+					 LALDict *LALparams,    /**< Extra parameters */
                                          UINT4 order                                    /**< twice PN Order in Phase */
 )
 {
@@ -1276,7 +1276,7 @@ static INT4 XLALSimIMRPhenSpinInitialize(REAL8 mass1,                           
 					 REAL8 deltaT,        /**< sampling time (sec)*/
                                          INT4 phaseO,         /**< (twice) phase order*/
                                          LALSimInspiralPhenSpinTaylorT4Coeffs *params,        /**< Coefficient holder*/
-                                         LALDict *LALparams,
+                                         LALDict *LALparams,    /**< Extra parameters */
                                          Approximant approx    /**< Approximant*/)
 {
   if (fStart<=0.) {
@@ -1653,7 +1653,7 @@ INT4 XLALSimSpinInspiralGenerator(REAL8TimeSeries **hPlus,               /**< +-
 				 REAL8 lambda2,        /**< Tidal  par2*/
 				 REAL8 quadparam1,     /**< Quad-monopole  par1*/
 				 REAL8 quadparam2,     /**< Quad-monopole  par1*/
-				 LALDict *LALparams)
+				 LALDict *LALparams    /**< Extra parameters */ )
 {
 
   INT4 errcode=0;
@@ -2016,7 +2016,7 @@ INT4 XLALSimIMRPhenSpinInspiralRDGenerator(REAL8TimeSeries **hPlus,             
                                           REAL8 lambda2,        /**< Tidal  par2*/
                                           REAL8 quadparam1,     /**< Quad-monopole par1*/
                                           REAL8 quadparam2,     /**< Quad-monopole par2*/
-					  LALDict *LALparams)
+					  LALDict *LALparams    /**< Extra parameters */ )
 {
 
   const double rateHi=16384;
