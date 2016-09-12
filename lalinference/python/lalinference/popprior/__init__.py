@@ -47,7 +47,7 @@ def find_ln_p_j_voronoi(m, f, popt):
     length = len(vor.points)
     progress = ProgressBar(max=length)
     for i, p in enumerate(vor.points): # vor.points = coordinates of input points, where coordinates = [m1, m2, chi1, chi2]
-        progress.increment(text=str(p)+"/"+str(length))
+        progress.increment(text=str(i)+"/"+str(length))
         region = vor.regions[vor.point_region[i]]
         # vor.point_region[i] = index of Voronoi region for each input point
         # vor.regions[...] = indices of the Voronoi vertices forming Voronoi region (vor.vertices = coordinates of the Voronoi vertices)
@@ -80,7 +80,7 @@ def tetravol((a, b, c, d)):
 def hypertetravol((a, b, c, d, e)):
     # Calculates a Delaunay triangulated section of the Voronoi region for templates with coordinates (m1, m2, chi1, chi2)
     # Calculates hypervolume of 4d tetrahedron (5-cell), given vertices a, b, c, d, e (quadruplets)
-    return abs( (1./12.)*np.linalg.det((a-e, b-e, c-e, d-e)) )
+    return abs( (1./24.)*np.linalg.det((a-e, b-e, c-e, d-e)) )
 
 def vol(vor, region):
     # Computes the volume of the Voronoi region using Delaunay triangulation
@@ -122,12 +122,12 @@ def ln_p_k_den(tjtk, rho, acc=0.001):
             break
     return logsumexp(lny_list)
 
-def source_population(srcfile):
+def source_population(srcfile, pguess=[2.5, 1., 1.3]):
     data = np.loadtxt(srcfile,unpack=True)
     x = data[0]
     y = data[1]/np.trapz(data[1],x) # normalize the probability
     f = lambda x, *p: p[0]*np.exp(-p[1]*(x-p[2])**2)
-    popt, pcov = curve_fit(f, x, y, [2.5,1.,1.3]) # fit p(m) to a Gaussian curve
+    popt, pcov = curve_fit(f, x, y, pguess) # fit p(m) to a Gaussian curve
     return f, popt
 
 def load_overlaps(h5_file):
