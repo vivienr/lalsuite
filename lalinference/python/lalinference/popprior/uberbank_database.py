@@ -62,7 +62,7 @@ class Bank(object):
                 f = h5py.File(filename,"r")
                 nrows = f[f.keys()[0]]['overlaps'].shape[0] # find number of rows in subbank file
                 for i, (m1, m2, chi1, chi2) in enumerate(zip(f[f.keys()[0]]['mass1'].value, f[f.keys()[0]]['mass2'].value, f[f.keys()[0]]['spin1z'].value, f[f.keys()[0]]['spin2z'].value)):
-                    cursor.execute("INSERT INTO bank (filename_id, m1, m2, chi1, chi2, row, column) VALUES ((SELECT filename_id FROM fname WHERE filename = ?),?,?,?,?,?,?)", (filename, m1, m2, chi1, chi2, i if i <= nrows else None, i))
+                    cursor.execute("INSERT INTO bank (filename_id, m1, m2, chi1, chi2, row, column) VALUES ((SELECT filename_id FROM fname WHERE filename = ?),?,?,?,?,?,?)", (filename, m1, m2, chi1, chi2, i if i < nrows else None, i))
                     #FIXME: After building the database, confirm that each template only appears once in one row of the hdf5 files
                 f.close() # keeps the open file count down
             except: # ignore corrupted/broken subbank files
@@ -84,9 +84,11 @@ class Bank(object):
         for (filename, column), k in itertools.groupby(cursor.execute("SELECT fname.filename, a.column, b.k FROM bank AS a JOIN bank AS b ON (b.filename_id = a.filename_id) JOIN fname ON (fname.filename_id=a.filename_id) WHERE a.k = ? AND a.row IS NULL AND b.row IS NOT NULL ORDER BY fname.filename, b.row;", (template_number,)), lambda (fn, c, k_idx): (fn, c)):
             f = h5py.File(filename, "r")
             overlaps[[x[-1] for x in k]] = f[f.keys()[0]]['overlaps'].value[:,column]
+            f.close() # keeps the open file count down
         for (filename, row), k in itertools.groupby(cursor.execute("SELECT fname.filename, a.row, b.k FROM bank AS a JOIN bank AS b ON (b.filename_id = a.filename_id) JOIN fname ON (fname.filename_id = a.filename_id) WHERE a.k = ? AND a.row IS NOT NULL ORDER BY fname.filename, b.column;", (template_number,)), lambda (fn, r, k_idx): (fn, r)):
             f = h5py.File(filename, "r")
             overlaps[[x[-1] for x in k]] = f[f.keys()[0]]['overlaps'].value[row,:]
+            f.close() # keeps the open file count down
         return overlaps
 
     def get_templates(self):
