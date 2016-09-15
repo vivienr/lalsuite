@@ -97,7 +97,7 @@ def ln_p_k(ovrlp, rho, t_k, acc=0.001):
     ln_num = ln_p_k_num(rho*ovrlp[t_k]) # compute the numerator of p_k
     # for full template bank, don't need ln_p_k_den. just need to do a logexpsum of ln_num.
     ln_den = ln_p_k_den(ovrlp, rho, acc=acc) # compute the denominator of p_k
-    return ln_num-ln_den
+    return ln_num-ln_den # returns single value
 
 def ln_p_k_num(x, sqrtpiover2 = np.sqrt(np.pi/2.), sqrt2 = np.sqrt(2.)):
     halfxsquared = 0.5*x**2.
