@@ -9,7 +9,6 @@ int XLALSimRingdownFD(
                                       REAL8 eta,                   /**< symmetric mass ratio progenitors */
                                       REAL8 a,  /**< black hole dimensionless spin parameter */
                                       REAL8 chiEff,      /**< effective spin parameter for initial spins */
-                                      REAL8 t0,  /**< ringdown starting time (offset from merger time) */
                                       REAL8 distance,           /**< distance to source (m) */
                                       REAL8 inclination,                /**< inclination of source's spin axis (rad) */
                                       LALSimInspiralTestGRParam *TGRParams   /** testing GR params - shifts dfreq and dtau */                             

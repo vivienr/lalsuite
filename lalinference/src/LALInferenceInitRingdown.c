@@ -143,12 +143,12 @@ LALInferenceModel *LALInferenceInitRingdownModel(LALInferenceRunState *state) {
   REAL8 Dmin=20.0;
   REAL8 Dmax=80.0;
   REAL8 Dinitial = (Dmax + Dmin)/2.0;
-  REAL8 BH_mass_min = 5.0;
-  REAL8 BH_mass_max = 70.0;
-  REAL8 chieff_min = 0.0;
-  REAL8 chieff_max = 1.0;
-  REAL8 BH_spin_min = 0.0;
-  REAL8 BH_spin_max = 1.0;  
+  REAL8 BH_massMin = 5.0;
+  REAL8 BH_massMax = 70.0;
+  REAL8 chieffMin = 0.0;
+  REAL8 chieffMax = 1.0;
+  REAL8 BH_spinMin = 0.0;
+  REAL8 BH_spinMax = 1.0;  
   REAL8 etaMin=0.0312;
   REAL8 etaMax=0.25;
   REAL8 psiMin=0.0,psiMax=LAL_PI;
@@ -503,10 +503,18 @@ LALInferenceModel *LALInferenceInitRingdownModel(LALInferenceRunState *state) {
      * That function will then take care of setting startval to a random value between min and max, or read a value from command line (with --parname VALUE).
      * The user can fix the param to a given value with --fix-parname --parname VALUE
      * */
-    LALInferenceRegisterUniformVariableREAL8(state, model->params, "BH_mass", zero, BH_mass_min, BH_mass_max, LALINFERENCE_PARAM_LINEAR);
-    LALInferenceRegisterUniformVariableREAL8(state, model->params, "BH_spin", zero, BH_spin_min, BH_spin_max, LALINFERENCE_PARAM_LINEAR);
+    if((ppt=LALInferenceGetProcParamVal(commandLine,"--BH_mass-max"))) BH_massMax=atof(ppt->value);
+    if((ppt=LALInferenceGetProcParamVal(commandLine,"--BH_mass-min"))) BH_massMin=atof(ppt->value);
+    LALInferenceRegisterUniformVariableREAL8(state, model->params, "BH_mass", zero, BH_massMin, BH_massMax, LALINFERENCE_PARAM_LINEAR);
+    if((ppt=LALInferenceGetProcParamVal(commandLine,"--BH_spin-max"))) BH_spinMax=atof(ppt->value);
+    if((ppt=LALInferenceGetProcParamVal(commandLine,"--BH_spin-min"))) BH_spinMin=atof(ppt->value);
+    LALInferenceRegisterUniformVariableREAL8(state, model->params, "BH_spin", zero, BH_spinMin, BH_spinMax, LALINFERENCE_PARAM_LINEAR);
+    if((ppt=LALInferenceGetProcParamVal(commandLine,"--eta-max"))) etaMax=atof(ppt->value);
+    if((ppt=LALInferenceGetProcParamVal(commandLine,"--eta-min"))) etaMin=atof(ppt->value);
     LALInferenceRegisterUniformVariableREAL8(state, model->params, "eta", zero, etaMin, etaMax, LALINFERENCE_PARAM_LINEAR);
-    LALInferenceRegisterUniformVariableREAL8(state, model->params, "chieff", zero, chieff_min, chieff_max, LALINFERENCE_PARAM_LINEAR);
+    if((ppt=LALInferenceGetProcParamVal(commandLine,"--chieff-max"))) chieffMax=atof(ppt->value);
+    if((ppt=LALInferenceGetProcParamVal(commandLine,"--chieff-min"))) chieffMin=atof(ppt->value);
+    LALInferenceRegisterUniformVariableREAL8(state, model->params, "chieff", zero, chieffMin, chieffMax, LALINFERENCE_PARAM_LINEAR);
     if(!LALInferenceGetProcParamVal(commandLine,"--margphi") && !LALInferenceGetProcParamVal(commandLine, "--margtimephi")){
       LALInferenceRegisterUniformVariableREAL8(state, model->params, "phi0", zero, phiMin, phiMax, LALINFERENCE_PARAM_CIRCULAR);
     }
@@ -567,7 +575,7 @@ LALInferenceModel *LALInferenceInitRingdownModel(LALInferenceRunState *state) {
   }
   /* PPE parameters */
 
-  /*ppt=LALInferenceGetProcParamVal(commandLine, "--TaylorF2ppE");
+  ppt=LALInferenceGetProcParamVal(commandLine, "--TaylorF2ppE");
   if(approx==TaylorF2 && ppt){
 
     LALInferenceRegisterUniformVariableREAL8(state, model->params, "ppealpha",zero, -1000.0 , 1000.0 , LALINFERENCE_PARAM_LINEAR);
@@ -579,7 +587,7 @@ LALInferenceModel *LALInferenceInitRingdownModel(LALInferenceRunState *state) {
 
   }
 
-  if(LALInferenceGetProcParamVal(commandLine,"--tidalT")&&LALInferenceGetProcParamVal(commandLine,"--tidal")){
+ /* if(LALInferenceGetProcParamVal(commandLine,"--tidalT")&&LALInferenceGetProcParamVal(commandLine,"--tidal")){
     XLALPrintError("Error: cannot use both --tidalT and --tidal.\n");
     XLAL_ERROR_NULL(XLAL_EINVAL);
   } else if(LALInferenceGetProcParamVal(commandLine,"--tidalT")){
@@ -710,19 +718,19 @@ LALInferenceTemplateFunction LALInferenceInitRingdownTemplate(LALInferenceRunSta
       return(NULL);
     }
 
-  //ProcessParamsTable *ppt=NULL;
-  //ProcessParamsTable *commandLine=runState->commandLine;
+  ProcessParamsTable *ppt=NULL;
+  ProcessParamsTable *commandLine=runState->commandLine;
   /* Print command line arguments if help requested */
   //Help is taken care of in LALInferenceInitCBCVariables
-  //ppt=LALInferenceGetProcParamVal(commandLine,"--help");
-  //if(ppt)
-  //{
-  //    fprintf(stdout,"%s",help);
-  //    return;
-  //}
+  /*ppt=LALInferenceGetProcParamVal(commandLine,"--help");
+  if(ppt)
+  {
+      fprintf(stdout,"%s",help);
+      return ;
+  }*/
   /* This is the LAL template generator for inspiral signals */
   LALInferenceTemplateFunction templt = &LALInferenceTemplateRingdownFD;
-  /*ppt=LALInferenceGetProcParamVal(commandLine,"--template");
+  ppt=LALInferenceGetProcParamVal(commandLine,"--template");
   if(ppt) {
     if(!strcmp("LALSim",ppt->value))
       templt=&LALInferenceTemplateXLALSimInspiralChooseWaveform;
@@ -749,7 +757,7 @@ LALInferenceTemplateFunction LALInferenceInitRingdownTemplate(LALInferenceRunSta
   }
   else {
     fprintf(stdout,"Template function called is \"LALInferenceTemplateRingdownFD\"\n");
-  }*/
+  }
   return templt;
 }
 

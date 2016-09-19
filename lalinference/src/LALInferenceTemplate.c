@@ -786,37 +786,10 @@ void LALInferenceTemplateRingdownFD(LALInferenceModel *model)
   //INT4 amporder;
 
   COMPLEX16FrequencySeries *hptilde=NULL, *hctilde=NULL;
-  REAL8 phi0, f_start, distance;
-  //REAL8 f_low;
+  REAL8 phi0, distance;
   REAL8 deltaF, f_max;
-  //int errnum = 0;
-  /*if (LALInferenceCheckVariable(model->params, "LAL_APPROXIMANT"))
-    approximant = *(Approximant*) LALInferenceGetVariable(model->params, "LAL_APPROXIMANT");
-  else {
-    XLALPrintError(" ERROR in templateLALGenerateInspiral(): (INT4) \"LAL_APPROXIMANT\" parameter not provided!\n");
-    XLAL_ERROR_VOID(XLAL_EDATA);
-  }*/
+  int errnum = 0;
 
-  /*if (LALInferenceCheckVariable(model->params, "LAL_PNORDER"))
-    order = *(INT4*) LALInferenceGetVariable(model->params, "LAL_PNORDER");
-  else {
-    XLALPrintError(" ERROR in templateLALGenerateInspiral(): (INT4) \"LAL_PNORDER\" parameter not provided!\n");
-    XLAL_ERROR_VOID(XLAL_EDATA);
-  }*/
-
-  /* Explicitly set the default amplitude order if one is not specified.
-   *   This serves two purposes:
-   *     1) The default behavior of the code won't change unexpectedly due to changes in LALSimulation.
-   *     2) We need to know the amplitude order in order to set the starting frequency of the waveform properly. */
-  /*if (LALInferenceCheckVariable(model->params, "LAL_AMPORDER"))
-    amporder = *(INT4*) LALInferenceGetVariable(model->params, "LAL_AMPORDER");
-  else
-    amporder = -1;*/
-
-  //REAL8 f_ref = 100.0;
-  //if (LALInferenceCheckVariable(model->params, "f_ref")) f_ref = *(REAL8 *)LALInferenceGetVariable(model->params, "f_ref");
-
-  REAL8 t0 = LALInferenceGetREAL8Variable(model->params, "t0");
   REAL8 eta = LALInferenceGetREAL8Variable(model->params, "eta");
   REAL8 chieff = LALInferenceGetREAL8Variable(model->params, "chieff");
   REAL8 BH_spin = LALInferenceGetREAL8Variable(model->params, "BH_spin");
@@ -826,15 +799,18 @@ void LALInferenceTemplateRingdownFD(LALInferenceModel *model)
   /* Zenith angle between J and N in radians. Also known as inclination angle when spins are aligned */
   REAL8 thetaJN = acos(LALInferenceGetREAL8Variable(model->params, "costheta_jn"));     /* zenith angle between J and N in radians */
 
+  REAL8 f_low;
   /* Check if fLow is a model parameter, otherwise use data structure definition */
-  /*if(LALInferenceCheckVariable(model->params, "flow"))
+  if(LALInferenceCheckVariable(model->params, "flow"))
     f_low = *(REAL8*) LALInferenceGetVariable(model->params, "flow");
   else
-    f_low = model->fLow;*/
+    f_low = model->fLow;
 
-  f_start = 200.0; //TODO: for now hard-coded!! And what was difference between f_low and f_Start? fLow2fStart(f_low, amporder, approximant);
-  f_max = 0.0; /* for freq domain waveforms this will stop at ISCO. Previously found using model->fHigh causes NaNs in waveform (see redmine issue #750)*/
+
   deltaF = model->deltaF;
+  f_max = 2047.968750; /* TODO: Replacewith something better*/
+
+  printf("In Template: fStart = %f and fEnd = %f\n",f_low,f_max);
 
   /* Only use GR templates */
   LALSimInspiralTestGRParam *nonGRparams = NULL;
@@ -847,17 +823,9 @@ void LALInferenceTemplateRingdownFD(LALInferenceModel *model)
           XLALSimInspiralAddTestGRParam(&nonGRparams,list_extra_parameters[k],*(REAL8 *)LALInferenceGetVariable(model->params,list_extra_parameters[k]));
       }
   }
-  XLALSimRingdownFD(&hptilde,&hctilde,deltaF,phi0,f_start,f_max,BH_mass,eta,BH_spin,chieff,t0,distance,thetaJN,nonGRparams);
+  XLAL_TRY(XLALSimRingdownFD(&hptilde,&hctilde,deltaF,phi0,f_low,f_max,BH_mass*LAL_MSUN_SI,eta,BH_spin,chieff,distance,thetaJN,nonGRparams),errnum);
 
-	/*XLAL_TRY(ret=XLALSimInspiralChooseFDWaveformFromCache(&hptilde, &hctilde, phi0,
-            deltaF, m1*LAL_MSUN_SI, m2*LAL_MSUN_SI, spin1x, spin1y, spin1z,
-            spin2x, spin2y, spin2z, f_start, f_max, f_ref, distance, inclination,lambda1, lambda2, model->waveFlags, nonGRparams, amporder, order,
-            approximant,model->waveformCache, NULL), errnum);*/
-
-    /* if the waveform failed to generate, fill the buffer with zeros
-     * so that the previous waveform is not left there
-     */
-   /* if(errnum!=0){
+    if(errnum!=0){
       memset(model->freqhPlus->data->data,0,sizeof(model->freqhPlus->data->data[0])*model->freqhPlus->data->length);
       memset(model->freqhCross->data->data,0,sizeof(model->freqhCross->data->data[0])*model->freqhCross->data->length);
       if ( hptilde ) XLALDestroyCOMPLEX16FrequencySeries(hptilde);
@@ -874,8 +842,8 @@ void LALInferenceTemplateRingdownFD(LALInferenceModel *model)
           XLALSetErrno(errnum);
           XLAL_ERROR_VOID(errnum,"%s: Template generation failed in XLALSimRingdownFD:\n\
 XLALSimRingdownFD(&hptilde, &hctilde, \
-%g, %g, %g, %g, %g, %g, %g, %g, %g, %g, %g,nonGRparams)\n",__func__,
-            deltaF,phi0,f_start,f_max,BH_mass,eta,BH_spin,chieff,t0,distance,thetaJN);
+%g, %g, %g, %g, %g, %g, %g, %g, %g, %g,nonGRparams)\n",__func__,
+            deltaF,phi0,f_low,f_max,BH_mass,eta,BH_spin,chieff,distance,thetaJN);
       }
     }
 
@@ -902,7 +870,7 @@ XLALSimRingdownFD(&hptilde, &hctilde, \
         memset(&(model->freqhCross->data->data[size]),0, rem*sizeof(hctilde->data->data[0]) );
 
     REAL8 instant = model->freqhPlus->epoch.gpsSeconds + 1e-9*model->freqhPlus->epoch.gpsNanoSeconds;
-    LALInferenceSetVariable(model->params, "time", &instant);*/
+    LALInferenceSetVariable(model->params, "time", &instant);
 
   if ( hptilde ) XLALDestroyCOMPLEX16FrequencySeries(hptilde);
   if ( hctilde ) XLALDestroyCOMPLEX16FrequencySeries(hctilde);

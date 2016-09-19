@@ -38,7 +38,7 @@
 #include <gsl/gsl_sf_erf.h>
 #include <gsl/gsl_complex_math.h>
 #include <lal/LALInferenceTemplate.h>
-
+#include <lal/LALSimRingdownFD.h> //by Laura
 #include "logaddexp.h"
 
 typedef enum
@@ -81,6 +81,7 @@ void LALInferenceInitLikelihood(LALInferenceRunState *runState)
     (--margtime)                     Using marginalised time likelihood\n\
     (--margtimephi)                  Using marginalised in time and phase likelihood\n\
     \n";
+
 
     /* Print command line arguments if help requested */
     LALInferenceIFOData *ifo=NULL;
@@ -296,7 +297,7 @@ static REAL8 LALInferenceFusedFreqDomainLogLikelihood(LALInferenceVariables *cur
 /*   - "polarisation"    (REAL8, radian, 0 <= psi <= ?)        */
 /*   - "time"            (REAL8, GPS sec.)                     */
 /***************************************************************/
-{
+{ 
   double Fplus, Fcross;
   //double diffRe, diffIm;
   //double dataReal, dataImag;
@@ -440,6 +441,7 @@ static REAL8 LALInferenceFusedFreqDomainLogLikelihood(LALInferenceVariables *cur
   REAL8 epoch = XLALGPSGetREAL8(&(data->freqData->epoch));
   desired_tc = epoch + (time_length-1)*deltaT - 2.0;
 
+
   if(signalFlag)
   {
     if(LALInferenceCheckVariable(currentParams,"logmc")){
@@ -454,8 +456,9 @@ static REAL8 LALInferenceFusedFreqDomainLogLikelihood(LALInferenceVariables *cur
     }
 
     INT4 SKY_FRAME=0;
-    if(LALInferenceCheckVariable(currentParams,"SKY_FRAME"))
+    if(LALInferenceCheckVariable(currentParams,"SKY_FRAME")){
       SKY_FRAME=*(INT4 *)LALInferenceGetVariable(currentParams,"SKY_FRAME");
+    }
 
     if(SKY_FRAME==0){
       /* determine source's sky location & orientation parameters: */
@@ -499,7 +502,6 @@ static REAL8 LALInferenceFusedFreqDomainLogLikelihood(LALInferenceVariables *cur
     }
   }
 
-
   if(margtime)
   {
     GPSdouble = desired_tc;
@@ -536,7 +538,6 @@ static REAL8 LALInferenceFusedFreqDomainLogLikelihood(LALInferenceVariables *cur
 
   /* Reset SNR */
   model->SNR = 0.0;
-
   /* loop over data (different interferometers): */
   for(dataPtr=data,ifo=0; dataPtr; dataPtr=dataPtr->next,ifo++) {
     /* The parameters the Likelihood function can handle by itself   */
@@ -697,7 +698,6 @@ static REAL8 LALInferenceFusedFreqDomainLogLikelihood(LALInferenceVariables *cur
     lower = (UINT4)ceil(dataPtr->fLow / deltaF);
     upper = (UINT4)floor(dataPtr->fHigh / deltaF);
     TwoDeltaToverN = 2.0 * deltaT / ((double) dataPtr->timeData->data->length);
-
     /* Employ a trick here for avoiding cos(...) and sin(...) in time
        shifting.  We need to multiply each template frequency bin by
        exp(-J*twopit*deltaF*i) = exp(-J*twopit*deltaF*(i-1)) +
@@ -778,7 +778,6 @@ static REAL8 LALInferenceFusedFreqDomainLogLikelihood(LALInferenceVariables *cur
 	d_inner_h += creal(this_ifo_d_inner_h);
 	S += this_ifo_s;
 	model->ifo_loglikelihoods[ifo] = creal(this_ifo_d_inner_h) - (0.5*this_ifo_s) + dataPtr->nullloglikelihood;
-
 	loglikelihood += model->ifo_loglikelihoods[ifo];
 
 	char varname[VARNAME_MAX];
@@ -809,6 +808,8 @@ static REAL8 LALInferenceFusedFreqDomainLogLikelihood(LALInferenceVariables *cur
     REAL8 templatesq=0.0;
     REAL8 this_ifo_S=0.0;
     COMPLEX16 this_ifo_Rcplx=0.0;
+    FILE* out_hptilde_file = fopen("hptilde_data_Likelihood.txt","w"); //by Laura
+    FILE* out_hctilde_file = fopen("hctilde_data_Likelihood.txt","w"); //by Laura
 
     for (i=lower,chisq=0.0,re = cos(twopit*deltaF*i),im = -sin(twopit*deltaF*i);
          i<=upper;
@@ -817,7 +818,8 @@ static REAL8 LALInferenceFusedFreqDomainLogLikelihood(LALInferenceVariables *cur
          newIm = im + re*dim + im*dre,
          re = newRe, im = newIm)
     {
-
+      fprintf(out_hptilde_file,"%lf %e %e\n",i*deltaF ,creal(*hptilde),cimag(*hptilde)); //by Laura
+      fprintf(out_hctilde_file,"%lf %e %e\n",i*deltaF ,creal(*hctilde),cimag(*hctilde)); //by Laura
       COMPLEX16 d=*dtilde;
       /* Normalise PSD to our funny standard (see twoDeltaTOverN
 	 below). */
@@ -855,6 +857,9 @@ static REAL8 LALInferenceFusedFreqDomainLogLikelihood(LALInferenceVariables *cur
       if(signalFlag){
       /* derive template (involving location/orientation parameters) from given plus/cross waveforms: */
       COMPLEX16 plainTemplate = Fplus*(*hptilde)+Fcross*(*hctilde);
+
+//by Laura
+//printf("%f    %f    %f    %f    %f    %f\n",deltaF*i,creal(*hptilde)*pow(10,21),cimag(*hptilde)*pow(10,21),sqrt(creal(*hptilde)*creal(*hptilde)+cimag(*hptilde)*cimag(*hptilde))*pow(10,21),creal(diff)*pow(10,21),cimag(diff)*pow(10,21));
 
       /* Do time shifting */
       template = plainTemplate * (re + I*im);
@@ -1128,6 +1133,76 @@ static REAL8 LALInferenceFusedFreqDomainLogLikelihood(LALInferenceVariables *cur
   LALInferenceAddVariable(currentParams,"matched_filter_snr",&MatchedFilterSNR,LALINFERENCE_REAL8_t,LALINFERENCE_PARAM_OUTPUT);
 
   //loglikelihood = -1.0 * chisquared; // note (again): the log-likelihood is unnormalised!
+
+  /*printf("\nIn Likelihood function:\n");
+  printf("optimal SNR = %f\n",OptimalSNR);
+  printf("matched filter SNR = %f\n",MatchedFilterSNR);
+  if(LALInferenceCheckVariable(currentParams,"BH_mass")) printf("BH_mass = %f\n",*(double*)LALInferenceGetVariable(currentParams,"BH_mass"));
+  if(LALInferenceCheckVariable(currentParams,"BH_spin")) printf("BH_spin = %f\n",*(double*)LALInferenceGetVariable(currentParams,"BH_spin"));
+  if(LALInferenceCheckVariable(currentParams,"chieff")) printf("chieff = %f\n",*(double*)LALInferenceGetVariable(currentParams,"chieff"));
+  if(LALInferenceCheckVariable(currentParams,"eta")) printf("eta = %f\n",*(double*)LALInferenceGetVariable(currentParams,"eta"));
+  if(LALInferenceCheckVariable(currentParams,"phi0")) printf("phi0 = %f\n",*(double*)LALInferenceGetVariable(currentParams,"phi0"));
+  if(LALInferenceCheckVariable(currentParams,"azimuth")) printf("azimuth = %f\n",*(double*)LALInferenceGetVariable(currentParams,"azimuth"));
+  if(LALInferenceCheckVariable(currentParams,"cosalpha")) printf("cosalpha = %f\n",*(double*)LALInferenceGetVariable(currentParams,"cosalpha"));
+  if(LALInferenceCheckVariable(currentParams,"t0")) printf("t0 = %f\n",*(double*)LALInferenceGetVariable(currentParams,"t0"));
+  if(LALInferenceCheckVariable(currentParams,"costheta_jn")) printf("costheta_jn = %f\n",*(double*)LALInferenceGetVariable(currentParams,"costheta_jn"));
+  if(LALInferenceCheckVariable(currentParams,"logdistance")) printf("logdistance = %f\n",*(double*)LALInferenceGetVariable(currentParams,"logdistance"));
+  if(LALInferenceCheckVariable(currentParams,"flow")) printf("flow = %f\n",*(double*)LALInferenceGetVariable(currentParams,"flow"));
+  if(LALInferenceCheckVariable(currentParams,"f_ref")) printf("f_ref = %f\n",*(double*)LALInferenceGetVariable(currentParams,"f_ref"));
+  printf("deltaF = %f\n", deltaF);
+  printf("loglikelihood = %f\n", loglikelihood);
+  printf("fStart = %f\n",lower*deltaF);
+  printf("fEnd = %f\n",upper*deltaF);
+  //exit(0);
+  //printf("loglikelihood = %f\n", loglikelihood);
+
+  FILE* expected_hptilde_file = fopen("hptilde_data_expected.txt","w"); //by Laura
+  FILE* expected_hctilde_file = fopen("hctilde_data_expected.txt","w"); //by Laura
+  COMPLEX16FrequencySeries* expected_hptilde=NULL;
+  COMPLEX16FrequencySeries* expected_hctilde=NULL;
+
+  //XLALSimRingdownFD(&expected_hptilde,&expected_hctilde,deltaF,*(double*)LALInferenceGetVariable(currentParams,"phi0"),lower*deltaF,upper*deltaF,*(double*)LALInferenceGetVariable(currentParams,"BH_mass")*LAL_MSUN_SI,*(double*)LALInferenceGetVariable(currentParams,"eta"),*(double*)LALInferenceGetVariable(currentParams,"BH_spin"),*(double*)LALInferenceGetVariable(currentParams,"chieff"),exp(*(double*)LALInferenceGetVariable(currentParams,"logdistance"))*LAL_PC_SI*1.0e6,acos(*(double*)LALInferenceGetVariable(currentParams,"costheta_jn")),NULL);
+XLALSimRingdownFD(&expected_hptilde,&expected_hctilde,deltaF,*(double*)LALInferenceGetVariable(currentParams,"phi0"),lower*deltaF,upper*deltaF,100.0*LAL_MSUN_SI,0.25,*(double*)LALInferenceGetVariable(currentParams,"BH_spin"),*(double*)LALInferenceGetVariable(currentParams,"chieff"),exp(*(double*)LALInferenceGetVariable(currentParams,"logdistance"))*LAL_PC_SI*1.0e6,acos(*(double*)LALInferenceGetVariable(currentParams,"costheta_jn")),NULL);
+  i=0;
+  for(i=lower;i<upper;i=i+1){
+    fprintf(expected_hptilde_file,"%f %e %e\n",i*deltaF ,creal(expected_hptilde->data->data[i]),cimag(expected_hptilde->data->data[i])); //by Laura
+    fprintf(expected_hctilde_file,"%f %e %e\n",i*deltaF ,creal(expected_hctilde->data->data[i]),cimag(expected_hctilde->data->data[i])); //by Laura
+  }*/
+
+  REAL8 sun_SI = 1.9891*pow(10,30);
+  REAL8 pc_SI = 3.08567758*pow(10,16);
+
+  COMPLEX16FrequencySeries *hlmmodetilde_out_plus = NULL;
+  COMPLEX16FrequencySeries *hlmmodetilde_out_cross = NULL;
+
+
+  const REAL8 fStart = 30;
+  const REAL8 fEnd = 2047.968750;
+  deltaF=0.031250;
+  REAL8 phi0 = 2.689995;
+  REAL8 mass = 100.0*sun_SI;
+  REAL8 eta = 0.25;
+  REAL8 distance = exp(4.891563)*1000000*pc_SI;
+  REAL8 inclination = acos(0.052948);
+  REAL8 chieff = 0.398504;
+  REAL8 a = 0.505204;
+  LALSimInspiralTestGRParam *TGRParams = NULL;
+
+  XLALSimRingdownFD(&hlmmodetilde_out_plus,&hlmmodetilde_out_cross,deltaF,phi0,fStart,fEnd,mass,eta,a,chieff,distance,inclination,TGRParams);
+  printf("frequency [Hz], abs(strain), abs(strain)\n");
+  FILE* expected_hptilde_file = fopen("hptilde_data_expected.txt","w"); //by Laura
+  FILE* expected_hctilde_file = fopen("hctilde_data_expected.txt","w"); //by Laura
+
+  for(i=0;i<(fEnd / deltaF+1);i=i+1){
+    //REAL8 f = (REAL8)j*deltaF;
+    //printf("%f,  %f + i %f,  %f + i %f, |%f|, |%f|\n",f,creal(hlmmodetilde_out_plus->data->data[j])*pow(10,21),cimag(hlmmodetilde_out_plus->data->data[j])*pow(10,21),creal(hlmmodetilde_out_cross->data->data[j])*pow(10,21),cimag(hlmmodetilde_out_cross->data->data[j])*pow(10,21),cabs(hlmmodetilde_out_plus->data->data[j]*pow(10,21)),cabs(hlmmodetilde_out_cross->data->data[j])*pow(10,21));
+    //printf("%f  %.10f  %.10f  %.10f  %.10f\n",f,cabs(hlmmodetilde_out_plus->data->data[j]*pow(10,21)),cabs(hlmmodetilde_out_cross->data->data[j]*pow(10,21)),creal(hlmmodetilde_out_plus->data->data[j]*pow(10,21)),cimag(hlmmodetilde_out_plus->data->data[j]*pow(10,21)));
+fprintf(expected_hptilde_file,"%f %e %e\n",i*deltaF ,creal(hlmmodetilde_out_plus->data->data[i]),cimag(hlmmodetilde_out_plus->data->data[i]));
+fprintf(expected_hctilde_file,"%f %e %e\n",i*deltaF ,creal(hlmmodetilde_out_cross->data->data[i]),cimag(hlmmodetilde_out_cross->data->data[i]));
+  }
+
+
+  exit(0);
 
   return(loglikelihood);
 }

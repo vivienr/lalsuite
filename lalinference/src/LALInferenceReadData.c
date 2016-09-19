@@ -2304,9 +2304,9 @@ void InjectFD(LALInferenceIFOData *IFOdata, SimInspiralTable *inj_table, Process
     REAL8 chieff = XLALChiEffRingdown(inj_table->mass1, inj_table->mass2,inj_table->spin1x,inj_table->spin1y,inj_table->spin1z,inj_table->spin2x,inj_table->spin2y,inj_table->spin2z);
     f_max = 2000.0; //TODO: hard coded! Do we want this variable?
   
-   printf("\n Calling XLALSimRingdownFD(&hptilde,&hctilde,deltaF,inj_table->coa_phase,f_min,f_max,mass_BH*LAL_MSUN_SI,eta,spin_BH,chieff,injtime,inj_table->distance*LAL_PC_SI * 1.0e6,inj_table->inclination,nonGRparams) with the following values:\n deltaF = %f\n phase = %f\n fmin =  %f\n fmax = %f\n mBH = %f\n eta = %f\n spinBH = %f\n chieff = %f\n time = %f\n distance = %f\n inclination = %f\n\n",deltaF,inj_table->coa_phase,f_min,f_max,mass_BH*LAL_MSUN_SI,eta,spin_BH,chieff,injtime,inj_table->distance*LAL_PC_SI * 1.0e6,inj_table->inclination);
+   printf("\n Calling XLALSimRingdownFD(&hptilde,&hctilde,deltaF,inj_table->coa_phase,f_min,f_max,mass_BH*LAL_MSUN_SI,eta,spin_BH,chieff,inj_table->distance*LAL_PC_SI * 1.0e6,inj_table->inclination,nonGRparams) with the following values:\n deltaF = %f\n phase = %f\n fmin =  %f\n fmax = %f\n mBH = %f\n eta = %f\n spinBH = %f\n chieff = %f\n time = %f\n distance = %f\n inclination = %f\n\n",deltaF,inj_table->coa_phase,f_min,f_max,mass_BH*LAL_MSUN_SI,eta,spin_BH,chieff,injtime,inj_table->distance*LAL_PC_SI * 1.0e6,inj_table->inclination);
 
-    XLALSimRingdownFD(&hptilde,&hctilde,deltaF,inj_table->coa_phase,f_min,f_max,mass_BH*LAL_MSUN_SI,eta,spin_BH,chieff,injtime,inj_table->distance*LAL_PC_SI * 1.0e6,inj_table->inclination,nonGRparams);
+    XLALSimRingdownFD(&hptilde,&hctilde,deltaF,inj_table->coa_phase,f_min,f_max,mass_BH*LAL_MSUN_SI,eta,spin_BH,chieff,inj_table->distance*LAL_PC_SI * 1.0e6,inj_table->inclination,nonGRparams);
     printf("In ReadData, after calling XLALSimRingdownFD:\n hptilde->data->length = %i\n",hptilde->data->length);
   }
 
@@ -2389,6 +2389,10 @@ void InjectFD(LALInferenceIFOData *IFOdata, SimInspiralTable *inj_table, Process
     im = -sin(twopit * deltaF * lower);
     printf("lower = %i, upper = %i\n",lower,upper);
     printf("hptilde->data->length = %i\n",hptilde->data->length);
+
+    //Chek for weird values:
+
+
     for (i=lower; i<=upper; ++i){
       /* derive template (involving location/orientation parameters) from given plus/cross waveforms: */
       if (i < hptilde->data->length) {
@@ -2424,8 +2428,10 @@ void InjectFD(LALInferenceIFOData *IFOdata, SimInspiralTable *inj_table, Process
     printf("injected SNR %.1f in IFO %s\n",sqrt(2.0*chisquared),dataPtr->name);
     NetSNR+=2.0*chisquared;
     dataPtr->SNR=sqrt(2.0*chisquared);
+    printf("1/deltaT*(double) dataPtr->timeData->data->length = %f\n",1/(deltaT*(double) dataPtr->timeData->data->length));
+    printf("dataPtr->timeData->data->length = %i\n",dataPtr->timeData->data->length);
     dataPtr = dataPtr->next;
-
+    
     fclose(outInj);
   }
   printf("IS ALWAYS ZERO? SOMETHING FISHY ...\n");
@@ -2559,8 +2565,8 @@ static REAL8 EISCO(REAL8 a){
 static REAL8 risco(REAL8 a){
     REAL8 Z1 = 1+pow((1-a*a),1/3)*(pow((1+a),1/3)+pow((1-a),1/3));
     REAL8 Z2 = sqrt(3*a*a+Z1*Z1);
-    if (a > 0) return 3+Z2-a*sqrt((3-Z1)*(3+Z1+2*Z2));
-    if (a < 0) return 3+Z2+a*sqrt((3-Z1)*(3+Z1+2*Z2));
+    if (a > 0) return 3+Z2-sqrt((3-Z1)*(3+Z1+2*Z2));
+    if (a < 0) return 3+Z2+sqrt((3-Z1)*(3+Z1+2*Z2));
     return 3+Z2;
 }
 

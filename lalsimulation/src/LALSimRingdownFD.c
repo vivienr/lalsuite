@@ -29,12 +29,24 @@ int XLALSimRingdownFD(
                                       REAL8 eta,                   /**< symmetric mass ratio progenitors */
                                       REAL8 a,  /**< black hole dimensionless spin parameter */
                                       REAL8 chiEff,      /**< effective spin parameter for initial spins */
-                                      REAL8 t0,  /**< ringdown starting time (offset from merger time) */
                                       REAL8 distance,           /**< distance to source (m) */
                                       REAL8 inclination,                /**< inclination of source's spin axis (rad) */
                                       LALSimInspiralTestGRParam *TGRParams   /** testing GR params - shifts dfreq and dtau */                          
                                       )
 {
+
+  printf("\nCalled XLALSimRingdownFD with parameters:\n");
+  printf("BH_mass = %f\n",mass/LAL_MSUN_SI);
+  printf("BH_spin = %f\n",a);
+  printf("chieff = %f\n",chiEff);
+  printf("eta = %f\n",eta);
+  printf("phi0 = %f\n",phi0);
+  printf("costheta_jn = %f\n",cos(inclination));
+  printf("logdistance = %f\n",log(distance/(LAL_PC_SI * 1.0e6)));
+  printf("fStart = %f\n",fStart);
+  printf("fEnd = %f\n",fEnd);
+  printf("deltaF = %f\n",deltaF);
+
   /* switch to units where c=G=1, expressed in s */
   mass = mass*LAL_MTSUN_SI/LAL_MSUN_SI;
   REAL8 dist_sec = distance/LAL_C_SI;
@@ -42,22 +54,25 @@ int XLALSimRingdownFD(
   /*allocate memory*/
   UINT4 iEnd = (UINT4) ceil(fEnd / deltaF);
   LIGOTimeGPS tC = {0, 0};
-  XLALGPSAdd(&tC, -1 / deltaF);  /* coalesce at t=0 */
+  REAL8 shift = LAL_TWOPI*(tC.gpsSeconds + 1e-9 * tC.gpsNanoSeconds);
+  XLALGPSAdd(&tC, -1 / deltaF);  /*coalesce at t=0*/
   COMPLEX16FrequencySeries *hlmmodetilde_plus = XLALCreateCOMPLEX16FrequencySeries("htilde: FD waveform", &tC, 0.0, deltaF, &lalStrainUnit, iEnd);
   COMPLEX16FrequencySeries *hlmmodetilde_cross = XLALCreateCOMPLEX16FrequencySeries("htilde: FD waveform", &tC, 0.0, deltaF, &lalStrainUnit, iEnd);
 
   /*Compute mode dependent quantities*/
-  UINT4 l;
+  /*UINT4 l;
   INT4 m;
   UINT4 n=0;
   for(l=0;l<5;l++){
-   for(m=0;m<5;m++){ //TODO: should I inlcude negative m?
+   for(m=0;m<5;m++){*/
+  int m=2, n=0, l=2;
     REAL8 A = XLALSimRingdownFDAmplitudes(l, m, n, eta, chiEff);
     if(A!=0){
       COMPLEX16 Yplus = XLALSimSphericalHarmonicPlus(l, m, inclination);
       COMPLEX16 Ycross = XLALSimSphericalHarmonicCross(l, m, inclination);
       REAL8 omega = XLALQNMOmega(l, m, n, a, mass);
       REAL8 tau = XLALQNMTau( l, m, n, a, mass);
+      printf("l = %i, m= %i, n= %i, A = %f, omega=%f, tau=%f, Yplus = %f+i*%f, Ycross=%f+i*%f\n",l,m,n,A,omega,tau,creal(Yplus),cimag(Yplus),creal(Ycross),cimag(Ycross));
   
       /*add non-physical shifts*/
       //TODO: not checked
@@ -70,13 +85,14 @@ int XLALSimRingdownFD(
 
       for (i = iStart; i < iEnd; i++) {
           REAL8 f = i * deltaF;
-          COMPLEX16 com = 1/tau+I*2*LAL_PI*f;
-          hlmmodetilde_plus->data->data[i] += mass/dist_sec*A*Yplus*(1/(1+omega*omega/(com*com))*(1/com*cexp(-com*t0)*cos(m*phi0)+omega/(com*com)*cexp(-t0*com)*sin(m*phi0)));
-          hlmmodetilde_cross->data->data[i] += mass/dist_sec*A*Ycross*(1/(1+omega*omega/(com*com))*(-1/com*cexp(-com*t0)*sin(m*phi0)+omega/(com*com)*cexp(-t0*com)*cos(m*phi0)));
+          //hlmmodetilde_plus->data->data[i] += mass/dist_sec*A*Yplus*(tau*(cos(m*phi0)+I*2*LAL_PI*f*tau*cos(m*phi0)+omega*tau*sin(m*phi0)))/(1+I*4*LAL_PI*f*tau-4*LAL_PI*LAL_PI*f*f*tau*tau+omega*omega*tau*tau);
+          //hlmmodetilde_cross->data->data[i] += -mass/dist_sec*A*Ycross*tau*(sin(m*phi0)+I*2*LAL_PI*f*tau*sin(m*phi0)-omega*tau*cos(m*phi0))/(1+4*LAL_PI*f*tau-4*LAL_PI*LAL_PI*f*f*tau*tau+omega*omega*tau*tau);
+          hlmmodetilde_plus->data->data[i] += mass/dist_sec*A*Yplus*(cos(f*shift) - I*sin(f*shift))*(tau*((-1-I*2*f*LAL_PI*tau)*cos(m*phi0)-omega*tau*sin(m*phi0)))/(-1-I*4*f*LAL_PI*tau-omega*omega*tau*tau+4*f*f*LAL_PI*LAL_PI*tau*tau);
+          hlmmodetilde_cross->data->data[i] += -mass/dist_sec*A*Ycross*(cos(f*shift) - I*sin(f*shift))*tau*(omega*tau*cos(m*phi0)+(-1-I*2*f*LAL_PI*tau)*sin(m*phi0))/(1+tau*(omega*omega*tau-4*f*LAL_PI*(-I+f*LAL_PI*tau)));
       }
     }
-   }
-  }
+  // }
+  //}
   *hlmmodetilde_out_plus = hlmmodetilde_plus;
   *hlmmodetilde_out_cross = hlmmodetilde_cross;  
   return 0;
