@@ -249,6 +249,8 @@ static int IMRPhenomDGenerateFD(
 
   IMRPhenomDAmplitudeCoefficients *pAmp = ComputeIMRPhenomDAmplitudeCoefficients(eta, chi1, chi2, finspin);
   if (!pAmp) XLAL_ERROR(XLAL_EFUNC);
+  if (extraParams==NULL)
+    extraParams=XLALCreateDict();
   XLALSimInspiralWaveformParamsInsertPNSpinOrder(extraParams,LAL_SIM_INSPIRAL_SPIN_ORDER_35PN);
   IMRPhenomDPhaseCoefficients *pPhi = ComputeIMRPhenomDPhaseCoefficients(eta, chi1, chi2, finspin, extraParams);
   if (!pPhi) XLAL_ERROR(XLAL_EFUNC);
@@ -260,6 +262,8 @@ static int IMRPhenomDGenerateFD(
   // (LALSimInspiralPNCoefficients.c -> XLALSimInspiralPNPhasing_F2), but
   REAL8 testGRcor=1.0;
   testGRcor += XLALSimInspiralWaveformParamsLookupNonGRDChi6(extraParams);
+  if (extraParams!=NULL)
+    XLALDestroyDict(extraParams);
 
   // was not available when PhenomD was tuned.
   pn->v[6] -= (Subtract3PNSS(m1, m2, M, chi1, chi2) * pn->v[0])* testGRcor;
