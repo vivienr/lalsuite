@@ -87,8 +87,8 @@ int XLALSimRingdownFD(
           REAL8 f = i * deltaF;
           //hlmmodetilde_plus->data->data[i] += mass/dist_sec*A*Yplus*(tau*(cos(m*phi0)+I*2*LAL_PI*f*tau*cos(m*phi0)+omega*tau*sin(m*phi0)))/(1+I*4*LAL_PI*f*tau-4*LAL_PI*LAL_PI*f*f*tau*tau+omega*omega*tau*tau);
           //hlmmodetilde_cross->data->data[i] += -mass/dist_sec*A*Ycross*tau*(sin(m*phi0)+I*2*LAL_PI*f*tau*sin(m*phi0)-omega*tau*cos(m*phi0))/(1+4*LAL_PI*f*tau-4*LAL_PI*LAL_PI*f*f*tau*tau+omega*omega*tau*tau);
-          hlmmodetilde_plus->data->data[i] += mass/dist_sec*A*Yplus*(cos(f*shift) - I*sin(f*shift))*(tau*((-1-I*2*f*LAL_PI*tau)*cos(m*phi0)-omega*tau*sin(m*phi0)))/(-1-I*4*f*LAL_PI*tau-omega*omega*tau*tau+4*f*f*LAL_PI*LAL_PI*tau*tau);
-          hlmmodetilde_cross->data->data[i] += -mass/dist_sec*A*Ycross*(cos(f*shift) - I*sin(f*shift))*tau*(omega*tau*cos(m*phi0)+(-1-I*2*f*LAL_PI*tau)*sin(m*phi0))/(1+tau*(omega*omega*tau-4*f*LAL_PI*(-I+f*LAL_PI*tau)));
+          hlmmodetilde_plus->data->data[i] = mass/dist_sec*A*Yplus*(cos(f*shift) - I*sin(f*shift))*(tau*((-1-I*2*f*LAL_PI*tau)*cos(m*phi0)-omega*tau*sin(m*phi0)))/(-1-I*4*f*LAL_PI*tau-omega*omega*tau*tau+4*f*f*LAL_PI*LAL_PI*tau*tau);
+          hlmmodetilde_cross->data->data[i] = -mass/dist_sec*A*Ycross*(cos(f*shift) - I*sin(f*shift))*tau*(omega*tau*cos(m*phi0)+(-1-I*2*f*LAL_PI*tau)*sin(m*phi0))/(1+tau*(omega*omega*tau-4*f*LAL_PI*(-I+f*LAL_PI*tau)));
       }
     }
   // }
