@@ -800,6 +800,7 @@ int XLALSimInspiralChooseTDWaveform(
 	    REAL8 spin1[3], spin2[3];
             spin1[0] = S1x; spin1[1] = S1y; spin1[2] = S1z;
             spin2[0] = S2x; spin2[1] = S2y; spin2[2] = S2z;
+	    polariz+=-LAL_PI/2.;
             ret = XLALSimIMRSpinEOBWaveform(hplus, hcross, /*&epoch,*/ phiRef,
                     deltaT, m1, m2, f_min, distance, inclination, spin1, spin2);
             break;
