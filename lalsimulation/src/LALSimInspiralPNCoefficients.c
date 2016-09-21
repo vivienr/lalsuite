@@ -457,8 +457,6 @@ XLALSimInspiralPNPhasing_F2(
 	const REAL8 chi1sq,/**< Magnitude of dimensionless spin 1 */
 	const REAL8 chi2sq, /**< Magnitude of dimensionless spin 2 */
 	const REAL8 chi1dotchi2, /**< Dot product of dimensionles spin 1 and spin 2 */
-	const REAL8 qm_def1, /**< Quadrupole deformation parameter of body 1 (dimensionless) */
-	const REAL8 qm_def2, /**< Quadrupole deformation parameter of body 2 (dimensionless) */
 	LALDict *p /**< LAL dictionary containing accessory parameters */
 	)
 {
@@ -510,6 +508,8 @@ XLALSimInspiralPNPhasing_F2(
     pfa->v[6]*=(1.0+XLALSimInspiralWaveformParamsLookupNonGRDChi6(p));
     pfa->vlogv[6]*=(1.0+XLALSimInspiralWaveformParamsLookupNonGRDChi6L(p));
     pfa->v[7]*=(1.0+XLALSimInspiralWaveformParamsLookupNonGRDChi7(p));
+    REAL8 qm_def1=1.+XLALSimInspiralWaveformParamsLookupdQuadMon1(p);
+    REAL8 qm_def2=1.+XLALSimInspiralWaveformParamsLookupdQuadMon2(p);
     
     /* Compute 2.0PN SS, QM, and self-spin */
     // See Eq. (6.24) in arXiv:0810.5336

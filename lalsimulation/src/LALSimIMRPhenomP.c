@@ -513,9 +513,7 @@ static int PhenomPCore(
       if (extraParams==NULL)
 	extraParams=XLALCreateDict();
       XLALSimInspiralWaveformParamsInsertPNSpinOrder(extraParams, LAL_SIM_INSPIRAL_SPIN_ORDER_35PN);
-      XLALSimInspiralTaylorF2AlignedPhasing(&pn, m1, m2, chi1_l, chi2_l, 1.0, 1.0, extraParams);
-      if (extraParams!=NULL)
-	XLALDestroyDict(extraParams);
+      XLALSimInspiralTaylorF2AlignedPhasing(&pn, m1, m2, chi1_l, chi2_l, extraParams);
 
       if (!pAmp || !pPhi || !pn) {
         errcode = XLAL_EFUNC;

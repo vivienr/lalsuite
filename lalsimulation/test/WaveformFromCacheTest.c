@@ -55,6 +55,11 @@ int main(void) {
     REAL8 inc1 = 0.2, inc2 = 1.3;
     REAL8 dist1 = 1.e6 * LAL_PC_SI, dist2 = 2.e6 * LAL_PC_SI;
     LALSimInspiralWaveformCache *cache = XLALCreateSimInspiralWaveformCache();
+    LALDict *LALpars=XLALCreateDict();
+    XLALSimInspiralWaveformParamsInsertTidalLambda1(LALpars,lambda1);
+    XLALSimInspiralWaveformParamsInsertTidalLambda1(LALpars,lambda2);
+    XLALSimInspiralWaveformParamsInsertPNPhaseOrder(LALpars,phaseO);
+    XLALSimInspiralWaveformParamsInsertPNAmplitudeOrder(LALpars,ampO);
 
     //
     // Test TD path with SEOBNRv1
@@ -62,11 +67,11 @@ int main(void) {
 
     // Generate waveform via usual ChooseTDWaveform path
     s1 = clock();
-    ret = XLALSimInspiralChooseTDWaveformOLD(&hplus, &hcross,
+    ret = XLALSimInspiralChooseTDWaveform(&hplus, &hcross,
 					  m1, m2, s1x, s1y, s1z, s2x, s2y, s2z,
 					  dist1, inc1,
 					  phiref1, 0., 0., 0., dt, f_min, f_ref,
-					  lambda1, lambda2, 0., 0., NULL, NULL, ampO, phaseO, approx);
+					  LALpars, approx);
     e1 = clock();
     diff1 = (double) (e1 - s1) / CLOCKS_PER_SEC;
     if( ret == XLAL_FAILURE )
@@ -76,7 +81,7 @@ int main(void) {
     s2 = clock();
     ret = XLALSimInspiralChooseTDWaveformFromCache(&hplusC, &hcrossC, phiref1,
         dt, m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, f_min, f_ref, dist1, inc1,
-        lambda1, lambda2, NULL, NULL, ampO, phaseO, approx, cache);
+        LALpars, approx, cache);
     e2 = clock();
     diff2 = (double) (e2 - s2) / CLOCKS_PER_SEC;
     if( ret == XLAL_FAILURE )
@@ -107,11 +112,11 @@ int main(void) {
 
     // Generate another waveform via ChooseTDWaveform path
     s1 = clock();
-    ret = XLALSimInspiralChooseTDWaveformOLD(&hplus, &hcross, m1, m2,
+    ret = XLALSimInspiralChooseTDWaveform(&hplus, &hcross, m1, m2,
 					  s1x, s1y, s1z, s2x, s2y, s2z,
 					  dist2, inc2, phiref2, 0., 0., 0.,
 					  dt, f_min, f_ref,
-					  lambda1, lambda2, 0., 0., NULL, NULL, ampO, phaseO, approx);
+					  LALpars, approx);
     e1 = clock();
     diff1 = (double) (e1 - s1) / CLOCKS_PER_SEC;
     if( ret == XLAL_FAILURE )
@@ -121,7 +126,7 @@ int main(void) {
     s2 = clock();
     ret = XLALSimInspiralChooseTDWaveformFromCache(&hplusC, &hcrossC, phiref2,
         dt, m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, f_min, f_ref, dist2, inc2,
-        lambda1, lambda2, NULL, NULL, ampO, phaseO, approx, cache);
+						   LALpars, approx, cache);
     e2 = clock();
     diff2 = (double) (e2 - s2) / CLOCKS_PER_SEC;
     if( ret == XLAL_FAILURE )
@@ -160,7 +165,7 @@ int main(void) {
 					  m1, m2, s1x, s1y, s1z, s2x, s2y, s2z,
 					  dist1, inc1, phiref1, 0., 0., 0.,
 					  df,f_min, f_max, f_ref,
-					  lambda1, lambda2, 0., 0., NULL, NULL, ampO, phaseO, approxFD);
+					  LALpars, approxFD);
     e1 = clock();
     diff1 = (double) (e1 - s1) / CLOCKS_PER_SEC;
     if( ret == XLAL_FAILURE )
@@ -170,8 +175,7 @@ int main(void) {
     s2 = clock();
     ret = XLALSimInspiralChooseFDWaveformFromCache(&hptildeC, &hctildeC,
             phiref1, df, m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, f_min, f_max,
-            f_ref, dist1, inc1, lambda1, lambda2, NULL, NULL, ampO, phaseO,
-            approxFD, cache, NULL);
+	    f_ref, dist1, inc1, LALpars, approxFD, cache, NULL);
     e2 = clock();
     diff2 = (double) (e2 - s2) / CLOCKS_PER_SEC;
     if( ret == XLAL_FAILURE )
@@ -206,8 +210,7 @@ int main(void) {
 					  dist2, inc2,
 					  phiref2, 0., 0., 0.,
 					  df, f_min, f_max, f_ref,
-					  lambda1, lambda2, 0., 0.,
-					  NULL, NULL, ampO, phaseO, approxFD);
+					  LALpars, approxFD);
     e1 = clock();
     diff1 = (double) (e1 - s1) / CLOCKS_PER_SEC;
     if( ret == XLAL_FAILURE )
@@ -217,8 +220,8 @@ int main(void) {
     s2 = clock();
     ret = XLALSimInspiralChooseFDWaveformFromCache(&hptildeC, &hctildeC,
             phiref2, df, m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, f_min, f_max,
-            f_ref, dist2, inc2, lambda1, lambda2, NULL, NULL, ampO, phaseO,
-            approxFD, cache, NULL);
+            f_ref, dist2, inc2, LALpars, approxFD, cache, NULL);
+    XLALDestroyDict(LALpars);
     e2 = clock();
     diff2 = (double) (e2 - s2) / CLOCKS_PER_SEC;
     if( ret == XLAL_FAILURE )

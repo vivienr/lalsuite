@@ -363,10 +363,9 @@ int XLALSimInspiralSpinTaylorF2(
     const REAL8 chi1L = orientation.chi*orientation.kappa;
     const REAL8 chi1sq = orientation.chi*orientation.chi;
     /* FIXME: Cannot yet set QM constant in ChooseFDWaveform interface */
-    const REAL8 quadparam1 = 1.;
     /* phasing coefficients */
     PNPhasingSeries pfa;
-    XLALSimInspiralPNPhasing_F2(&pfa, m1, m2, chi1L, 0., chi1sq, 0., 0., quadparam1, 0., moreParams);
+    XLALSimInspiralPNPhasing_F2(&pfa, m1, m2, chi1L, 0., chi1sq, 0., 0., moreParams);
 
     REAL8 pfaN = 0.; REAL8 pfa1 = 0.;
     REAL8 pfa2 = 0.; REAL8 pfa3 = 0.; REAL8 pfa4 = 0.;

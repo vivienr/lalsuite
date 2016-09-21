@@ -255,15 +255,13 @@ static int IMRPhenomDGenerateFD(
   IMRPhenomDPhaseCoefficients *pPhi = ComputeIMRPhenomDPhaseCoefficients(eta, chi1, chi2, finspin, extraParams);
   if (!pPhi) XLAL_ERROR(XLAL_EFUNC);
   PNPhasingSeries *pn = NULL;
-  XLALSimInspiralTaylorF2AlignedPhasing(&pn, m1, m2, chi1, chi2, 1.0, 1.0, extraParams);
+  XLALSimInspiralTaylorF2AlignedPhasing(&pn, m1, m2, chi1, chi2, extraParams);
   if (!pn) XLAL_ERROR(XLAL_EFUNC);
 
   // Subtract 3PN spin-spin term below as this is in LAL's TaylorF2 implementation
   // (LALSimInspiralPNCoefficients.c -> XLALSimInspiralPNPhasing_F2), but
   REAL8 testGRcor=1.0;
   testGRcor += XLALSimInspiralWaveformParamsLookupNonGRDChi6(extraParams);
-  if (extraParams!=NULL)
-    XLALDestroyDict(extraParams);
 
   // was not available when PhenomD was tuned.
   pn->v[6] -= (Subtract3PNSS(m1, m2, M, chi1, chi2) * pn->v[0])* testGRcor;
@@ -480,7 +478,7 @@ double XLALSimIMRPhenomDChirpTime(
     IMRPhenomDPhaseCoefficients *pPhi = ComputeIMRPhenomDPhaseCoefficients(eta, chi1, chi2, finspin, extraParams);
     if (!pPhi) XLAL_ERROR(XLAL_EFUNC);
     PNPhasingSeries *pn = NULL;
-    XLALSimInspiralTaylorF2AlignedPhasing(&pn, m1, m2, chi1, chi2, 1.0, 1.0, extraParams);
+    XLALSimInspiralTaylorF2AlignedPhasing(&pn, m1, m2, chi1, chi2, extraParams);
     if (!pn) XLAL_ERROR(XLAL_EFUNC);
 
     // Subtract 3PN spin-spin term below as this is in LAL's TaylorF2 implementation

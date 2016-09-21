@@ -880,10 +880,6 @@ int XLALSimInspiralChooseFDWaveformSequence(
     int ret;
     unsigned int j;
     REAL8 pfac, cfac;
-    REAL8 quadparam1 = 1.+XLALSimInspiralWaveformParamsLookupdQuadMon1(LALpars);
-    REAL8 quadparam2 = 1.+XLALSimInspiralWaveformParamsLookupdQuadMon2(LALpars);
-    REAL8 lambda1 = 1.+XLALSimInspiralWaveformParamsLookupTidalLambda1(LALpars);
-    REAL8 lambda2 = 1.+XLALSimInspiralWaveformParamsLookupTidalLambda2(LALpars);
     REAL8 LNhatx, LNhaty, LNhatz;
 
     /* Support variables for precessing wfs*/
@@ -930,9 +926,9 @@ int XLALSimInspiralChooseFDWaveformSequence(
      */
     cfac = cos(inclination);
     pfac = 0.5 * (1. + cfac*cfac);
-    INT4 ampO=XLALSimInspiralWaveformParamsLookupPNAmplitudeOrder(LALpars);
-    INT4 phO=XLALSimInspiralWaveformParamsLookupPNPhaseOrder(LALpars);
 
+    REAL8 lambda1=XLALSimInspiralWaveformParamsLookupTidalLambda1(LALpars);
+    REAL8 lambda2=XLALSimInspiralWaveformParamsLookupTidalLambda2(LALpars);
 
     switch (approximant)
     {
@@ -948,7 +944,7 @@ int XLALSimInspiralChooseFDWaveformSequence(
 
             /* Call the waveform driver routine */
             ret = XLALSimInspiralTaylorF2Core(hptilde, frequencies, phiRef,
-                    m1, m2, S1z, S2z, f_ref, 0., distance, quadparam1, quadparam2, lambda1, lambda2, phO, ampO, NULL);
+                    m1, m2, S1z, S2z, f_ref, 0., distance, LALpars);
             if (ret == XLAL_FAILURE) XLAL_ERROR(XLAL_EFUNC);
             /* Produce both polarizations */
             *hctilde = XLALCreateCOMPLEX16FrequencySeries("FD hcross",
