@@ -489,7 +489,6 @@ static int PhenomPCore(
   switch (IMRPhenomP_version) {
     case IMRPhenomPv1_V:
       XLAL_PRINT_INFO("*** IMRPhenomP version 1: based on IMRPhenomC ***");
-      printf("*** IMRPhenomP version 1: based on IMRPhenomC ***\n");
       // PhenomC with ringdown using Barausse 2009 formula for final spin
       PCparams = ComputeIMRPhenomCParamsRDmod(m1, m2, chi_eff, chip, extraParams);
       if (!PCparams) {
@@ -501,7 +500,6 @@ static int PhenomPCore(
       break;
     case IMRPhenomPv2_V:
       XLAL_PRINT_INFO("*** IMRPhenomP version 2: based on IMRPhenomD ***");
-      printf("*** IMRPhenomP version 2: based on IMRPhenomD **\n*");
       // PhenomD uses FinalSpin0815() to calculate the final spin if the spins are aligned.
       // We use a generalized version of FinalSpin0815() that includes the in-plane spin chip.
       finspin = FinalSpinIMRPhenomD_all_in_plane_spin_on_larger_BH(m1, m2, chi1_l, chi2_l, chip);
