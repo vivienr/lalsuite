@@ -23,7 +23,6 @@
 #include <lal/LALDatatypes.h>
 #include <lal/Date.h>
 
-#define LAL_USE_OLD_COMPLEX_STRUCTS
 #include <math.h>
 #include <time.h>
 #include <stdio.h>
@@ -52,7 +51,6 @@
 #include <lalapps.h>
 
 /* includes */
-#define LAL_USE_OLD_COMPLEX_STRUCTS
 #include <math.h>
 #include <time.h>
 #include <stdio.h>
@@ -236,7 +234,7 @@ extern "C" {
   int XLALCOMPLEX8TimeSeriesArrayToDemodPowerVector(REAL4DemodulatedPowerVector**,COMPLEX8TimeSeriesArray*,GridParametersVector*,FILE *fp);
   int XLALApplyPhaseCorrection(COMPLEX8TimeSeries **outts, COMPLEX8TimeSeries *ints, Template *fn);
   /* int XLALNormaliseSFTs(SFTVector **sftvec,UINT4 blocksize); */
-  int XLALComputeBinaryGridParams(GridParameters **binarygridparams,REAL8Space *space,REAL8 T,REAL8 DT,REAL8 mu,REAL8 coverage,INT4 semi_ndim);
+  int XLALComputeBinaryGridParams(GridParameters **binarygridparams,REAL8Space *space,REAL8 T,REAL8 DT,REAL8 mu,REAL8 coverage);
   int XLALGetNextTemplate(Template **,GridParameters *, ParameterSpace *,UNUSED void *);
   int XLALGetNextRandomBinaryTemplate(Template **,GridParameters *, ParameterSpace *,void *);
   int XLALComputeBinaryFreqDerivitives(Template *fdots,Template *bintemp,REAL8 tmid);
