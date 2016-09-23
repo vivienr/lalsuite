@@ -43,10 +43,6 @@ def _add_newdoc_ufunc(func, doc):
     except ValueError as e:
         if e.message == 'Cannot change docstring of ufunc with non-NULL docstring':
             pass
-    except AttributeError as e:
-        # FIXME: workaround for Numpy < 1.7.0. Remove when no longer needed.
-        if e.message == "'module' object has no attribute 'add_newdoc_ufunc'":
-            pass
 
 
 _add_newdoc_ufunc(conditional_pdf, """\
@@ -176,6 +172,39 @@ diststd : `numpy.ndarray`
     Conditional standard deviation of distance (Mpc)
 distnorm : `numpy.ndarray`
     Distance normalization factor (Mpc^-2)
+
+For mu=0, sigma=1, the ansatz is a chi distribution with 3 degrees of
+freedom, and the moments have simple expressions.
+>>> mean, std, norm = parameters_to_moments(0, 1)
+>>> expected_mean = 2 * np.sqrt(2 / np.pi)
+>>> expected_std = np.sqrt(3 - expected_mean**2)
+>>> expected_norm = 2.0
+>>> np.testing.assert_allclose(mean, expected_mean)
+>>> np.testing.assert_allclose(std, expected_std)
+>>> np.testing.assert_allclose(norm, expected_norm)
+
+Check that the moments scale as expected when we vary sigma.
+>>> sigma = np.logspace(-8, 8)
+>>> mean, std, norm = parameters_to_moments(0, sigma)
+>>> np.testing.assert_allclose(mean, expected_mean * sigma)
+>>> np.testing.assert_allclose(std, expected_std * sigma)
+>>> np.testing.assert_allclose(norm, expected_norm / sigma**2)
+
+Check some more arbitrary values using numerical quadrature:
+>>> sigma = 1.0
+>>> for mu in np.linspace(-10, 10):
+...     mean, std, norm = parameters_to_moments(mu, sigma)
+...     moments = np.empty(3)
+...     for k in range(3):
+...         moments[k], _ = scipy.integrate.quad(
+...             lambda r: r**k * conditional_pdf(r, mu, sigma, 1.0),
+...             0, np.inf)
+...     expected_norm = 1 / moments[0]
+...     expected_mean, r2 = moments[1:] * expected_norm
+...     expected_std = np.sqrt(r2 - np.square(expected_mean))
+...     np.testing.assert_approx_equal(mean, expected_mean, 5)
+...     np.testing.assert_approx_equal(std, expected_std, 5)
+...     np.testing.assert_approx_equal(norm, expected_norm, 5)
 """)
 
 
@@ -401,7 +430,7 @@ def cartesian_kde_to_moments(n, datasets, inverse_covariances, weights):
         a = scipy.special.ndtr(x * np.sqrt(cinv))
         b = np.sqrt(0.5 / np.pi * c) * np.exp(-0.5 * cinv * x2)
         r0bar_ = (x2 + c) * a + x * b
-        r1bar_ = x * (x2 + 3 * c) * a + (x2 + 2 * c) * b,
+        r1bar_ = x * (x2 + 3 * c) * a + (x2 + 2 * c) * b
         r2bar_ = (x2 * x2 + 6 * x2 * c + 3 * c * c) * a + x * (x2 + 5 * c) * b
         r0bar += np.mean(w * r0bar_)
         r1bar += np.mean(w * r1bar_)

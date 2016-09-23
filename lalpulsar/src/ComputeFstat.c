@@ -651,26 +651,19 @@ XLALComputeFstat ( FstatResults **Fstats,               ///< [in/out] Address of
         }
 
       // Enlarge F-atoms per detector arrays, and initialise to NULL
-      if ( (whatToCompute & FSTATQ_ATOMS_PER_DET) && (moreFreqBins || moreDetectors) )
+      if ( (whatToCompute & FSTATQ_ATOMS_PER_DET) && moreFreqBins )
         {
-              (*Fstats)->multiFatoms = XLALRealloc ( (*Fstats)->multiFatoms, numFreqBins*sizeof((*Fstats)->multiFatoms[0]) );
-              XLAL_CHECK ( (*Fstats)->multiFatoms != NULL, XLAL_EINVAL, "Failed to (re)allocate (*Fstats)->multiFatoms to length %u", numFreqBins );
+          UINT4 kPrev = 0;
+          if ( (*Fstats)->multiFatoms != NULL ) {
+            kPrev = (*Fstats)->internalalloclen; // leave previously-used frequency-bins untouched
+          }
 
-              // If more detectors are needed, destroy multi-F-atom vectors so they can be re-allocated later
-              if ( moreDetectors )
-                {
-                  for ( UINT4 k = 0; k < numFreqBins; ++k )
-                    {
-                      XLALDestroyMultiFstatAtomVector ( (*Fstats)->multiFatoms[k] );
-                      (*Fstats)->multiFatoms[k] = NULL;
-                    }
-                }
-              else
-                {
-                  for ( UINT4 k = (*Fstats)->internalalloclen; k < numFreqBins; ++k ) {
-                    (*Fstats)->multiFatoms[k] = NULL;
-                  }
-                }
+          (*Fstats)->multiFatoms = XLALRealloc ( (*Fstats)->multiFatoms, numFreqBins*sizeof((*Fstats)->multiFatoms[0]) );
+          XLAL_CHECK ( (*Fstats)->multiFatoms != NULL, XLAL_EINVAL, "Failed to (re)allocate (*Fstats)->multiFatoms to length %u", numFreqBins );
+
+          for ( UINT4 k = kPrev; k < numFreqBins; ++k ) {
+            (*Fstats)->multiFatoms[k] = NULL;
+          }
 
         } // if Atoms_per_det to enlarge
 
@@ -1020,18 +1013,18 @@ XLALGetFstatTiming ( const FstatInput* input, REAL8 *tauF1Buf, REAL8 *tauF1NoBuf
 } // XLALGetFstatTiming()
 
 int
-AppendFstatTimingInfo2File ( const FstatInput* input, FILE *fp )
+AppendFstatTimingInfo2File ( const FstatInput* input, FILE *fp, BOOLEAN printHeader )
 {
   XLAL_CHECK ( input != NULL, XLAL_EINVAL );
   XLAL_CHECK ( fp != NULL, XLAL_EINVAL );
 
   if ( input->method < FMETHOD_RESAMP_GENERIC )
     {
-      XLAL_CHECK ( AppendFstatTimingInfo2File_Demod ( input->method_data, fp ) == XLAL_SUCCESS, XLAL_EFUNC );
+      XLAL_CHECK ( AppendFstatTimingInfo2File_Demod ( input->method_data, fp, printHeader ) == XLAL_SUCCESS, XLAL_EFUNC );
     }
   else
     {
-      XLAL_CHECK ( AppendFstatTimingInfo2File_Resamp ( input->method_data, fp ) == XLAL_SUCCESS, XLAL_EFUNC );
+      XLAL_CHECK ( AppendFstatTimingInfo2File_Resamp ( input->method_data, fp, printHeader ) == XLAL_SUCCESS, XLAL_EFUNC );
     }
 
   return XLAL_SUCCESS;

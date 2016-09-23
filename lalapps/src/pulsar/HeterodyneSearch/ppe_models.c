@@ -73,8 +73,9 @@ void get_pulsar_model( LALInferenceModel *model ){
     else if ( LALInferenceCheckVariableNonFixed( model->params, "Q22" ) && LALInferenceCheckVariableNonFixed( model->params, "H0" ) ) {
       XLAL_ERROR_VOID( XLAL_EINVAL, "Error... cannot have both h0 and Q22 as variables." );
     }
-
-    add_pulsar_parameter( model->params, pars, "H0" );
+    else if ( LALInferenceCheckVariableNonFixed( model->params, "H0" ) ){
+      add_pulsar_parameter( model->params, pars, "H0" );
+    }
 
     /* use parameterisation from Ian Jones's original model */
     add_pulsar_parameter( model->params, pars, "I21" );
@@ -486,7 +487,8 @@ REAL8Vector *get_phase_model( PulsarParameters *params, LALInferenceIFOModel *if
 
   if( LALInferenceCheckVariable( ifo->params, "varybinary" ) ){
     /* get binary system time delays */
-    bdts = get_bsb_delay( params, datatimes, dts, ifo->ephem );
+    if ( dts != NULL ){ bdts = get_bsb_delay( params, datatimes, dts, ifo->ephem ); }
+    else{ bdts = get_bsb_delay( params, datatimes, fixdts, ifo->ephem ); }
   }
   if( LALInferenceCheckVariable( ifo->params, "bsb_delays" ) ){
     fixbdts = LALInferenceGetREAL8VectorVariable( ifo->params, "bsb_delays" );

@@ -263,7 +263,7 @@ def parse_command_line():
             parser.error("unphysical spin2 bounds: [%.2f, %.2f]" % (opts.spin2_min, opts.spin2_max))
     elif all_nsbh_spin_opts:
         if not -1 <= opts.bh_spin_min <= opts.bh_spin_max <= 1:
-            parser.error("unphysical BH spin bounds: [%.2f, %.2f]" % (opts.bh_spin_min, opts.bs_spin_max))
+            parser.error("unphysical BH spin bounds: [%.2f, %.2f]" % (opts.bh_spin_min, opts.bh_spin_max))
         if not -1 <= opts.ns_spin_min <= opts.ns_spin_max <= 1:
             parser.error("unphysical NS spin bounds: [%.2f, %.2f]" % (opts.ns_spin_min, opts.ns_spin_max))
     else:
@@ -287,18 +287,19 @@ def parse_command_line():
     if (opts.mchirp_boundaries_file is not None) ^ (opts.mchirp_boundaries_index is not None):
         parser.error("must supply both --mchirp-boundaries-file and --mchirp-boundaries-index or neither")
 
-    if opts.mchirp_boundaries_file and (opts.mchirp_min or opts.mchirp_max):
-        parser.error("--mchirp-boundaries-file supercedes --mchirp-min and --mchirp-max")
-
     if opts.mchirp_boundaries_file:
         boundaries = [float(line) for line in open(opts.mchirp_boundaries_file)]
         if opts.mchirp_boundaries_index > len(boundaries):
             raise ValueError("mchirp boundaries file not long enough for requested index")
 
         if opts.mchirp_boundaries_index > 0:
-            opts.mchirp_min = float(boundaries[opts.mchirp_boundaries_index - 1])
+            boundary_mchirp_min = float(boundaries[opts.mchirp_boundaries_index - 1])
+            if opts.mchirp_min is None or opts.mchirp_min < boundary_mchirp_min:
+                opts.mchirp_min = boundary_mchirp_min
         if opts.mchirp_boundaries_index + 1 < len(boundaries):
-            opts.mchirp_max = float(boundaries[opts.mchirp_boundaries_index])
+            boundary_mchirp_max = float(boundaries[opts.mchirp_boundaries_index])
+            if opts.mchirp_max is None or opts.mchirp_max > boundary_mchirp_max:
+                opts.mchirp_max = boundary_mchirp_max
 
     return opts, args
 

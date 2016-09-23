@@ -43,9 +43,10 @@ from xml.dom import minidom
 from operator import itemgetter
 
 #related third party imports
-import h5py
+from lalinference.io import read_samples
 import healpy as hp
-import lalinference.cmap
+import astropy.table
+import lalinference.plot.cmap
 import numpy as np
 from numpy import fmod
 import matplotlib
@@ -59,7 +60,7 @@ from numpy import linspace
 import random
 import socket
 from itertools import combinations
-from lalinference import LALInferenceHDF5PosteriorSamplesGroupName as posterior_grp_name
+from lalinference import LALInferenceHDF5PosteriorSamplesDatasetName as posterior_grp_name
 import re
 
 try:
@@ -99,6 +100,15 @@ from _bayespputils import _skyhist_cart,_burnin
 __author__="Ben Aylott <benjamin.aylott@ligo.org>, Ben Farr <bfarr@u.northwestern.edu>, Will M. Farr <will.farr@ligo.org>, John Veitch <john.veitch@ligo.org>, Vivien Raymond <vivien.raymond@ligo.org>"
 __version__= "git id %s"%git_version.id
 __date__= git_version.date
+
+def replace_column(table, old, new):
+    """Workaround for missing astropy.table.Table.replace_column method,
+    which was added in Astropy 1.1.
+
+    FIXME: remove this function when LALSuite depends on Astropy >= 1.1."""
+    index = table.colnames.index(old)
+    table.remove_column(old)
+    table.add_column(astropy.table.Column(new, name=old), index=index)
 
 #===============================================================================
 # Constants
@@ -5499,6 +5509,50 @@ def readCoincXML(xml_file, trignum):
 # Parameter estimation codes results parser
 #===============================================================================
 
+def find_ndownsample(samples, nDownsample):
+    """
+    Given a list of files, threshold value, and a desired
+    number of outputs posterior samples, return the skip number to
+    achieve the desired number of posterior samples.
+    """
+    if nDownsample is None:
+        print "Max ACL(s):"
+        splineParams=["spcal_npts", "spcal_active","constantcal_active"]
+        for i in np.arange(5):
+          for k in ['h1','l1']:
+            splineParams.append(k+'_spcal_freq_'+str(i))
+            splineParams.append(k+'_spcal_logfreq_'+str(i))
+
+        nonParams = ["logpost", "post", "cycle", "timestamp", "snrh1", "snrl1", "snrv1",
+                     "margtime","margtimephi","margtime","time_max","time_min",
+                     "time_mean", "time_maxl","sky_frame","psdscaleflag","logdeltaf","flow","f_ref",
+                     "lal_amporder","lal_pnorder","lal_approximant","tideo","spino","signalmodelflag",
+                     "t0", "phase_maxl", "azimuth", "cosalpha", "lal_amporder"] + logParams + snrParams + splineParams
+        params = [p for p in samples.colnames if p.lower() not in nonParams]
+        stride=np.diff(samples['cycle'])[0]
+        results = np.array([np.array(effectiveSampleSize(samples[param])[:2]) for param in params])
+        nEffs = results[:,0]
+        nEffective = min(nEffs)
+        ACLs  = results[:,1]
+        maxACLind = np.argmax(ACLs)
+        maxACL = ACLs[maxACLind]
+        # Get index in header, which includes "non-params"
+        print "%i (%s)." %(stride*maxACL,params[maxACLind])
+
+    nskip = 1
+    if nDownsample is not None:
+        if len(samples) > nDownsample:
+            nskip *= floor(len(samples)/nDownsample)
+
+    else:
+        nEff = nEffective
+        if nEff > 1:
+            if len(samples) > nEff:
+                nskip = ceil(len(samples)/nEff)
+        else:
+            nskip = np.nan
+    return nskip
+
 class PEOutputParser(object):
     """
     A parser for the output of Bayesian parameter estimation codes.
@@ -5521,6 +5575,8 @@ class PEOutputParser(object):
             self._parser=self._xml_to_pos
         elif inputtype == 'hdf5':
             self._parser = self._hdf5_to_pos
+        elif inputtype == 'hdf5s':
+            self._parser = self._hdf5s_to_pos
         else:
             raise ValueError('Invalid value for "inputtype": %r' % inputtype)
 
@@ -5547,7 +5603,7 @@ class PEOutputParser(object):
             fixedBurnins = np.zeros(len(files))
         logLThreshold=-1e200 # Really small?
         if not (deltaLogL is None):
-            logLThreshold=self._find_max_logL(files) - deltaLogL
+            logLThreshold= - deltaLogL
             print "Eliminating any samples before log(Post) = ", logLThreshold
         nskips=self._find_ndownsample(files, logLThreshold, fixedBurnins, nDownsample)
         if nDownsample is None:
@@ -5998,57 +6054,128 @@ class PEOutputParser(object):
         print 'Read columns %s'%(str(header))
         return header,flines
 
-    def _hdf5_to_pos(self, infile):
+    def _hdf5s_to_pos(self, infiles, fixedBurnins=None, deltaLogL=None, nDownsample=None, **kwargs):
+        from astropy.table import vstack
+
+        if fixedBurnins is None:
+            fixedBurnins = np.zeros(len(infiles))
+
+        if len(infiles) > 1:
+            multiple_chains = True
+
+        chains = []
+        for i, [infile, fixedBurnin] in enumerate(zip(infiles, fixedBurnins)):
+            chain = self._hdf5_to_table(infile, fixedBurnin=fixedBurnin, deltaLogL=deltaLogL, nDownsample=nDownsample, multiple_chains=multiple_chains, **kwargs)
+            chain.add_column(astropy.table.Column(i*np.ones(len(chain)), name='chain'))
+            chains.append(chain)
+
+        # Apply deltaLogL criteria across chains
+        if deltaLogL is not None:
+            logLThreshold = -np.inf
+            for chain in chains:
+                if len(chain) > 0:
+                    logLThreshold = max([logLThreshold, max(chain['logl'])- deltaLogL])
+            print("Eliminating any samples before log(L) = {}".format(logLThreshold))
+
+        for i, chain in enumerate(chains):
+            if deltaLogL is not None:
+                above_threshold = np.arange(len(chain))[chain['logl'] > logLThreshold]
+                burnin_idx = above_threshold[0] if len(above_threshold) > 0 else len(chain)
+            else:
+                burnin_idx = 0
+            chains[i] = chain[burnin_idx:]
+
+        samples = vstack(chains)
+
+        # Downsample one more time
+        if nDownsample is not None:
+            nskip = find_ndownsample(samples, nDownsample)
+            samples = samples[::nskip]
+
+        return samples.colnames, samples.as_array().view(float).reshape(-1, len(samples.columns))
+
+    def _hdf5_to_table(self, infile, deltaLogL=None, fixedBurnin=None, nDownsample=None, multiple_chains=False, **kwargs):
         """
         Parse a HDF5 file and return an array of posterior samples ad list of
         parameter names. Equivalent to '_common_to_pos' and work in progress.
         """
-        with h5py.File(infile, 'r') as hdf_file:
-            # navigate to the data with plenty of checks
-            assert 'lalinference' in hdf_file, repr(list(hdf_file.keys()))
-            active_group = hdf_file['lalinference']
-            assert len(active_group.keys()) == 1, repr(list(active_group.keys()))
-            run_identifier = list(active_group.keys())[0]
-            active_group = active_group[run_identifier]
-            assert posterior_grp_name in active_group, repr(list(active_group.keys()))
-            active_group = active_group[posterior_grp_name]
+        samples = read_samples(infile,tablename=lalinference.LALInferenceHDF5PosteriorSamplesDatasetName)
+        params = samples.colnames
 
-            # fill the numpy array
-            header = list(active_group.keys())
-            posterior_data=[]
-            for key in header:
-              posterior_data.append(active_group[key][...])
+        for param in params:
+            param_low = param.lower()
+            if param_low.find('log') != -1 and param_low not in logParams and re.sub('log', '', param_low) not in [p.lower() for p in params]:
+                print('exponentiating %s' % param)
+                new_param = re.sub('log', '', param, flags=re.IGNORECASE)
+                samples[new_param] = np.exp(samples[param])
+                del samples[param]
+                param = new_param
+            if param_low.find('sin') != -1 and re.sub('sin', '', param_low) not in [p.lower() for p in params]:
+                print('asining %s' % param)
+                new_param = re.sub('sin', '', param, flags=re.IGNORECASE)
+                samples[new_param] = np.arcsin(samples[param])
+                del samples[param]
+                param = new_param
+            if param_low.find('cos') != -1 and re.sub('cos', '', param_low) not in [p.lower() for p in params]:
+                print('acosing %s' % param)
+                new_param = re.sub('cos', '', param, flags=re.IGNORECASE)
+                samples[new_param] = np.arccos(samples[param])
+                del samples[param]
+                param = new_param
 
-            #sub-optimal storage of meta-data: adding fixed values to posterior_data
-            nsamps=len(active_group[header[0]][...])
-            header.extend(active_group.attrs.keys())
-            for key in active_group.attrs.keys():
-              posterior_data.append(np.array([(active_group.attrs[key])]*nsamps,dtype=type(active_group.attrs[key])))
+            if param != param.replace('(', ''):
+                samples.rename_column(param, param.replace('(', ''))
+            if param != param.replace(')', ''):
+                samples.rename_column(param, param.replace(')', ''))
 
-            posterior_data=np.array(posterior_data)
-        # join the fields into a (nfields, nsamples) array, transposed
-        # to be (nsamples, nfields)
-        flines = posterior_data.T
+            #Make everything a float, since that's what's excected of a CommonResultsObj
+            replace_column(samples, param, samples[param].astype(float))
 
-        for i, _ in enumerate(header):
-            if header[i].lower().find('log') != -1 and header[i].lower() not in logParams and re.sub('log', '', header[i].lower()) not in [h.lower() for h in header]:
-                print('exponentiating %s' % header[i])
-                flines[:, i] = np.exp(flines[:, i])
-                header[i] = re.sub('log', '', header[i], flags=re.IGNORECASE)
-            if header[i].lower().find('sin') != -1 and re.sub('sin', '', header[i].lower()) not in [h.lower() for h in header]:
-                print('asining %s' % header[i])
-                flines[:, i] = np.arcsin(flines[:, i])
-                header[i] = re.sub('sin', '', header[i], flags=re.IGNORECASE)
-            if header[i].lower().find('cos') != -1 and re.sub('cos', '', header[i].lower()) not in [h.lower() for h in header]:
-                print('acosing %s' % header[i])
-                flines[:, i] = np.arccos(flines[:, i])
-                header[i] = re.sub('cos', '', header[i], flags=re.IGNORECASE)
-            header[i] = header[i].replace('(', '')
-            header[i] = header[i].replace(')', '')
-        print('Read columns %s' % str(header))
+        params = samples.colnames
+        print('Read columns %s' % str(params))
 
-        return header, flines
+        # MCMC burnin and downsampling
+        if 'cycle' in params:
+            if not (fixedBurnin is None):
+                if not (deltaLogL is None):
+                    print "Warning: using deltaLogL criteria in addition to fixed burnin"
+                print "Fixed burning criteria: ",fixedBurnin
+            else:
+                fixedBurnin = 0
 
+            post_burnin = np.arange(len(samples))[samples['cycle'] > fixedBurnin]
+            burnin_idx = post_burnin[0] if len(post_burnin) > 0 else len(samples)
+            samples = samples[burnin_idx:]
+
+            logLThreshold=-1e200 # Really small?
+            if len(samples) > 0 and not (deltaLogL is None):
+                logLThreshold = max(samples['logl'])- deltaLogL
+                print "Eliminating any samples before log(L) = ", logLThreshold
+                burnin_idx = np.arange(len(samples))[samples['logl'] > logLThreshold][0]
+                samples = samples[burnin_idx:]
+
+            if len(samples) > 0:
+                nskip = find_ndownsample(samples, nDownsample)
+                if nDownsample is None:
+                    print "Downsampling to take only uncorrelated posterior samples from each file."
+                    if np.isnan(nskip) and not multiple_chains:
+                        print "WARNING: All samples in chain are correlated.  Downsampling to 10000 samples for inspection!!!"
+                        nskip = find_ndownsample(samples, 10000)
+                        samples = samples[::nskip]
+                    else:
+                        if np.isnan(nskip):
+                            print "WARNING: All samples in {} are correlated.".format(infile)
+                            samples = samples[-1:]
+                        else:
+                            print "Downsampling by a factor of ", nskip, " to achieve approximately ", nDownsample, " posterior samples"
+                            samples = samples[::nskip]
+
+        return samples
+
+    def _hdf5_to_pos(self, infile, **kwargs):
+        samples = self._hdf5_to_table(infile, **kwargs)
+
+        return samples.colnames, samples.as_array().view(float).reshape(-1, len(samples.columns))
 
     def _common_to_pos(self,infile,info=[None,None]):
         """
@@ -7398,12 +7525,23 @@ def make_1d_table(html,legend,label,pos,pars,noacf,GreedyRes,onepdfdir,sampsdir,
         chain_index=pos.names.index("chain")
         chains=unique(pos["chain"].samples)
         chainCycles = [sort(data[ data[:,chain_index] == chain, par_index ]) for chain in chains]
-        chainNcycles = [cycles[-1]-cycles[0] for cycles in chainCycles]
-        chainNskips = [cycles[1] - cycles[0] for cycles in chainCycles]
+        chainNcycles = []
+        chainNskips = []
+        for cycles in chainCycles:
+            if len(cycles) > 1:
+                chainNcycles.append(cycles[-1] - cycles[0])
+                chainNskips.append(cycles[1] - cycles[0])
+            else:
+                chainNcycles.append(1)
+                chainNskips.append(1)
     elif 'cycle' in pos.names:
         cycles = sort(pos['cycle'].samples)
-        Ncycles = cycles[-1]-cycles[0]
-        Nskip = cycles[1]-cycles[0]
+        if len(cycles) > 1:
+            Ncycles = cycles[-1]-cycles[0]
+            Nskip = cycles[1]-cycles[0]
+        else:
+            Ncycles = 1
+            Nskip = 1
 
     printed=0
     for par_name in pars:

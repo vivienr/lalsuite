@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016 John Veitch
+ *  Copyright (C) 2016 John Veitch and Leo Singer
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -17,29 +17,28 @@
  *  MA  02111-1307  USA
  */
 
-
 #ifndef LALInferenceHDF5_h
 #define LALInferenceHDF5_h
 
 #include <lal/LALInference.h>
 #include <lal/H5FileIO.h>
 
-int LALInferenceH5VariablesArray2Group(LALH5File *h5file, LALInferenceVariables *const *const varsArray, UINT4 N, const char *GroupName);
+int LALInferenceH5VariablesArrayToDataset(
+    LALH5File *h5file, LALInferenceVariables *const *const varsArray, UINT4 N,
+    const char *TableName);
 
-int LALInferenceH5GroupToVariablesArray(LALH5File *group , LALInferenceVariables ***varsArray, UINT4 *N);
-
-int LALInferenceH5VariableToAttribute(LALH5File *group, LALInferenceVariables *vars, char *name);
-
+int LALInferenceH5DatasetToVariablesArray(
+    LALH5Dataset *dataset, LALInferenceVariables ***varsArray, UINT4 *N);
 
 /**
  * Create a HDF5 heirarchy in the given LALH5File reference
  * /codename/runID/
  * Returns a LALH5File pointer to the runID group.
  */
-LALH5File *LALInferenceH5CreateGroupStructure(LALH5File *h5file, const char *codename, const char *runID);
+LALH5File *LALInferenceH5CreateGroupStructure(
+    LALH5File *h5file, const char *codename, const char *runID);
 
-extern const char LALInferenceHDF5PosteriorSamplesGroupName[];
-extern const char LALInferenceHDF5NestedSamplesGroupName[];
-
+extern const char LALInferenceHDF5PosteriorSamplesDatasetName[];
+extern const char LALInferenceHDF5NestedSamplesDatasetName[];
 
 #endif /* LALInferenceHDF5_h */

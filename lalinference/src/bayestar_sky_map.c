@@ -84,7 +84,6 @@
 #include <chealpix.h>
 
 #include <gsl/gsl_cdf.h>
-#include <gsl/gsl_errno.h>
 #include <gsl/gsl_integration.h>
 #include <gsl/gsl_math.h>
 #include <gsl/gsl_sf_bessel.h>
@@ -98,28 +97,6 @@
 #ifndef _OPENMP
 #define omp ignore
 #endif
-
-
-/* Storage for old GSL error handler. */
-static gsl_error_handler_t *old_handler;
-
-
-/* Custom, reentrant GSL error handler that simply prints the error message. */
-static void
-my_gsl_error (const char *reason, const char *file, int line, int gsl_errno)
-{
-    (void)gsl_errno;
-    fprintf(stderr, "gsl: %s:%d: %s: %s\n", file, line, "ERROR", reason);
-}
-
-
-/* Custom error handler that ignores underflow errors. */
-static void
-ignore_underflow (const char *reason, const char *file, int line, int gsl_errno)
-{
-    if (gsl_errno != GSL_EUNDRFLW)
-        old_handler(reason, file, line, gsl_errno);
-}
 
 
 /* Compute |z|^2. Hopefully a little faster than gsl_pow_2(cabs(z)), because no
@@ -343,7 +320,7 @@ static double log_radial_integral(double r1, double r2, double p, double b, int 
     radial_integrand_params params = {0, p, b, k};
     double breakpoints[5];
     unsigned char nbreakpoints = 0;
-    double result, abserr, log_offset = -INFINITY;
+    double result = 0, abserr, log_offset = -INFINITY;
     int ret;
 
     if (b != 0) {
@@ -450,7 +427,7 @@ static const size_t default_log_radial_integrator_size = 400;
 log_radial_integrator *log_radial_integrator_init(double r1, double r2, int k, double pmax, size_t size)
 {
     if (size <= 1)
-        GSL_ERROR_NULL("size must be > 1", GSL_EINVAL);
+        XLAL_ERROR_NULL(XLAL_EINVAL, "size must be > 1");
 
     const double alpha = 4;
     const double p0 = 0.5 * (k >= 0 ? r2 : r1);
@@ -466,36 +443,23 @@ log_radial_integrator *log_radial_integrator_init(double r1, double r2, int k, d
     /* const double umax = xmax - vmax; */ /* unused */
 
     log_radial_integrator *integrator = malloc(sizeof(log_radial_integrator));
-    if (!integrator)
-        GSL_ERROR_NULL("not enough memory to allocate integrator", GSL_ENOMEM);
-    integrator->region0 = malloc(sizeof(bicubic_interp) + len * sizeof(double));
-    if (!integrator->region0)
+    void *region0 = malloc(sizeof(bicubic_interp) + len * sizeof(double));
+    void *region1 = malloc(sizeof(cubic_interp) + size * sizeof(double));
+    void *region2 = malloc(sizeof(cubic_interp) + size * sizeof(double));
+    if (!(integrator && region0 && region1 && region2))
     {
         free(integrator);
-        GSL_ERROR_NULL("not enough memory to allocate integrator", GSL_ENOMEM);
-    }
-    integrator->region1 = malloc(sizeof(cubic_interp) + size * sizeof(double));
-    if (!integrator->region1)
-    {
-        free(integrator->region0);
-        free(integrator);
-        GSL_ERROR_NULL("not enough memory to allocate integrator", GSL_ENOMEM);
-    }
-    integrator->region2 = malloc(sizeof(cubic_interp) + size * sizeof(double));
-    if (!integrator->region2)
-    {
-        free(integrator->region0);
-        free(integrator->region1);
-        free(integrator);
-        GSL_ERROR_NULL("not enough memory to allocate integrator", GSL_ENOMEM);
+        free(region0);
+        free(region1);
+        free(region2);
+        XLAL_ERROR_NULL(XLAL_ENOMEM, "not enough memory to allocate integrator");
     }
 
+    integrator->region0 = region0;
     integrator->region0->xsize = integrator->region0->ysize = size;
     integrator->region0->xmin = xmin;
     integrator->region0->ymin = ymin;
     integrator->region0->dx = integrator->region0->dy = d;
-
-    old_handler = gsl_set_error_handler(ignore_underflow);
 
     #pragma omp parallel for
     for (size_t i = 0; i < len; i ++)
@@ -511,8 +475,7 @@ log_radial_integrator *log_radial_integrator_init(double r1, double r2, int k, d
         integrator->region0->z[i] = log_radial_integral(r1, r2, p, b, k);
     }
 
-    gsl_set_error_handler(old_handler);
-
+    integrator->region1 = region1;
     integrator->region1->size = size;
     integrator->region1->xmin = xmin;
     integrator->region1->dx = d;
@@ -522,6 +485,7 @@ log_radial_integrator *log_radial_integrator_init(double r1, double r2, int k, d
         integrator->region1->y[i] = integrator->region0->z[i * size + (size - 1)];
     }
 
+    integrator->region2 = region2;
     integrator->region2->size = size;
     integrator->region2->xmin = umin;
     integrator->region2->dx = d;
@@ -710,7 +674,7 @@ static void *realloc_or_free(void *ptr, size_t size)
     if (!new_ptr)
     {
         free(ptr);
-        GSL_ERROR_NULL("not enough memory to resize array", GSL_ENOMEM);
+        XLAL_ERROR_NULL(XLAL_ENOMEM, "not enough memory to resize array");
     }
     return new_ptr;
 }
@@ -764,7 +728,7 @@ static adaptive_sky_map *adaptive_sky_map_alloc(unsigned char order)
 
     adaptive_sky_map *map = malloc(size);
     if (!map)
-        GSL_ERROR_NULL("not enough memory to allocate sky map", GSL_ENOMEM);
+        XLAL_ERROR_NULL(XLAL_ENOMEM, "not enough memory to allocate sky map");
 
     map->len = npix;
     map->max_order = order;
@@ -791,7 +755,7 @@ static double (*adaptive_sky_map_rasterize(adaptive_sky_map *map, long *out_npix
 
     double (*P)[4] = malloc(npix * 4 * sizeof(double));
     if (!P)
-        GSL_ERROR_NULL("not enough memory to allocate image", GSL_ENOMEM);
+        XLAL_ERROR_NULL(XLAL_ENOMEM, "not enough memory to allocate image");
 
     double norm = 0;
     const double max_log4p = map->pixels[map->len - 1].log4p_r[0];
@@ -922,11 +886,6 @@ double (*bayestar_sky_map_toa_phoa_snr(
 
     while (1)
     {
-        /* Use our own error handler while in parallel section to avoid
-         * concurrent calls to the GSL error handler, which if provided by the
-         * user may not be threadsafe. */
-        old_handler = gsl_set_error_handler(my_gsl_error);
-
         #pragma omp parallel for
         for (unsigned long i = 0; i < npix0; i ++)
         {
@@ -1025,9 +984,6 @@ double (*bayestar_sky_map_toa_phoa_snr(
             }
         }
 
-        /* Restore old error handler. */
-        gsl_set_error_handler(old_handler);
-
         /* Sort pixels by ascending posterior probability. */
         adaptive_sky_map_sort(map);
 
@@ -1044,16 +1000,9 @@ double (*bayestar_sky_map_toa_phoa_snr(
     for (unsigned char k = 0; k < 3; k ++)
         log_radial_integrator_free(integrators[k]);
 
-    /* Set error handler to ignore underflow errors, but invoke the user's
-     * error handler for all other errors. */
-    old_handler = gsl_set_error_handler(ignore_underflow);
-
     /* Flatten sky map to an image. */
     double (*P)[4] = adaptive_sky_map_rasterize(map, inout_npix);
     free(map);
-
-    /* Restore old error handler. */
-    gsl_set_error_handler(old_handler);
 
     /* Done! */
     return P;
@@ -1633,13 +1582,13 @@ int bayestar_test(void)
     test_real_catrom();
     test_eval_acor();
 
-    for (double ra = -M_PI; ra <= M_PI; ra += 0.1 * M_PI)
-        for (double dec = -M_PI_2; dec <= M_PI_2; dec += 0.1 * M_PI)
-            for (double inc = -M_PI; inc <= M_PI; inc += 0.1 * M_PI)
-                for (double pol = -M_PI; pol <= M_PI; pol += 0.1 * M_PI)
+    for (double ra = -M_PI; ra <= M_PI; ra += 0.4 * M_PI)
+        for (double dec = -M_PI_2; dec <= M_PI_2; dec += 0.4 * M_PI)
+            for (double inc = -M_PI; inc <= M_PI; inc += 0.4 * M_PI)
+                for (double pol = -M_PI; pol <= M_PI; pol += 0.4 * M_PI)
                     for (unsigned long epoch = 1000000000000000000;
                          epoch <= 1000086400000000000;
-                         epoch += 3600000000000)
+                         epoch += 7200000000000)
                         test_signal_amplitude_model(ra, dec, inc, pol, epoch, "H1");
 
     /* Tests of radial integrand with p2=0, b=0. */
@@ -1677,7 +1626,6 @@ int bayestar_test(void)
         gsl_test(!integrator, "testing that integrator object is non-NULL");
         if (integrator)
         {
-            old_handler = gsl_set_error_handler(ignore_underflow);
             for (double p = 0.01; p <= pmax; p += 0.01)
             {
                 for (double b = 0.0; b <= 2 * pmax; b += 0.01)
@@ -1692,7 +1640,6 @@ int bayestar_test(void)
                         "r1=%g, r2=%g, p=%g, b=%g, k=%d, x=%g, y=%g)", r1, r2, p, b, k, x, y);
                 }
             }
-            gsl_set_error_handler(old_handler);
             log_radial_integrator_free(integrator);
         }
     }

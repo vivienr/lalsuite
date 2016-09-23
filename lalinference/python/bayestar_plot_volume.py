@@ -65,8 +65,8 @@ progress.update(-1, 'Starting up')
 from matplotlib import pyplot as plt
 from matplotlib import gridspec
 from matplotlib import transforms
-from lalinference import fits
-from lalinference import marker
+from lalinference.io import fits
+from lalinference.plot import marker
 from lalinference.bayestar.distance import (
     principal_axes, volume_render, marginal_pdf)
 import healpy as hp

@@ -1,5 +1,22 @@
+# Copyright (C) 2016  Heather Fong, Kipp Cannon
+#
+# This program is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by the
+# Free Software Foundation; either version 2 of the License, or (at your
+# option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General
+# Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
 '''
-This code creates a database for locating the overlaps between templates in the uberbank. Currently, there are several subbank files for the uberbank, and this database allows one to retrieve all the overlaps for a particular template. The overlaps are placed into a 1xN numpy array and are ordered.
+For N templates in the uberbank, the overlaps form an NxN symmetric matrix. Currently, there are many subbank overlap files that comprise the uberbank, each of which is a rectangular section of the non-symmetric part of the overlap matrix. The subbanks are essentially arbitrary in size. Templates with overlaps < 0.25 are also not computed (this may need to change in the future).
+This code creates a database for locating the overlaps between templates in the uberbank. This database allows one to retrieve all the overlaps for a particular template. The overlaps are placed into a 1xN numpy array and are ordered.
 '''
 
 import glob
@@ -9,7 +26,7 @@ import time
 from glue.text_progress_bar import ProgressBar
 import itertools
 import numpy as np
-import os
+import os, sys
 
 class Bank(object):
     def __init__(self, connection):
@@ -27,9 +44,9 @@ class Bank(object):
         # - their respective ID integers
         cursor.execute("CREATE TABLE fname (filename_id INTEGER PRIMARY KEY, filename TEXT);")
         # Create Table 2 that contains:
-        # - k (will be populated later, gives the order in which overlaps are placed),
-        # - ID integers of the filenames (instead of filename to save memory)
-        # - m1, m2, chi1, chi2 of templates
+        # - k (integers which will be populated later, this column gives the order in which overlaps are placed),
+        # - ID integers of the filenames (instead of saving the entire filename to the database - this is to save memory)
+        # - m1, m2, chi1, chi2 of templates (separate column for each)
         # - row and column in which this overlap is found in the file (if row=None, means that the overlaps are found in the columns only)
         cursor.execute("CREATE TABLE bank (k INTEGER, filename_id INTEGER, m1 REAL, m2 REAL, chi1 REAL, chi2 REAL, row INTEGER, column INTEGER);")
         # Populate Table 1:
@@ -72,12 +89,12 @@ class Bank(object):
         return overlaps
 
     def get_templates(self):
-        # Obtain the parameters of the templates, in order k
+        # Obtain the parameters (m1, m2, chi1, chi2) of the templates, in order k
         cursor = self.connection.cursor()
         return cursor.execute("SELECT DISTINCT m1,m2,chi1,chi2 FROM bank ORDER BY k;").fetchall()
 
 
-    
+'''The following files currently cannot be read'''
 #Cannot load h5py file: uberbank/bank_299_overlaps.hdf
 #Cannot load h5py file: uberbank/bank_479_overlaps.hdf
 #Cannot load h5py file: uberbank/bank_527_overlaps.hdf
@@ -93,31 +110,13 @@ class Bank(object):
 #Cannot load h5py file: uberbank/bank_689_overlaps.hdf
 #Cannot load h5py file: uberbank/bank_739_overlaps.hdf
 #Cannot load h5py file: uberbank/bank_839_overlaps.hdf
-        
-start_time = time.time()
-#Bank.make_db("uberbank_database.sqlite",glob.glob("uberbank/*hdf")) # make sqlite file
-x = Bank(sqlite3.connect("uberbank_database.sqlite"))
-#x = Bank(Bank.make_db(":memory:", glob.glob("uberbank/*.hdf")) # in RAM version
-print "Seconds taken to create database:", time.time()-start_time
 
-
-
-
-
-
-
-#print x.table.cursor().execute("SELECT COUNT(*) FROM bank").fetchall()
-# [(14779171,)]
-# Elapsed time: 280-340 s, Memory: 1.29 GB
-
-# Test query: find all filenames, rows, and columns which matches queried m1
-#sql = "SELECT * FROM bank ORDER BY m1,m2,chi1,chi2"
-#sql = "SELECT * FROM bank WHERE m1=? ORDER BY m1"
-#f = h5py.File("uberbank/bank_1136_overlaps.hdf","r")
-#test_mass = f[f.keys()[0]]['mass1'].value[0]
-#query = x.table.cursor().execute(sql, [test_mass]).fetchall()
-
-
-#SELECT fname.filename, a.column, b.k FROM bank AS a JOIN bank AS b ON (b.filename_id = a.filename_id) JOIN fname ON (fname.filename_id=a.filename_id) WHERE a.k = 10000 AND a.row IS NULL AND b.row IS NOT NULL ORDER BY fname.filename, b.row;
-
-#SELECT fname.filename, a.row, b.k FROM bank AS a JOIN bank AS b ON (b.filename_id = a.filename_id) JOIN fname ON (fname.filename_id = a.filename_id) WHERE a.k = 10000 AND a.row IS NOT NULL ORDER BY b.column;
+if sys.argv[1] == "make_sqlite":
+    start_time = time.time()
+    Bank.make_db("uberbank_database.sqlite",glob.glob("uberbank/*hdf")) # make sqlite file
+    x = Bank(sqlite3.connect("uberbank_database.sqlite"))
+    print "Seconds taken to create database:", time.time()-start_time
+if sys.argv[1] == "make_ram":
+    start_time = time.time()
+    x = Bank(Bank.make_db(":memory:", glob.glob("uberbank/*.hdf")) # in RAM version
+    print "Seconds taken to create database:", time.time()-start_time

@@ -46,7 +46,6 @@ except ImportError:
 import itertools
 import math
 import numpy
-import pickle
 import random
 import scipy
 __numpy__version__ = tuple(map(int, numpy.__version__.strip().split(".")[:2]))
@@ -317,7 +316,7 @@ class LoHiCountToFromXMLMixin(object):
 		Construct a LIGO Light Weight XML representation of the
 		Bins instance.
 		"""
-		return ligolw_param.from_pyvalue(self.xml_bins_name_enc(self.xml_bins_name), u"%s,%s,%s" % (ligolw_types.FormatFunc[u"real_8"](self.min), ligolw_types.FormatFunc[u"real_8"](self.max), ligolw_types.FormatFunc[u"int_8s"](self.n)))
+		return ligolw_param.Param.from_pyvalue(self.xml_bins_name_enc(self.xml_bins_name), u"%s,%s,%s" % (ligolw_types.FormatFunc[u"real_8"](self.min), ligolw_types.FormatFunc[u"real_8"](self.max), ligolw_types.FormatFunc[u"int_8s"](self.n)))
 
 	@classmethod
 	def from_xml(cls, xml):
@@ -425,7 +424,7 @@ class IrregularBins(Bins):
 		Construct a LIGO Light Weight XML representation of the
 		Bins instance.
 		"""
-		return ligolw_param.from_pyvalue(self.xml_bins_name_enc(self.xml_bins_name), u",".join(map(ligolw_types.FormatFunc[u"real_8"], self.boundaries)))
+		return ligolw_param.Param.from_pyvalue(self.xml_bins_name_enc(self.xml_bins_name), u",".join(map(ligolw_types.FormatFunc[u"real_8"], self.boundaries)))
 
 	@classmethod
 	def from_xml(cls, xml):
@@ -935,9 +934,11 @@ class Categories(Bins):
 		Construct a LIGO Light Weight XML representation of the
 		Bins instance.
 		"""
-		# can't use ligolw_param.pickle_to_param() because it
-		# mangles the name encoding
-		return ligolw_param.from_pyvalue(self.xml_bins_name_enc(self.xml_bins_name), pickle.dumps(self.containers))
+		# FIXME:  make use of new "yaml" type for params when we
+		# can rely on a new-enough glue
+		#return ligolw_param.Param.build(self.xml_bins_name_enc(self.xml_bins_name), u"yaml", self.containers)
+		import pickle
+		return ligolw_param.Param.from_pyvalue(self.xml_bins_name_enc(self.xml_bins_name), pickle.dumps(self.containers))
 
 	@classmethod
 	def from_xml(cls, xml):
@@ -947,6 +948,10 @@ class Categories(Bins):
 		"""
 		if not cls.xml_bins_check(xml, cls.xml_bins_name):
 			raise ValueError("not a %s" % repr(cls))
+		# FIXME:  replace with commented-out code when we can rely
+		# on new "pickle" type for params
+		#return cls(xml.pcdata)
+		import pickle
 		return cls(pickle.loads(xml.pcdata))
 
 
@@ -1469,7 +1474,7 @@ class BinnedArray(object):
 		elem = ligolw.LIGO_LW()
 		elem.Name = u"%s:pylal_rate_binnedarray" % name
 		self.bins.to_xml(elem)
-		elem.appendChild(ligolw_array.from_array(u"array", self.array))
+		elem.appendChild(ligolw_array.Array.build(u"array", self.array))
 		return elem
 
 	@classmethod
