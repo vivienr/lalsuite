@@ -60,41 +60,37 @@ int XLALSimRingdownFD(
   COMPLEX16FrequencySeries *hlmmodetilde_cross = XLALCreateCOMPLEX16FrequencySeries("htilde: FD waveform", &tC, 0.0, deltaF, &lalStrainUnit, iEnd);
 
   /*Compute mode dependent quantities*/
-  /*UINT4 l;
+  UINT4 l;
   INT4 m;
   UINT4 n=0;
-  for(l=0;l<5;l++){
-   for(m=0;m<5;m++){*/
-  int m=2, n=0, l=2;
-    REAL8 A = XLALSimRingdownFDAmplitudes(l, m, n, eta, chiEff);
-    if(A!=0){
-      COMPLEX16 Yplus = XLALSimSphericalHarmonicPlus(l, m, inclination);
-      COMPLEX16 Ycross = XLALSimSphericalHarmonicCross(l, m, inclination);
-      REAL8 omega = XLALQNMOmega(l, m, n, a, mass);
-      REAL8 tau = XLALQNMTau( l, m, n, a, mass);
-      printf("l = %i, m= %i, n= %i, A = %f, omega=%f, tau=%f, Yplus = %f+i*%f, Ycross=%f+i*%f\n",l,m,n,A,omega,tau,creal(Yplus),cimag(Yplus),creal(Ycross),cimag(Ycross));
-  
-      /*add non-physical shifts*/
-      //TODO: not checked
-      // maybe make an other static function and loop over all possible shifts, name dfreq21, dfrac22, and so on
-      if (TGRParams!=NULL){XLALShiftParams(TGRParams,&omega,&tau);}
+  UINT4 i = 0;
+  UINT4 iStart = (UINT4) ceil(fStart / deltaF);
+  for (i = iStart; i < iEnd; i++) {
+    REAL8 a=0;
+    REAL8 b=0;
+    for(l=0;l<5;l++){
+     for(m=0;m<5;m++){
+      REAL8 A = XLALSimRingdownFDAmplitudes(l, m, n, eta, chiEff);
+      if(A!=0){
+        COMPLEX16 Yplus = XLALSimSphericalHarmonicPlus(l, m, inclination);
+        COMPLEX16 Ycross = XLALSimSphericalHarmonicCross(l, m, inclination);
+        REAL8 omega = XLALQNMOmega(l, m, n, a, mass);
+        REAL8 tau = XLALQNMTau( l, m, n, a, mass);
+        //TODO: not checked
+        // maybe make an other static function and loop over all possible shifts, name dfreq21, dfrac22, and so on
+        if (TGRParams!=NULL){XLALShiftParams(TGRParams,&omega,&tau);}
 
-      /* Fill with non-zero vals from fStart to fEnd*/
-      UINT4 iStart = (UINT4) ceil(fStart / deltaF);
-      UINT4 i = 0;
-
-      for (i = iStart; i < iEnd; i++) {
-          REAL8 f = i * deltaF;
-          //hlmmodetilde_plus->data->data[i] += mass/dist_sec*A*Yplus*(tau*(cos(m*phi0)+I*2*LAL_PI*f*tau*cos(m*phi0)+omega*tau*sin(m*phi0)))/(1+I*4*LAL_PI*f*tau-4*LAL_PI*LAL_PI*f*f*tau*tau+omega*omega*tau*tau);
-          //hlmmodetilde_cross->data->data[i] += -mass/dist_sec*A*Ycross*tau*(sin(m*phi0)+I*2*LAL_PI*f*tau*sin(m*phi0)-omega*tau*cos(m*phi0))/(1+4*LAL_PI*f*tau-4*LAL_PI*LAL_PI*f*f*tau*tau+omega*omega*tau*tau);
-          hlmmodetilde_plus->data->data[i] = mass/dist_sec*A*Yplus*(cos(f*shift) - I*sin(f*shift))*(tau*((-1-I*2*f*LAL_PI*tau)*cos(m*phi0)-omega*tau*sin(m*phi0)))/(-1-I*4*f*LAL_PI*tau-omega*omega*tau*tau+4*f*f*LAL_PI*LAL_PI*tau*tau);
-          hlmmodetilde_cross->data->data[i] = -mass/dist_sec*A*Ycross*(cos(f*shift) - I*sin(f*shift))*tau*(omega*tau*cos(m*phi0)+(-1-I*2*f*LAL_PI*tau)*sin(m*phi0))/(1+tau*(omega*omega*tau-4*f*LAL_PI*(-I+f*LAL_PI*tau)));
+        REAL8 f = i * deltaF;
+        a += mass/dist_sec*A*Yplus*(cos(f*shift) - I*sin(f*shift))*(tau*((-1-I*2*f*LAL_PI*tau)*cos(m*phi0)-omega*tau*sin(m*phi0)))/(-1-I*4*f*LAL_PI*tau-omega*omega*tau*tau+4*f*f*LAL_PI*LAL_PI*tau*tau);
+        a += -mass/dist_sec*A*Ycross*(cos(f*shift) - I*sin(f*shift))*tau*(omega*tau*cos(m*phi0)+(-1-I*2*f*LAL_PI*tau)*sin(m*phi0))/(1+tau*(omega*omega*tau-4*f*LAL_PI*(-I+f*LAL_PI*tau)));
       }
+     }
     }
-  // }
-  //}
+    hlmmodetilde_plus->data->data[i] = a;
+    hlmmodetilde_cross->data->data[i] = b;
+  }
   *hlmmodetilde_out_plus = hlmmodetilde_plus;
-  *hlmmodetilde_out_cross = hlmmodetilde_cross;  
+  *hlmmodetilde_out_cross = hlmmodetilde_cross;
   return 0;
 }
 
