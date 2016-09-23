@@ -1160,7 +1160,7 @@ static REAL8 LALInferenceFusedFreqDomainLogLikelihood(LALInferenceVariables *cur
 
   //loglikelihood = -1.0 * chisquared; // note (again): the log-likelihood is unnormalised!
 
-  /*printf("\nIn Likelihood function:\n");
+  printf("\nIn Likelihood function:\n");
   printf("optimal SNR = %f\n",OptimalSNR);
   printf("matched filter SNR = %f\n",MatchedFilterSNR);
   if(LALInferenceCheckVariable(currentParams,"BH_mass")) printf("BH_mass = %f\n",*(double*)LALInferenceGetVariable(currentParams,"BH_mass"));
@@ -1193,9 +1193,9 @@ XLALSimRingdownFD(&expected_hptilde,&expected_hctilde,deltaF,*(double*)LALInfere
   for(i=lower;i<upper;i=i+1){
     fprintf(expected_hptilde_file,"%f %e %e\n",i*deltaF ,creal(expected_hptilde->data->data[i]),cimag(expected_hptilde->data->data[i])); //by Laura
     fprintf(expected_hctilde_file,"%f %e %e\n",i*deltaF ,creal(expected_hctilde->data->data[i]),cimag(expected_hctilde->data->data[i])); //by Laura
-  }*/
+  }
 
-  REAL8 sun_SI = 1.9891*pow(10,30);
+/*  REAL8 sun_SI = 1.9891*pow(10,30);
   REAL8 pc_SI = 3.08567758*pow(10,16);
 
   COMPLEX16FrequencySeries *hlmmodetilde_out_plus = NULL;
@@ -1225,7 +1225,7 @@ XLALSimRingdownFD(&expected_hptilde,&expected_hctilde,deltaF,*(double*)LALInfere
     //printf("%f  %.10f  %.10f  %.10f  %.10f\n",f,cabs(hlmmodetilde_out_plus->data->data[j]*pow(10,21)),cabs(hlmmodetilde_out_cross->data->data[j]*pow(10,21)),creal(hlmmodetilde_out_plus->data->data[j]*pow(10,21)),cimag(hlmmodetilde_out_plus->data->data[j]*pow(10,21)));
 fprintf(expected_hptilde_file,"%f %e %e\n",i*deltaF ,creal(hlmmodetilde_out_plus->data->data[i]),cimag(hlmmodetilde_out_plus->data->data[i]));
 fprintf(expected_hctilde_file,"%f %e %e\n",i*deltaF ,creal(hlmmodetilde_out_cross->data->data[i]),cimag(hlmmodetilde_out_cross->data->data[i]));
-  }
+  }*/
 
 
   exit(0);
