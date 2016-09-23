@@ -82,7 +82,7 @@ int XLALSimRingdownFD(
 
         REAL8 f = i * deltaF;
         a += mass/dist_sec*A*Yplus*(cos(f*shift) - I*sin(f*shift))*(tau*((-1-I*2*f*LAL_PI*tau)*cos(m*phi0)-omega*tau*sin(m*phi0)))/(-1-I*4*f*LAL_PI*tau-omega*omega*tau*tau+4*f*f*LAL_PI*LAL_PI*tau*tau);
-        a += -mass/dist_sec*A*Ycross*(cos(f*shift) - I*sin(f*shift))*tau*(omega*tau*cos(m*phi0)+(-1-I*2*f*LAL_PI*tau)*sin(m*phi0))/(1+tau*(omega*omega*tau-4*f*LAL_PI*(-I+f*LAL_PI*tau)));
+        b += -mass/dist_sec*A*Ycross*(cos(f*shift) - I*sin(f*shift))*tau*(omega*tau*cos(m*phi0)+(-1-I*2*f*LAL_PI*tau)*sin(m*phi0))/(1+tau*(omega*omega*tau-4*f*LAL_PI*(-I+f*LAL_PI*tau)));
       }
      }
     }
