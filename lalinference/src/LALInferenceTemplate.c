@@ -231,6 +231,7 @@ void LALInferenceROQWrapperForXLALSimInspiralChooseFDWaveformSequence(LALInferen
     XLALSimInspiralWaveformParamsInsertPNPhaseOrder(LALpars, *(INT4 *) LALInferenceGetVariable(model->params, "LAL_PNORDER"));
   else {
     XLALPrintError(" ERROR in templateLALGenerateInspiral(): (INT4) \"LAL_PNORDER\" parameter not provided!\n");
+    XLALDestroyDict(LALpars);
     XLAL_ERROR_VOID(XLAL_EDATA);
   }
 
@@ -819,6 +820,7 @@ void LALInferenceTemplateXLALSimInspiralChooseWaveform(LALInferenceModel *model)
       memset(model->freqhCross->data->data,0,sizeof(model->freqhCross->data->data[0])*model->freqhCross->data->length);
       if ( hptilde ) XLALDestroyCOMPLEX16FrequencySeries(hptilde);
       if ( hctilde ) XLALDestroyCOMPLEX16FrequencySeries(hctilde);
+      XLALDestroyDict(LALpars);
       errnum&=~XLAL_EFUNC; /* Mask out the internal function failure bit */
       switch(errnum)
       {
@@ -878,6 +880,7 @@ XLALSimInspiralChooseFDWaveformFromCache(&hptilde, &hctilde, \
       if ( hctilde ) XLALDestroyCOMPLEX16FrequencySeries(hctilde);
       if ( hplus) XLALDestroyREAL8TimeSeries(hplus);
       if ( hcross ) XLALDestroyREAL8TimeSeries(hcross);
+      XLALDestroyDict(LALpars);
       errnum&=~XLAL_EFUNC; /* Mask out the internal function failure bit */
       switch(errnum)
       {
@@ -1296,6 +1299,7 @@ void LALInferenceTemplateXLALSimInspiralChooseWaveformPhaseInterpolated(LALInfer
             memset(model->freqhCross->data->data,0,sizeof(model->freqhCross->data->data[0])*model->freqhCross->data->length);
             if ( hptilde ) XLALDestroyCOMPLEX16FrequencySeries(hptilde);
             if ( hctilde ) XLALDestroyCOMPLEX16FrequencySeries(hctilde);
+            XLALDestroyDict(LALpars);
             errnum&=~XLAL_EFUNC; /* Mask out the internal function failure bit */
             switch(errnum)
             {
@@ -1346,6 +1350,7 @@ LALpars,%d,model->waveformCache)\n",__func__,
             memset(model->freqhCross->data->data,0,sizeof(model->freqhCross->data->data[0])*model->freqhCross->data->length);
             if ( hptilde ) XLALDestroyCOMPLEX16FrequencySeries(hptilde);
             if ( hctilde ) XLALDestroyCOMPLEX16FrequencySeries(hctilde);
+            XLALDestroyDict(LALpars);
             errnum&=~XLAL_EFUNC; /* Mask out the internal function failure bit */
             switch(errnum)
             {
