@@ -40,6 +40,7 @@
 #include <lal/LALSimInspiral.h>
 #include <lal/LALInferenceTemplate.h>
 #include <lal/LALInferenceMultibanding.h>
+#include <lal/LALSimRingdownFD.h>
 
 /* LIB imports*/
 #include <lal/LALInferenceBurstRoutines.h>
@@ -70,70 +71,70 @@ static void q2masses(double mc, double q, double *m1, double *m2);
 
 /* list of testing GR parameters to be passed to the waveform */
 
-const char list_extra_parameters[34][16] = {"dchi0","dchi1","dchi2","dchi3","dchi4","dchi5","dchi5l","dchi6","dchi6l","dchi7","aPPE","alphaPPE","bPPE","betaPPE","betaStep","fStep","dxi1","dxi2","dxi3","dxi4","dxi5","dxi6","dalpha1","dalpha2","dalpha3","dalpha4","dalpha5","dbeta1","dbeta2","dbeta3","dsigma1","dsigma2","dsigma3","dsigma4"};
+const char list_extra_parameters[38][16] = {"dchi0","dchi1","dchi2","dchi3","dchi4","dchi5","dchi5l","dchi6","dchi6l","dchi7","aPPE","alphaPPE","bPPE","betaPPE","betaStep","fStep","dxi1","dxi2","dxi3","dxi4","dxi5","dxi6","dalpha1","dalpha2","dalpha3","dalpha4","dalpha5","dbeta1","dbeta2","dbeta3","dsigma1","dsigma2","dsigma3","dsigma4","domega22","domega33","dtau22","dtau33"};
 
-const UINT4 N_extra_params = 34;
+const UINT4 N_extra_params = 38;
 
 
-static int InterpolateWaveform(REAL8Vector *freqs, COMPLEX16FrequencySeries *src, COMPLEX16FrequencySeries *dest);
-static int InterpolateWaveform(REAL8Vector *freqs, COMPLEX16FrequencySeries *src, COMPLEX16FrequencySeries *dest)
-{
-  REAL8 deltaF = dest->deltaF;
-  UINT4 j=ceil(freqs->data[0] / deltaF);
-  COMPLEX16 *d=dest->data->data;
-  memset(d, 0, sizeof(*(d))*j);
-  
-  /* Loop over reduced frequency set */
-  for(UINT4 i=0;i<freqs->length-1;i++)
-  {  
-    double startpsi = carg(src->data->data[i]);
-    double startamp = cabs(src->data->data[i]);
-    double endpsi = carg(src->data->data[i+1]);
-    double endamp = cabs(src->data->data[i+1]);
-
-    double startf=freqs->data[i];
-    double endf=freqs->data[i+1];
-
-    double df = endf - startf; /* Big freq step */
-    
-    /* linear interpolation setup */
-    double dpsi = (endpsi - startpsi);
-
-    /* Catch case where phase wraps around */
-    /* NOTE: If changing this check that waveforms are not corrupted
-     * at high frequencies when dpsi/df can go slightly -ve without
-     * the phase wrapping around (e.g. TF2 1.4-1.4 srate=4096)
-     */
-    if (dpsi/df<-LAL_PI ) {dpsi+=LAL_TWOPI;}
-    
-    double dpsidf = dpsi/df;
-    double dampdf = (endamp - startamp)/df;
-
-    double damp = dampdf *deltaF;
-    
-    const double dim = sin(dpsidf*deltaF);
-    const double dre = 2.0*sin(dpsidf*deltaF*0.5)*sin(dpsidf*deltaF*0.5);
-
-    /* Loop variables */
-    double newRe,newIm,f,re,im,a;
-    for(f=j*deltaF,
-	re = cos(startpsi), im = sin(startpsi),
-        a = startamp;
-        
-        f<endf;
-        
-        j++, f+=deltaF,
-        newRe = re - dre*re-dim*im,
-        newIm = im + re*dim-dre*im,
-        re=newRe, im = newIm,
-        a += damp )
-    {
-      d[j] = a * (re + I*im);
-    }
-  }
-  memset(&(d[j]), 0, sizeof(d[j])*(dest->data->length - j));
-  return 0;
-}
+// static int InterpolateWaveform(REAL8Vector *freqs, COMPLEX16FrequencySeries *src, COMPLEX16FrequencySeries *dest);
+// static int InterpolateWaveform(REAL8Vector *freqs, COMPLEX16FrequencySeries *src, COMPLEX16FrequencySeries *dest)
+// {
+//   REAL8 deltaF = dest->deltaF;
+//   UINT4 j=ceil(freqs->data[0] / deltaF);
+//   COMPLEX16 *d=dest->data->data;
+//   memset(d, 0, sizeof(*(d))*j);
+//   
+//   /* Loop over reduced frequency set */
+//   for(UINT4 i=0;i<freqs->length-1;i++)
+//   {  
+//     double startpsi = carg(src->data->data[i]);
+//     double startamp = cabs(src->data->data[i]);
+//     double endpsi = carg(src->data->data[i+1]);
+//     double endamp = cabs(src->data->data[i+1]);
+// 
+//     double startf=freqs->data[i];
+//     double endf=freqs->data[i+1];
+// 
+//     double df = endf - startf; /* Big freq step */
+//     
+//     /* linear interpolation setup */
+//     double dpsi = (endpsi - startpsi);
+// 
+//     /* Catch case where phase wraps around */
+//     /* NOTE: If changing this check that waveforms are not corrupted
+//      * at high frequencies when dpsi/df can go slightly -ve without
+//      * the phase wrapping around (e.g. TF2 1.4-1.4 srate=4096)
+//      */
+//     if (dpsi/df<-LAL_PI ) {dpsi+=LAL_TWOPI;}
+//     
+//     double dpsidf = dpsi/df;
+//     double dampdf = (endamp - startamp)/df;
+// 
+//     double damp = dampdf *deltaF;
+//     
+//     const double dim = sin(dpsidf*deltaF);
+//     const double dre = 2.0*sin(dpsidf*deltaF*0.5)*sin(dpsidf*deltaF*0.5);
+// 
+//     /* Loop variables */
+//     double newRe,newIm,f,re,im,a;
+//     for(f=j*deltaF,
+// 	re = cos(startpsi), im = sin(startpsi),
+//         a = startamp;
+//         
+//         f<endf;
+//         
+//         j++, f+=deltaF,
+//         newRe = re - dre*re-dim*im,
+//         newIm = im + re*dim-dre*im,
+//         re=newRe, im = newIm,
+//         a += damp )
+//     {
+//       d[j] = a * (re + I*im);
+//     }
+//   }
+//   memset(&(d[j]), 0, sizeof(d[j])*(dest->data->length - j));
+//   return 0;
+// }
 
 
 void LALInferenceTemplateNullFreqdomain(LALInferenceModel *model)
@@ -546,6 +547,104 @@ void LALInferenceTemplateASinOmegaT(LALInferenceModel *model)
     model->timehCross->data->data[i] = 0.0;
   }
   model->domain = LAL_SIM_DOMAIN_TIME;
+  return;
+}
+
+void LALInferenceTemplateRingdownFD(LALInferenceModel *model)
+{
+  //Approximant approximant = (Approximant) 0;
+  //INT4 amporder;
+
+  COMPLEX16FrequencySeries *hptilde=NULL, *hctilde=NULL;
+  REAL8 phi0, distance;
+  REAL8 deltaF, f_max;
+  int errnum = 0;
+
+  REAL8 eta = LALInferenceGetREAL8Variable(model->params, "eta");
+  REAL8 chieff = LALInferenceGetREAL8Variable(model->params, "chieff");
+  REAL8 BH_spin = LALInferenceGetREAL8Variable(model->params, "BH_spin");
+  REAL8 BH_mass = LALInferenceGetREAL8Variable(model->params, "BH_mass");
+  distance	= exp(LALInferenceGetREAL8Variable(model->params, "logdistance"))* LAL_PC_SI * 1.0e6;        /* distance (1 Mpc) in units of metres */
+  phi0		= LALInferenceGetREAL8Variable(model->params, "phi0"); /* START phase as per lalsimulation convention, radians*/
+  /* Zenith angle between J and N in radians. Also known as inclination angle when spins are aligned */
+  REAL8 thetaJN = acos(LALInferenceGetREAL8Variable(model->params, "costheta_jn"));     /* zenith angle between J and N in radians */
+
+  REAL8 f_low;
+  /* Check if fLow is a model parameter, otherwise use data structure definition */
+  if(LALInferenceCheckVariable(model->params, "flow"))
+    f_low = *(REAL8*) LALInferenceGetVariable(model->params, "flow");
+  else
+    f_low = model->fLow;
+
+
+  deltaF = model->deltaF;
+  f_max = 2047.968750; /* TODO: Replacewith something better*/
+
+  printf("In Template: fStart = %f and fEnd = %f\n",f_low,f_max);
+
+  /* Only use GR templates */
+  LALSimInspiralTestGRParam *nonGRparams = NULL;
+
+  /* Fill in the extra parameters for testing GR, if necessary */
+  for (UINT4 k=0; k<N_extra_params; k++)
+  {
+      if(LALInferenceCheckVariable(model->params,list_extra_parameters[k]))
+      {
+          XLALSimInspiralAddTestGRParam(&nonGRparams,list_extra_parameters[k],*(REAL8 *)LALInferenceGetVariable(model->params,list_extra_parameters[k]));
+      }
+  }
+  XLAL_TRY(XLALSimRingdownFD(&hptilde,&hctilde,deltaF,phi0,f_low,f_max,BH_mass*LAL_MSUN_SI,eta,BH_spin,chieff,distance,thetaJN,nonGRparams),errnum);
+
+    if(errnum!=0){
+      memset(model->freqhPlus->data->data,0,sizeof(model->freqhPlus->data->data[0])*model->freqhPlus->data->length);
+      memset(model->freqhCross->data->data,0,sizeof(model->freqhCross->data->data[0])*model->freqhCross->data->length);
+      if ( hptilde ) XLALDestroyCOMPLEX16FrequencySeries(hptilde);
+      if ( hctilde ) XLALDestroyCOMPLEX16FrequencySeries(hctilde);
+      XLALSimInspiralDestroyTestGRParam(nonGRparams);
+      errnum&=~XLAL_EFUNC; // Mask out the internal function failure bit 
+      switch(errnum)
+      {
+        case XLAL_EDOM:
+          // The waveform was called outside its domain. Return an empty vector but not an error 
+          XLAL_ERROR_VOID(XLAL_EUSR0);
+        default:
+          // Another error occurred that we can't handle. Propogate upward 
+          XLALSetErrno(errnum);
+          XLAL_ERROR_VOID(errnum,"%s: Template generation failed in XLALSimRingdownFD:\n\
+XLALSimRingdownFD(&hptilde, &hctilde, \
+%g, %g, %g, %g, %g, %g, %g, %g, %g, %g,nonGRparams)\n",__func__,
+            deltaF,phi0,f_low,f_max,BH_mass,eta,BH_spin,chieff,distance,thetaJN);
+      }
+    }
+
+    if (hptilde==NULL || hptilde->data==NULL || hptilde->data->data==NULL ) {
+	  XLALPrintError(" ERROR in %s: encountered unallocated 'hptilde'.\n",__func__);
+	  XLAL_ERROR_VOID(XLAL_EFAULT);
+    }
+    if (hctilde==NULL || hctilde->data==NULL || hctilde->data->data==NULL ) {
+	  XLALPrintError(" ERROR in %s: encountered unallocated 'hctilde'.\n",__func__);
+	  XLAL_ERROR_VOID(XLAL_EFAULT);
+    }
+
+    INT4 rem=0;
+    UINT4 size=hptilde->data->length;
+    if(size>model->freqhPlus->data->length) size=model->freqhPlus->data->length;
+    memcpy(model->freqhPlus->data->data,hptilde->data->data,sizeof(hptilde->data->data[0])*size);
+    if( (rem=(model->freqhPlus->data->length - size)) > 0)
+        memset(&(model->freqhPlus->data->data[size]),0, rem*sizeof(hptilde->data->data[0]) );
+
+    size=hctilde->data->length;
+    if(size>model->freqhCross->data->length) size=model->freqhCross->data->length;
+    memcpy(model->freqhCross->data->data,hctilde->data->data,sizeof(hctilde->data->data[0])*size);
+    if( (rem=(model->freqhCross->data->length - size)) > 0)
+        memset(&(model->freqhCross->data->data[size]),0, rem*sizeof(hctilde->data->data[0]) );
+
+    REAL8 instant = model->freqhPlus->epoch.gpsSeconds + 1e-9*model->freqhPlus->epoch.gpsNanoSeconds;
+    LALInferenceSetVariable(model->params, "time", &instant);
+
+  if ( hptilde ) XLALDestroyCOMPLEX16FrequencySeries(hptilde);
+  if ( hctilde ) XLALDestroyCOMPLEX16FrequencySeries(hctilde);
+
   return;
 }
 
@@ -1090,6 +1189,7 @@ void LALInferenceTemplateXLALSimInspiralChooseWaveformPhaseInterpolated(LALInfer
     INT4 order=-1;
     INT4 amporder;
 
+    unsigned long i;
     static int sizeWarning = 0;
     int ret=0;
     INT4 errnum=0;
@@ -1250,28 +1350,28 @@ void LALInferenceTemplateXLALSimInspiralChooseWaveformPhaseInterpolated(LALInfer
 
     /* Only use GR templates */
     LALSimInspiralTestGRParam *nonGRparams = NULL;
-    /* Fill in the extra parameters for testing GR, if necessary */
-    for (UINT4 k=0; k<N_extra_params; k++)
-    {
-        if(LALInferenceCheckVariable(model->params,list_extra_parameters[k]))
-        {
-            XLALSimInspiralAddTestGRParam(&nonGRparams,list_extra_parameters[k],*(REAL8 *)LALInferenceGetVariable(model->params,list_extra_parameters[k]));
-        }
-    }
-    /* Fill in PPE params if they are available */
-    char PPEparam[64]="";
-    const char *PPEnames[]= {"aPPE","alphaPPE","bPPE","betaPPE",NULL};
-    for(UINT4 idx=0; PPEnames[idx]; idx++)
-    {
-        for(UINT4 ppeidx=0;; ppeidx++)
-        {
-            sprintf(PPEparam, "%s%d",PPEnames[idx],ppeidx);
-            if(LALInferenceCheckVariable(model->params,PPEparam))
-                XLALSimInspiralAddTestGRParam(&nonGRparams,PPEparam,LALInferenceGetREAL8Variable(model->params,PPEparam));
-            else
-                break;
-        }
-    }
+//     /* Fill in the extra parameters for testing GR, if necessary */
+//     for (UINT4 k=0; k<N_extra_params; k++)
+//     {
+//         if(LALInferenceCheckVariable(model->params,list_extra_parameters[k]))
+//         {
+//             XLALSimInspiralAddTestGRParam(&nonGRparams,list_extra_parameters[k],*(REAL8 *)LALInferenceGetVariable(model->params,list_extra_parameters[k]));
+//         }
+//     }
+//     /* Fill in PPE params if they are available */
+//     char PPEparam[64]="";
+//     const char *PPEnames[]= {"aPPE","alphaPPE","bPPE","betaPPE",NULL};
+//     for(UINT4 idx=0; PPEnames[idx]; idx++)
+//     {
+//         for(UINT4 ppeidx=0;; ppeidx++)
+//         {
+//             sprintf(PPEparam, "%s%d",PPEnames[idx],ppeidx);
+//             if(LALInferenceCheckVariable(model->params,PPEparam))
+//                 XLALSimInspiralAddTestGRParam(&nonGRparams,PPEparam,LALInferenceGetREAL8Variable(model->params,PPEparam));
+//             else
+//                 break;
+//         }
+//     }
     INT4 Nbands=-1; /* Use optimum number of bands */
     double mc_min=1.0/pow(2,0.2); /* For min 1.0-1.0 waveform */
 
@@ -1306,14 +1406,15 @@ void LALInferenceTemplateXLALSimInspiralChooseWaveformPhaseInterpolated(LALInfer
                 default:
                     /* Another error occurred that we can't handle. Propogate upward */
                     XLALSetErrno(errnum);
-                    XLAL_ERROR_VOID(errnum,"%s: Template generation failed in XLALSimInspiralChooseFDWaveformFromCache:\n\
+/*                    XLAL_ERROR_VOID(errnum,"%s: Template generation failed in XLALSimInspiralChooseFDWaveformFromCache:\n\
 XLALSimInspiralChooseFDWaveformFromCache(&hptilde, &hctilde, \
 %g, %g, %g, %g, %g, %g, %g, %g, %g, %g, %g, %g, %g, %g, %g, %g, \
 model->waveFlags(%d,%d,%d,%d,numreldata),nonGRparams,%d,%d,%d,model->waveformCache)\n",__func__,
 		      phi0, m1*LAL_MSUN_SI, m2*LAL_MSUN_SI, spin1x, spin1y, spin1z, spin2x, spin2y, spin2z,
 		      f_start, f_max, f_ref, distance, inclination, lambda1, lambda2, (int) XLALSimInspiralGetSpinOrder(model->waveFlags),
 		      (int) XLALSimInspiralGetTidalOrder(model->waveFlags),(int) XLALSimInspiralGetFrameAxis(model->waveFlags),
-		      (int) XLALSimInspiralGetModesChoice(model->waveFlags),amporder, order, approximant);
+		      (int) XLALSimInspiralGetModesChoice(model->waveFlags),amporder, order, approximant); */
+                    XLAL_ERROR_VOID(errnum,"%s: Template generation failed in XLALSimInspiralChooseFDWaveformFromCache",__func__);
             }
         }
 
@@ -1327,8 +1428,71 @@ model->waveFlags(%d,%d,%d,%d,numreldata),nonGRparams,%d,%d,%d,model->waveformCac
         }
         
         
-        InterpolateWaveform(frequencies, hptilde, model->freqhPlus);
-        InterpolateWaveform(frequencies, hctilde, model->freqhCross);
+//         InterpolateWaveform(frequencies, hptilde, model->freqhPlus);
+//         InterpolateWaveform(frequencies, hctilde, model->freqhCross);
+
+        double re_p, im_p, newRe_p, newIm_p, dre_p, dim_p;
+        double re_c, im_c, newRe_c, newIm_c, dre_c, dim_c;
+
+        UINT4 j=ceil(frequencies->data[0] / model->freqhPlus->deltaF);
+
+        double f=0;
+        COMPLEX16 *modelPtrp=model->freqhPlus->data->data;
+        COMPLEX16 *modelPtrc=model->freqhCross->data->data;
+        memset(modelPtrp, 0, sizeof(*(modelPtrp))*j);
+        memset(modelPtrc, 0, sizeof(*(modelPtrc))*j);
+
+        double oldpsi_p = atan2(cimag(hptilde->data->data[0]),creal(hptilde->data->data[0]));
+        double oldpsi_c = atan2(cimag(hctilde->data->data[0]),creal(hctilde->data->data[0]));
+
+
+        for(i=0;i<hptilde->data->length-1;i++)
+        {
+            double startpsi_p = oldpsi_p;
+            double endpsi_p=atan2(cimag(hptilde->data->data[i+1]),creal(hptilde->data->data[i+1]));
+
+            double startpsi_c = oldpsi_c;
+            double endpsi_c=atan2(cimag(hctilde->data->data[i+1]),creal(hctilde->data->data[i+1]));
+
+            double startf=frequencies->data[i];
+            double endf=frequencies->data[i+1];
+            double df=endf - startf;
+
+            double dpsidf_p=(endpsi_p - startpsi_p)/df;
+            double dpsidf_c=(endpsi_c - startpsi_c)/df;
+
+            if (dpsidf_p<0.0){
+                dpsidf_p = dpsidf_p + 2*LAL_PI/df;
+            }
+            if (dpsidf_c<0.0){
+                dpsidf_c = dpsidf_c + 2*LAL_PI/df;
+            }
+
+            dim_p = sin(dpsidf_p*model->freqhPlus->deltaF);
+            dre_p = 2.0*sin(dpsidf_p*model->freqhPlus->deltaF*0.5)*sin(dpsidf_p*model->freqhPlus->deltaF*0.5);
+
+            dim_c = sin(dpsidf_c*model->freqhCross->deltaF);
+            dre_c = 2.0*sin(dpsidf_c*model->freqhCross->deltaF*0.5)*sin(dpsidf_c*model->freqhCross->deltaF*0.5);
+
+            for(f=j*model->freqhPlus->deltaF, re_p = 1.0, im_p = 0.0, re_c = 1.0, im_c = 0.0;
+                f<endf;
+                j++, f+=model->freqhPlus->deltaF,
+                newRe_p=re_p - dre_p*re_p-dim_p*im_p,
+                newIm_p = im_p + re_p*dim_p-dre_p*im_p,
+                re_p=newRe_p, im_p = newIm_p,
+                newRe_c=re_c - dre_c*re_c-dim_c*im_c,
+                newIm_c = im_c + re_c*dim_c-dre_c*im_c,
+                re_c=newRe_c, im_c = newIm_c)
+            {
+                modelPtrp[j]=hptilde->data->data[i]*(re_p +I*im_p);
+                modelPtrc[j]=hctilde->data->data[i]*(re_c +I*im_c);
+            }
+            oldpsi_p = endpsi_p;
+            oldpsi_c = endpsi_c;
+            //  if(f>fmax_checked) break;
+        }
+        memset(&(modelPtrp[j]), 0, sizeof(COMPLEX16)*(model->freqhPlus->data->length - j));
+        memset(&(modelPtrc[j]), 0, sizeof(COMPLEX16)*(model->freqhCross->data->length - j));
 
         /* Destroy the nonGr params */
         XLALSimInspiralDestroyTestGRParam(nonGRparams);
