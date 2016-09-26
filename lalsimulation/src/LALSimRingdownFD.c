@@ -66,8 +66,8 @@ int XLALSimRingdownFD(
   UINT4 i = 0;
   UINT4 iStart = (UINT4) ceil(fStart / deltaF);
   for (i = iStart; i < iEnd; i++) {
-    REAL8 a=0;
-    REAL8 b=0;
+    REAL8 hsinglemodetilde_plus=0;
+    REAL8 hsinglemodetilde_cross=0;
     for(l=0;l<5;l++){
      for(m=0;m<5;m++){
       REAL8 A = XLALSimRingdownFDAmplitudes(l, m, n, eta, chiEff);
@@ -81,13 +81,13 @@ int XLALSimRingdownFD(
         if (TGRParams!=NULL){XLALShiftParams(TGRParams,&omega,&tau);}
 
         REAL8 f = i * deltaF;
-        a += mass/dist_sec*A*Yplus*(cos(f*shift) - I*sin(f*shift))*(tau*((-1-I*2*f*LAL_PI*tau)*cos(m*phi0)-omega*tau*sin(m*phi0)))/(-1-I*4*f*LAL_PI*tau-omega*omega*tau*tau+4*f*f*LAL_PI*LAL_PI*tau*tau);
-        b += -mass/dist_sec*A*Ycross*(cos(f*shift) - I*sin(f*shift))*tau*(omega*tau*cos(m*phi0)+(-1-I*2*f*LAL_PI*tau)*sin(m*phi0))/(1+tau*(omega*omega*tau-4*f*LAL_PI*(-I+f*LAL_PI*tau)));
+        hsinglemodetilde_plus += mass/dist_sec*A*Yplus*(cos(f*shift) - I*sin(f*shift))*(tau*((-1-I*2*f*LAL_PI*tau)*cos(m*phi0)-omega*tau*sin(m*phi0)))/(-1-I*4*f*LAL_PI*tau-omega*omega*tau*tau+4*f*f*LAL_PI*LAL_PI*tau*tau);
+        hsinglemodetilde_cross += -mass/dist_sec*A*Ycross*(cos(f*shift) - I*sin(f*shift))*tau*(omega*tau*cos(m*phi0)+(-1-I*2*f*LAL_PI*tau)*sin(m*phi0))/(1+tau*(omega*omega*tau-4*f*LAL_PI*(-I+f*LAL_PI*tau)));
       }
      }
     }
-    hlmmodetilde_plus->data->data[i] = a;
-    hlmmodetilde_cross->data->data[i] = b;
+    hlmmodetilde_plus->data->data[i] = hsinglemodetilde_plus;
+    hlmmodetilde_cross->data->data[i] = hsinglemodetilde_cross;
   }
   *hlmmodetilde_out_plus = hlmmodetilde_plus;
   *hlmmodetilde_out_cross = hlmmodetilde_cross;
