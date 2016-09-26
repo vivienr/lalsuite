@@ -899,7 +899,6 @@ LALpars,model->waveformCache)\n",__func__,
       }
     }
 
-    XLALDestroyDict(LALpars);
 
     /* The following complicated mess is a result of the following considerations:
 
@@ -1020,6 +1019,7 @@ LALpars,model->waveformCache)\n",__func__,
     LALInferenceSetVariable(model->params, "time", &injTc);
   }
 
+  XLALDestroyDict(LALpars);
   if ( hplus ) XLALDestroyREAL8TimeSeries(hplus);
   if ( hcross ) XLALDestroyREAL8TimeSeries(hcross);
   if ( hptilde ) XLALDestroyCOMPLEX16FrequencySeries(hptilde);
@@ -1483,6 +1483,7 @@ LALpars,%d,model->waveformCache)\n",__func__,
         LALInferenceSetVariable(model->params, "time", &injTc);
     }
 
+    XLALDestroyDict(LALpars);
     if ( hplus ) XLALDestroyREAL8TimeSeries(hplus);
     if ( hcross ) XLALDestroyREAL8TimeSeries(hcross);
     if ( hptilde ) XLALDestroyCOMPLEX16FrequencySeries(hptilde);
