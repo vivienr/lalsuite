@@ -42,8 +42,6 @@ def find_ln_p_j_voronoi(m, f, popt):
     all_vols = []
     all_p = []
     all_i = []
-    vtot = 0
-    new_points = []
     length = len(vor.points)
     progress = ProgressBar(max=length)
     for i, p in enumerate(vor.points): # vor.points = coordinates of input points, where coordinates = [m1, m2, chi1, chi2]
@@ -53,21 +51,22 @@ def find_ln_p_j_voronoi(m, f, popt):
         # vor.regions[...] = indices of the Voronoi vertices forming Voronoi region (vor.vertices = coordinates of the Voronoi vertices)
         if -1 not in region:
             pvol = vol(vor, region) # calculates hypervolume of the Voronoi region around the input point
-            if pvol > 0.5: # if volume is too large, it probably means the input point is a template near the edge of the bank. So ignore it.
+            if pvol > 1.0 and p[1] < 10.: # if volume is too large, it probably means the input point is a template near the edge of the bank. So ignore it.
                 continue
+            elif pvol > 1.0 and p[1] < 10.:
+                continue
+            elif pvol > 10.0 and p[0] > 10. and p[1] > 10.:
+                continue    
             all_vols.append(pvol)
             all_p.append(p)
             all_i.append(i)
-            vtot += pvol
-    print "Voronoi diagram, total volume = "+str(vtot)
+    print "Voronoi diagram, total volume = "+str(sum(all_vols))
     all_p = np.array(all_p)
-    all_vols = np.array(all_vols)
     all_i = np.array(all_i)
     p_m1 = f(all_p[:,0],*popt)/np.trapz(f(all_p[:,0][np.argsort(all_p[:,0])],*popt),all_p[:,0][np.argsort(all_p[:,0])])
     p_m2 = f(all_p[:,1],*popt)/np.trapz(f(all_p[:,1][np.argsort(all_p[:,1])],*popt),all_p[:,1][np.argsort(all_p[:,1])])
-    p_tj = p_m1*p_m2*all_vols
-    p_tj = p_tj/sum(p_tj)
-    return np.log(p_tj), all_p, all_i
+    p_tj = p_m1*p_m2*np.array(all_vols)
+    return np.log(p_tj)-np.log(sum(p_tj)), all_p, all_i
 
 def trivol((a, b, c)):
     # Calculates area of triangle, for templates with coordinates (m1, m2)
@@ -130,7 +129,7 @@ def source_population(srcfile):
     if "_DNS" in srcfile:
         pguess = [2.5, 1., 1.3]
     if "BBH" in srcfile:
-        pguess = [2.5, 1., 30.]
+        pguess = [2.5, 5., 30.]
     data = np.loadtxt(srcfile,unpack=True)
     x = data[0]
     y = data[1]/np.trapz(data[1],x) # normalize the probability
