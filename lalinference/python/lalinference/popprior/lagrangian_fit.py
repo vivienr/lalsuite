@@ -54,7 +54,6 @@ def set_const(lnP, rho, rho_interp, logp_jk):
     logP_jk[:idx_interp] = logp_jk(rho_interp)[:idx_interp]
     return logP_jk
     
-
 start_time = time()
 
 pop = sys.argv[1]
@@ -81,7 +80,7 @@ lagrangepoly = []
 #        save_data = True
 
 f = open("P_signal_recovered_by_tj_morerho_"+pop+"50rho.txt","w")
-save_data = True
+save_data = False
     
 progress = ProgressBar(max=len(lnP[0]))
 for k in range(len(lnP[0])):
@@ -108,15 +107,22 @@ if save_data:
 
 print "Elapsed time:", time()-start_time
 
-plt.yscale('log')
-plt.show()
+if sum(fits) > 1.05 or sum(fits) < 0.95:
+    print "fits not normalized:", sum(fits)
+
+#plt.yscale('log')
+plt.legend(loc="lower left")
+plt.xlabel(r'$\rho$')
+plt.ylabel(r'$\text{log}P$')
+plt.title(pop)
+plt.savefig('lnP_vs_rho_'+pop+'.pdf')
     
 #lagrangepoly = np.array(lagrangepoly)
 
-#f2 = h5py.File("logP_vs_rho_lagrangefits.hdf5","w")
-#f2.create_dataset('lagrange',data=lagrangepoly)
-#f2.create_dataset('templates',data=templates)
-#f2.close()
+f2 = h5py.File("Pjk_"+pop+".hdf5","w")
+f2.create_dataset('P_jk',data=fits)
+f2.create_dataset('templates',data=templates)
+f2.close()
     
 #for i in x:
 #    plt.plot(rho_interp, fits[:,i],label=templates[i])
