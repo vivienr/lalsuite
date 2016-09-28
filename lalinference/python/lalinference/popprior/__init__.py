@@ -123,7 +123,11 @@ def ln_p_k_den(tjtk, rho, acc=0.001):
             break
     return logsumexp(lny_list)
 
-def source_population(srcfile, pguess=[2.5, 1., 1.3]):
+def source_population(srcfile):
+    if "_DNS" in srcfile:
+        pguess = [2.5, 1., 1.3]
+    if "BBH" in srcfile:
+        pguess = [2.5, 5., 30.]
     data = np.loadtxt(srcfile,unpack=True)
     x = data[0]
     y = data[1]/np.trapz(data[1],x) # normalize the probability
