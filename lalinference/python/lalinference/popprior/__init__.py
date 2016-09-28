@@ -129,12 +129,13 @@ def source_population(srcfile):
     if "_DNS" in srcfile:
         pguess = [2.5, 1., 1.3]
     if "BBH" in srcfile:
-        pguess = [2.5, 5., 30.]
+        pguess = [0.2, 1./50., 30.]
     data = np.loadtxt(srcfile,unpack=True)
     x = data[0]
     y = data[1]/np.trapz(data[1],x) # normalize the probability
     f = lambda x, *p: p[0]*np.exp(-p[1]*(x-p[2])**2)
     popt, pcov = curve_fit(f, x, y, pguess) # fit p(m) to a Gaussian curve
+    print popt, pcov
     return f, popt
 
 def load_overlaps(h5_file):
