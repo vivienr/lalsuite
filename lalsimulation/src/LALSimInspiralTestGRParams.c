@@ -253,11 +253,11 @@ int XLALSimInspiralWaveformParamsInsertNonGRParamsGeneric(LALDict *LALpars, cons
     XLALSimInspiralWaveformParamsInsertNonGRDChi4(LALpars,value);
   else if (strcmp(name,"dchi5")==0)
     XLALSimInspiralWaveformParamsInsertNonGRDChi5(LALpars,value);
-  else if (strcmp(name,"dchi5L")==0)
+  else if (strcmp(name,"dchi5l")==0)
     XLALSimInspiralWaveformParamsInsertNonGRDChi5L(LALpars,value);
   else if (strcmp(name,"dchi6")==0)
     XLALSimInspiralWaveformParamsInsertNonGRDChi6(LALpars,value);
-  else if (strcmp(name,"dchi6L")==0)
+  else if (strcmp(name,"dchi6l")==0)
     XLALSimInspiralWaveformParamsInsertNonGRDChi6L(LALpars,value);
   else if (strcmp(name,"dchi7")==0)
     XLALSimInspiralWaveformParamsInsertNonGRDChi7(LALpars,value);
