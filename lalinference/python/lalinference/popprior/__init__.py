@@ -53,7 +53,7 @@ def find_ln_p_j_voronoi(m, f, popt):
         # vor.regions[...] = indices of the Voronoi vertices forming Voronoi region (vor.vertices = coordinates of the Voronoi vertices)
         if -1 not in region:
             pvol = vol(vor, region) # calculates hypervolume of the Voronoi region around the input point
-            if pvol > 0.05: # if volume is too large, it probably means the input point is a template near the edge of the bank. So ignore it.
+            if pvol > 0.5: # if volume is too large, it probably means the input point is a template near the edge of the bank. So ignore it.
                 continue
             all_vols.append(pvol)
             all_p.append(p)
