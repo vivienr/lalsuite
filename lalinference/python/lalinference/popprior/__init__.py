@@ -92,15 +92,15 @@ def ln_p_k(ovrlp, rho, t_k, acc=0.001):
     # Finds probability of template t_k fitting data, given that the signal is rho*t_j
     # ovrlp = vector of the overlaps of (t_j, t_k) for one t_j
     # rho = SNR (float)
-    # t_k = template
-    ln_num = ln_p_k_num(rho*ovrlp[t_k]) # compute the numerator of p_k
+    # t_k = templates
+    ln_num = ln_p_k_num(rho*ovrlp[t_k]) # compute an array of numerator terms of p_k
     # for full template bank, don't need ln_p_k_den. just need to do a logexpsum of ln_num.
-    ln_den = ln_p_k_den(ovrlp, rho, acc=acc) # compute the denominator of p_k
-    return ln_num-ln_den # returns single value
+    ln_den = ln_p_k_den(ovrlp, rho, acc=acc) # compute the denominator of p_k (single float value)
+    return ln_num-ln_den # returns array of values
 
 def ln_p_k_num(x, sqrtpiover2 = np.sqrt(np.pi/2.), sqrt2 = np.sqrt(2.)):
-    if x==0:
-        return np.log(1)
+    if x == 0:
+        return np.zeros(len(x))
     else:
         halfxsquared = 0.5*x**2.
         return halfxsquared +np.log( sqrtpiover2*(x**4.+6.*x**2.+3)*(special.erf(x/sqrt2))+np.exp(-halfxsquared)*(x**3.+5.*x))  # N = 5
