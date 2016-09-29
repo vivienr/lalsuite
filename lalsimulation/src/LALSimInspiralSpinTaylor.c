@@ -3731,16 +3731,16 @@ int XLALSimInspiralInitialConditionsPrecessingApproxs(
    * where x is rotated by phiRef wrt X around z.
    */
   default:
-    //We only need a rotation by phiRef around the angular momentum, as
-    //spin components are defined wrt to z=angular momentum, x=line joining two bodies
-    ROTATEZ(phiRef,*S1x,*S1y,*S1z);
-    ROTATEZ(phiRef,*S2x,*S2y,*S2z);
-    //Now spins and the propagation direction are defined with respect to the same frame.
     //We need to set N into the (0,0,1) axis and L into (sin(inc),0,cos(inc))
-    //The following sets N into (0,0,1)
+    //We can first rotate by phiRef-pi/2 around the angular momentum,
+    //which brings the line of sight into the new xz plane and leaves the ang momentum as the z axis
+    ROTATEZ(phiRef-LAL_PI/2.,*S1x,*S1y,*S1z);
+    ROTATEZ(phiRef-LAL_PI/2.,*S2x,*S2y,*S2z);
+    //We can then rotate by -inclIn around the y axis to bring the line of sight to the z axis.
+    //The ang momentum is now in the xz plane but with negative projection on x
     ROTATEY(-inclIn,*S1x,*S1y,*S1z);
     ROTATEY(-inclIn,*S2x,*S2y,*S2z);
-    //Now we set L into X,Z plane, with >ve projection over X
+    //Now we rotate by Pi around z to bring L to the positive x half plane
     ROTATEZ(LAL_PI,*S1x,*S1y,*S1z);
     ROTATEZ(LAL_PI,*S2x,*S2y,*S2z);
     *inc=inclIn;
