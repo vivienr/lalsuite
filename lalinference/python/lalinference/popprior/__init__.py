@@ -93,13 +93,14 @@ def ln_p_k(ovrlp, rho, t_k, acc=0.001):
     # ovrlp = vector of the overlaps of (t_j, t_k) for one t_j
     # rho = SNR (float)
     # t_k = templates
-    ln_num = ln_p_k_num(rho*ovrlp[t_k]) # compute an array of numerator terms of p_k
+    ln_num = ln_p_k_num(ovrlp[t_k],rho) # compute an array of numerator terms of p_k
     # for full template bank, don't need ln_p_k_den. just need to do a logexpsum of ln_num.
     ln_den = ln_p_k_den(ovrlp, rho, acc=acc) # compute the denominator of p_k (single float value)
     return ln_num-ln_den # returns array of values
 
-def ln_p_k_num(x, sqrtpiover2 = np.sqrt(np.pi/2.), sqrt2 = np.sqrt(2.)):
-    if x == 0:
+def ln_p_k_num(tjtk, rho, sqrtpiover2 = np.sqrt(np.pi/2.), sqrt2 = np.sqrt(2.)):
+    x = rho*tjtk
+    if rho == 0:
         return np.zeros(len(x))
     else:
         halfxsquared = 0.5*x**2.
@@ -115,12 +116,12 @@ def ln_p_k_den(tjtk, rho, acc=0.001):
     # Denominator is the sum of all numerator terms
     x = rho*tjtk
     if rho < 10: # must process full array
-        return logsumexp(ln_p_k_num(x))
+        return logsumexp(ln_p_k_num(tjtk, rho))
     x.sort()
     lny_list = []
     limit = np.log(acc/len(x))
-    for w in x[::-1]:
-        lny_list.append(ln_p_k_num(w))
+    for w in tjtk[::-1]:
+        lny_list.append(ln_p_k_num(w, rho))
         if lny_list[-1]-lny_list[0] < limit:
             break
     return logsumexp(lny_list)
