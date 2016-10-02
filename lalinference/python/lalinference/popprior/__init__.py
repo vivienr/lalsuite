@@ -93,18 +93,17 @@ def ln_p_k(ovrlp, rho, t_k, acc=0.001):
     # ovrlp = vector of the overlaps of (t_j, t_k) for one t_j
     # rho = SNR (float)
     # t_k = templates
-    ln_num = ln_p_k_num(ovrlp[t_k],rho) # compute an array of numerator terms of p_k
+    ln_num = ln_p_k_num(ovrlp[t_k],rho) # compute an array of numerator terms of p_k in order of t_k
     # for full template bank, don't need ln_p_k_den. just need to do a logexpsum of ln_num.
     ln_den = ln_p_k_den(ovrlp, rho, acc=acc) # compute the denominator of p_k (single float value)
     return ln_num-ln_den # returns array of values
 
 def ln_p_k_num(tjtk, rho, sqrtpiover2 = np.sqrt(np.pi/2.), sqrt2 = np.sqrt(2.)):
-    x = rho*tjtk
+    x = np.array(tjtk*rho)
     if rho == 0:
         return np.zeros(len(x))
-    else:
-        halfxsquared = 0.5*x**2.
-        return halfxsquared +np.log( sqrtpiover2*(x**4.+6.*x**2.+3)*(special.erf(x/sqrt2))+np.exp(-halfxsquared)*(x**3.+5.*x))  # N = 5
+    halfxsquared = 0.5*x**2.
+    return halfxsquared +np.log( sqrtpiover2*(x**4.+6.*x**2.+3)*(special.erf(x/sqrt2))+np.exp(-halfxsquared)*(x**3.+5.*x)) # N = 5
     #lny = halfxsquared + np.log( sqrtpiover2*(x**3.+3.*x)*(1.+special.erf(x/sqrt2))+np.exp(-halfxsquared)*(x**2.+2.) ) # N = 4
     #lny = halfxsquared + np.log( sqrtpiover2*(x**2.+1.)*(1.+special.erf(x/sqrt2))+np.exp(-halfxsquared)*x ) # N = 3
     #return lny
@@ -114,14 +113,13 @@ def ln_p_k_den(tjtk, rho, acc=0.001):
     # P(t_k | t_j) is a template for the signal rho*t_j (tjtk is the overlap between t_k and t_j)
     # acc = accuracy we wish to obtain
     # Denominator is the sum of all numerator terms
-    x = rho*tjtk
     if rho < 10: # must process full array
-        return logsumexp(ln_p_k_num(tjtk, rho))
-    x.sort()
+        return logsumexp(ln_p_k_num(tjtk,rho))
+    tjtk.sort()
     lny_list = []
-    limit = np.log(acc/len(x))
+    limit = np.log(acc/len(tjtk))
     for w in tjtk[::-1]:
-        lny_list.append(ln_p_k_num(w, rho))
+        lny_list.append(ln_p_k_num(w,rho))
         if lny_list[-1]-lny_list[0] < limit:
             break
     return logsumexp(lny_list)
