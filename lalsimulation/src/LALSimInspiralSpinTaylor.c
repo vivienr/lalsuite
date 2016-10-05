@@ -3539,9 +3539,9 @@ int XLALSimInspiralTransformPrecessingNewInitialConditions(
  * input parameters may represent different quantities.
  * incl is the angle between in the X-Y-Z frame specified by
  * * frameChoice = LAL_SIM_INSPIRAL_FRAME_AXIS_TOTAL_J
- *   J // Z, N = (sin(inc), 0, cos(inc))
+ *   J // Z, N = (0, sin(inc), cos(inc))
  * * frameChoice = LAL_SIM_INSPIRAL_FRAME_AXIS_ORBITAL_L (default)
- *   L // Z, N = (sin(inc), 0, cos(inc))
+ *   L // Z, N = (0, sin(inc), cos(inc))
  * * frameChoice = LAL_SIM_INSPIRAL_FRAME_AXIS_VIEW
  * * N // Z, L = (sin(inc), 0, cos(inc))
  *
@@ -3559,7 +3559,7 @@ int XLALSimInspiralTransformPrecessingNewInitialConditions(
  *
  * Output:
  * x, y, z components S1 and S2 wrt N
- * inc angle between L and N, i.e. N=(0,0,1), LN=(sin(i),0,cos(i))
+ * inc angle between L and N, i.e. N=(0,0,1), LN=(sin(inc),0,cos(inc))
  * as required by precessing waveforms routines in SpinTaylor and IRMPhenomP codes.
  *
  * NOTE: Here the \"total\" angular momentum is computed as
@@ -3602,11 +3602,13 @@ int XLALSimInspiralInitialConditionsPrecessingApproxs(
   REAL8 LNhx,LNhy,LNhz,phiLN;
   REAL8 v0,mass1,mass2,eta;
   REAL8 tmp1,tmp2;
+  //Uncomment the following line to perform tests
+  //REAL8 nnx,nny,nnz,llx,lly,llz;
 
   switch (frameChoice) {
   /* FRAME_AXIS_TOTAL_J
    * (spins wrt to J, inclIn is the angle between J and N: if
-   * J=(0,0,1) N=(-sin(inclIn),0,cos(inclIn)))
+   * J=(0,0,1) N=(0,sin(inclIn),cos(inclIn)))
    */
   case LAL_SIM_INSPIRAL_FRAME_AXIS_TOTAL_J:
     mass1=m1*LAL_MSUN_SI;
@@ -3614,17 +3616,18 @@ int XLALSimInspiralInitialConditionsPrecessingApproxs(
     eta=mass1*mass2/(mass1+mass2)/(mass1+mass2);
     v0=cbrt(LAL_PI*fRef*(m1+m2)*LAL_MTSUN_SI);
     Lmag = XLALSimInspiralLN(mass1+mass2,eta,v0)*(1.+v0*v0*XLALSimInspiralL_2PN(eta));
-    Lx  = -S1xIn*mass1*mass1-S2xIn*mass2*mass2;
-    Ly  = -S1yIn*mass2*mass2-S2yIn*mass2*mass2;
+    ROTATEZ(phiRef,*S1x,*S1y,*S1z);
+    ROTATEZ(phiRef,*S2x,*S2y,*S2z);
+    Lx  = -(*S1x)*mass1*mass1-(*S2x)*mass2*mass2;
+    Ly  = -(*S1y)*mass2*mass2-(*S2y)*mass2*mass2;
     Lxy2= Lx*Lx+Ly*Ly;
-    Lz=0.;
     if (Lmag*Lmag>=Lxy2) {
       Lz=sqrt(Lmag*Lmag-Lxy2);
       if ( Lz<(S1zIn*mass1*mass1+S2zIn*mass2*mass2) ) {
 	XLALPrintError("** XLALSimInspiralInitialConditionsPrecessingApproxs ERROR *** for s1 (%12.4e  %12.4e  %12.4e)\n",S1xIn,S1yIn,S1zIn);
 	XLALPrintError("                                                                   s2 (%12.4e  %12.4e  %12.4e)\n",S2xIn,S2yIn,S2zIn);
 	XLALPrintError(" wrt to J for m: (%12.4e  %12.4e) and v= %12.4e\n",mass1,mass2,v0);
-	XLALPrintError(" it is impossible to determine the sign of LNhz\n");
+	XLALPrintError(" it is impossible to determine the sign of Lhz\n");
 	XLAL_ERROR(XLAL_EDOM);
       }
     }
@@ -3635,29 +3638,32 @@ int XLALSimInspiralInitialConditionsPrecessingApproxs(
       XLAL_ERROR(XLAL_EDOM);
     }
     // 1PN corrections to L are collinear with LN
-    // Rotation1: rotate N intto z
+    // Rotation1: rotate N into z
     LNhx=Lx/Lmag;
     LNhy=Ly/Lmag;
     LNhz=Lz/Lmag;
-    ROTATEY(inclIn,*S1x,*S1y,*S1z);
-    ROTATEY(inclIn,*S2x,*S2y,*S2z);
-    ROTATEY(inclIn,LNhx,LNhy,LNhz);
+    ROTATEZ(-LAL_PI,*S1x,*S1y,*S1z);
+    ROTATEZ(-LAL_PI,*S2x,*S2y,*S2z);
+    ROTATEY(-inclIn,*S1x,*S1y,*S1z);
+    ROTATEY(-inclIn,*S2x,*S2y,*S2z);
+    ROTATEY(-inclIn,LNhx,LNhy,LNhz);
     *inc=acos(LNhz);
     //Rotation 2: rotate L into the x-z plane.
     phiLN=atan2(LNhy,LNhx);
     ROTATEZ(-phiLN,*S1x,*S1y,*S1z);
     ROTATEZ(-phiLN,*S2x,*S2y,*S2z);
-    //It follows that in the frame in which N=(0,0,1), LNhat=(sin(inc),0,cos(inc))
+    //It follows that in the frame in which N=(0,0,1), LNhat=(sin(*inc),0,cos(*inc))
     //For a check uncomment the following lines
     //Anyway there is an automatic check at build in
     // lalsimulation/test/InitialSpinRotationTest
     /*printf("**************************************************\n");
     printf("** Check of LAL_SIM_INSPIRAL_FRAME_AXIS_TOTAL_J **\n");
     printf("**************************************************\n");
-    REAL8 Nhx=-sin(inclIn);
-    REAL8 Nhy=0.;
+    REAL8 Nhx=0.;
+    REAL8 Nhy=sin(inclIn);
     REAL8 Nhz=cos(inclIn);
-    ROTATEY(inclIn,Nhx,Nhy,Nhz);
+    ROTATEZ(-LAL_PI,Nhx,Nhy,Nhz);
+    ROTATEY(-inclIn,Nhx,Nhy,Nhz);
     ROTATEZ(-phiLN,Nhx,Nhy,Nhz);
     ROTATEZ(-phiLN,LNhx,LNhy,LNhz);
     printf("N:   %12.4e  %12.4e  %12.4e  norm: %12.4e\n",Nhx,Nhy,Nhz,sqrt(Nhx*Nhx+Nhy*Nhy+Nhz*Nhz));
@@ -3671,7 +3677,7 @@ int XLALSimInspiralInitialConditionsPrecessingApproxs(
     break;
 
   case LAL_SIM_INSPIRAL_FRAME_AXIS_VIEW:
-  /* FRAME_AXIS_VIEW (OLD default)
+  /* FRAME_AXIS_VIEW
    * Spins at phiRef=0 are given wrt to view direction
    * inclIn is the angle between L and N: if
    * N=(0,0,1) LNhat=(sin(inclIn),0,cos(inclIn))
@@ -3693,33 +3699,14 @@ int XLALSimInspiralInitialConditionsPrecessingApproxs(
     LNhx=sin(inclIn);
     LNhy=0.;
     LNhz=cos(inclIn);
-    REAL8 Nx=0.;
-    REAL8 Ny=0.;
-    REAL8 Nz=1.;
-    REAL8 s1xc=S1xIn;
-    REAL8 s1yc=S1yIn;
-    REAL8 s1zc=S1zIn;
-    REAL8 s2xc=S2xIn;
-    REAL8 s2yc=S2yIn;
-    REAL8 s2zc=S2zIn;
     ROTATEY(-inclIn, LNhx, LNhy, LNhz);
-    ROTATEY(-inclIn, Nx, Ny, Nz);
-    ROTATEY(-inclIn, s1xc, s1yc, s1zc);
-    ROTATEY(-inclIn, s2xc, s2yc, s2zc);
     ROTATEZ(phiRef, LNhx, LNhy, LNhz);
-    ROTATEZ(phiRef, s1xc, s1yc, s1zc);
-    ROTATEZ(phiRef, s2xc, s2yc, s2zc);
     ROTATEY(inclIn, LNhx, LNhy, LNhz);
-    ROTATEY(inclIn, Nx, Ny, Nz);
-    ROTATEY(inclIn, s1xc, s1yc, s1zc);
-    ROTATEY(inclIn, s2xc, s2yc, s2zc);
-    printf("N:   %12.4e  %12.4e  %12.4e  norm: %12.4e\n",Nx,Ny,Nz,sqrt(Nx*Nx+Ny*Ny+Nz*Nz));
-    printf("     %12.4e  %12.4e  %12.4e\n",0.,0.,1.);
     printf("LNh: %12.4e  %12.4e  %12.4e  norm: %12.4e\n",LNhx,LNhy,LNhz,sqrt(LNhx*LNhx+LNhy*LNhy+LNhz*LNhz));
     printf("     %12.4e  %12.4e  %12.4e\n",sin(*inc),0.,cos(*inc));
-    printf("S1.L     %12.4e  %12.4e\n",s1xc*LNhx+s1yc*LNhy+s1zc*LNhz,S1xIn*LNhx+S1yIn*LNhy+S1zIn*LNhz);
-    printf("S2.L     %12.4e  %12.4e\n",s2xc*LNhx+s2yc*LNhy+s2zc*LNhz,S2xIn*LNhx+S2yIn*LNhy+S2zIn*LNhz);
-    printf("S1.S2    %12.4e  %12.4e\n",s1xc*s2xc+s1yc*s2yc+s1zc*s2zc,S1xIn*S2xIn+S1yIn*S2yIn+S1zIn*S2zIn);
+    printf("S1.L     %12.4e  %12.4e\n",(*S1x)*LNhx+(*S1y)*LNhy+(*S1z)*LNhz,S1xIn*LNhx+S1yIn*LNhy+S1zIn*LNhz);
+    printf("S2.L     %12.4e  %12.4e\n",(*S2x)*LNhx+(*S2y)*LNhy+(*S2z)*LNhz,S2xIn*LNhx+S2yIn*LNhy+S2zIn*LNhz);
+    printf("S1.S2    %12.4e  %12.4e\n",(*S1x)*(*S2x)+(*S1y)*(*S2y)+(*S1z)*(*S2z),S1xIn*S2xIn+S1yIn*S2yIn+S1zIn*S2zIn);
     printf("***********************************************\n");*/
     break;
 
@@ -3737,9 +3724,9 @@ int XLALSimInspiralInitialConditionsPrecessingApproxs(
     ROTATEZ(phiRef-LAL_PI/2.,*S1x,*S1y,*S1z);
     ROTATEZ(phiRef-LAL_PI/2.,*S2x,*S2y,*S2z);
     //We can then rotate by -inclIn around the y axis to bring the line of sight to the z axis.
-    //The ang momentum is now in the xz plane but with negative projection on x
     ROTATEY(-inclIn,*S1x,*S1y,*S1z);
     ROTATEY(-inclIn,*S2x,*S2y,*S2z);
+    //The ang momentum is now in the xz plane but with negative projection on x
     //Now we rotate by Pi around z to bring L to the positive x half plane
     ROTATEZ(LAL_PI,*S1x,*S1y,*S1z);
     ROTATEZ(LAL_PI,*S2x,*S2y,*S2z);
@@ -3750,35 +3737,45 @@ int XLALSimInspiralInitialConditionsPrecessingApproxs(
     /*printf("****************************************************\n");
     printf("** Check of LAL_SIM_INSPIRAL_FRAME_AXIS_ORBITAL_L **\n");
     printf("****************************************************\n");
-    REAL8 Nnx=-sin(inclIn);
-    REAL8 Nny=0.;
+    REAL8 Nnx=0.;
+    REAL8 Nny=sin(inclIn);
     REAL8 Nnz=cos(inclIn);
-    REAL8 S1xc=S1xIn;
-    REAL8 S1yc=S1yIn;
-    REAL8 S1zc=S1zIn;
-    REAL8 S2xc=S2xIn;
-    REAL8 S2yc=S2yIn;
-    REAL8 S2zc=S2zIn;
     LNhx=0.;
     LNhy=0.;
     LNhz=1.;
-    ROTATEZ(phiRef,S1xc,S1yc,S1zc);
-    ROTATEZ(phiRef,S2xc,S2yc,S2zc);
-    ROTATEY(-inclIn,S1xc,S1yc,S1zc);
-    ROTATEY(-inclIn,S2xc,S2yc,S2zc);
+    nnx=1.;
+    nny=0.;
+    nnz=0.;
+    llx=0.;
+    lly=1.;
+    llz=0.;
+    ROTATEZ(-LAL_PI/2.,Nnx,Nny,Nnz);
+    ROTATEZ(phiRef-LAL_PI/2.,nnx,nny,nnz);
+    ROTATEZ(phiRef-LAL_PI/2.,llx,lly,llz);
     ROTATEY(-inclIn,Nnx,Nny,Nnz);
     ROTATEY(-inclIn,LNhx,LNhy,LNhz);
-    ROTATEZ(LAL_PI,S1xc,S1yc,S1zc);
-    ROTATEZ(LAL_PI,S2xc,S2yc,S2zc);
+    ROTATEY(-inclIn,nnx,nny,nnz);
+    ROTATEY(-inclIn,llx,lly,llz);
     ROTATEZ(LAL_PI,Nnx,Nny,Nnz);
     ROTATEZ(LAL_PI,LNhx,LNhy,LNhz);
+    ROTATEZ(LAL_PI,nnx,nny,nnz);
+    ROTATEZ(LAL_PI,llx,lly,llz);
     printf("N:   %12.4e  %12.4e  %12.4e  norm: %12.4e\n",Nnx,Nny,Nnz,sqrt(Nnx*Nnx+Nny*Nny+Nnz*Nnz));
-    printf("     %12.4e  %12.4e  %12.4e\n",0.,0.,1.);
+    printf("     0.   0.  1.\n");
     printf("LNh: %12.4e  %12.4e  %12.4e  norm: %12.4e\n",LNhx,LNhy,LNhz,sqrt(LNhx*LNhx+LNhy*LNhy+LNhz*LNhz));
     printf("     %12.4e  %12.4e  %12.4e\n",sin(*inc),0.,cos(*inc));
     printf("S1.L     %12.4e  %12.4e\n",(*S1x)*LNhx+(*S1y)*LNhy+(*S1z)*LNhz,S1zIn);
     printf("S2.L     %12.4e  %12.4e\n",(*S2x)*LNhx+(*S2y)*LNhy+(*S2z)*LNhz,S2zIn);
     printf("S1.S2    %12.4e  %12.4e\n",(*S1x)*(*S2x)+(*S1y)*(*S2y)+(*S1z)*(*S2z),S1xIn*S2xIn+S1yIn*S2yIn+S1zIn*S2zIn);
+    printf("S1.n    %12.4e  %12.4e\n",S1xIn,(*S1x)*nnx+(*S1y)*nny+(*S1z)*nnz);
+    printf("S2.n    %12.4e  %12.4e\n",S1xIn,(*S1x)*nnx+(*S1y)*nny+(*S1z)*nnz);
+    printf("S1.l    %12.4e  %12.4e\n",S1yIn,(*S1x)*llx+(*S1y)*lly+(*S1z)*llz);
+    printf("S2.l    %12.4e  %12.4e\n",S1yIn,(*S1x)*llx+(*S1y)*lly+(*S1z)*llz);
+    printf("L.n     0.      %12.4e\n",nnx*sin(*inc)+nnz*cos(*inc));
+    printf("L.l     0.      %12.4e\n",llx*sin(*inc)+llz*cos(*inc));
+    printf("N.n     %12.4e  %12.4e\n",sin(inclIn)*sin(phiRef),nnz);
+    printf("N.l     %12.4e  %12.4e\n",sin(inclIn)*cos(phiRef),llz);
+    printf("n.l     0.  %12.4e\n",nnx*llx+nny*lly+nnz*llz);
     printf("****************************************************\n");*/
     break;
   }
