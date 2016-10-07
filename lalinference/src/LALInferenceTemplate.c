@@ -360,7 +360,8 @@ void LALInferenceROQWrapperForXLALSimInspiralChooseFDWaveformSequence(LALInferen
   {
     if(LALInferenceCheckVariable(model->params,list_extra_parameters[k]))
     {
-      XLALDictInsert(LALpars, list_extra_parameters[k], (void *)LALInferenceGetVariable(model->params,list_extra_parameters[k]), sizeof(double), LAL_8_BYTE_TYPE_SIZE);
+      printf("Provo laldict insert\n");
+      XLALDictInsert(LALpars, list_extra_parameters[k], (void *)LALInferenceGetVariable(model->params,list_extra_parameters[k]), sizeof(double), LAL_D_TYPE_CODE);
 
       //XLALSimInspiralAddTestGRParam(&nonGRparams,list_extra_parameters[k],*(REAL8 *)LALInferenceGetVariable(model->params,list_extra_parameters[k]));
     }
@@ -374,7 +375,7 @@ void LALInferenceROQWrapperForXLALSimInspiralChooseFDWaveformSequence(LALInferen
     {
       sprintf(PPEparam, "%s%d",PPEnames[idx],ppeidx);
       if(LALInferenceCheckVariable(model->params,PPEparam))
-	XLALDictInsert(LALpars, PPEparam, (void *)LALInferenceGetVariable(model->params,PPEparam), sizeof(double), LAL_8_BYTE_TYPE_SIZE);
+	XLALDictInsert(LALpars, PPEparam, (void *)LALInferenceGetVariable(model->params,PPEparam), sizeof(double), LAL_D_TYPE_CODE);
       else
         break;
     }
@@ -783,7 +784,7 @@ void LALInferenceTemplateXLALSimInspiralChooseWaveform(LALInferenceModel *model)
   {
       if(LALInferenceCheckVariable(model->params,list_extra_parameters[k]))
       {
-	XLALDictInsert(LALpars, list_extra_parameters[k], (void *)LALInferenceGetVariable(model->params,list_extra_parameters[k]), sizeof(double), LAL_8_BYTE_TYPE_SIZE);
+	XLALDictInsert(LALpars, list_extra_parameters[k], (void *)LALInferenceGetVariable(model->params,list_extra_parameters[k]), sizeof(double), LAL_D_TYPE_CODE);
       }
   }
   /* Fill in PPE params if they are available */
@@ -795,7 +796,7 @@ void LALInferenceTemplateXLALSimInspiralChooseWaveform(LALInferenceModel *model)
     {
       sprintf(PPEparam, "%s%d",PPEnames[idx],ppeidx);
       if(LALInferenceCheckVariable(model->params,PPEparam))
-	XLALDictInsert(LALpars, PPEparam, (void *)LALInferenceGetVariable(model->params,PPEparam), sizeof(double), LAL_8_BYTE_TYPE_SIZE);
+	XLALDictInsert(LALpars, PPEparam, (void *)LALInferenceGetVariable(model->params,PPEparam), sizeof(double), LAL_D_TYPE_CODE);
       else
         break;
     }
@@ -1259,7 +1260,7 @@ void LALInferenceTemplateXLALSimInspiralChooseWaveformPhaseInterpolated(LALInfer
     {
         if(LALInferenceCheckVariable(model->params,list_extra_parameters[k]))
         {
-	  XLALDictInsert(LALpars, list_extra_parameters[k], (void *)LALInferenceGetVariable(model->params,list_extra_parameters[k]), sizeof(double), LAL_8_BYTE_TYPE_SIZE);
+	  XLALDictInsert(LALpars, list_extra_parameters[k], (void *)LALInferenceGetVariable(model->params,list_extra_parameters[k]), sizeof(double), LAL_D_TYPE_CODE);
         }
     }
     /* Fill in PPE params if they are available */
@@ -1271,7 +1272,7 @@ void LALInferenceTemplateXLALSimInspiralChooseWaveformPhaseInterpolated(LALInfer
         {
             sprintf(PPEparam, "%s%d",PPEnames[idx],ppeidx);
             if(LALInferenceCheckVariable(model->params,PPEparam))
-	      XLALDictInsert(LALpars, PPEparam, (void *)LALInferenceGetVariable(model->params,PPEparam), sizeof(double), LAL_8_BYTE_TYPE_SIZE);
+	      XLALDictInsert(LALpars, PPEparam, (void *)LALInferenceGetVariable(model->params,PPEparam), sizeof(double), LAL_D_TYPE_CODE);
             else
                 break;
         }
