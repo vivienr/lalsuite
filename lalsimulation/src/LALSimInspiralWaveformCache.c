@@ -460,7 +460,7 @@ int XLALSimInspiralChooseFDWaveformFromCache(
         else
             return XLALSimInspiralChooseFDWaveform(hptilde, hctilde, m1, m2,
 				S1x, S1y, S1z, S2x, S2y, S2z, r, i, phiRef,
-				0., 0., 0., deltaF, f_min, f_ref, f_max,
+				0., 0., 0., deltaF, f_min, f_max, f_ref,
 				LALpars,
 				approximant);
     }
@@ -522,7 +522,7 @@ int XLALSimInspiralChooseFDWaveformFromCache(
             else {
 	      status = XLALSimInspiralChooseFDWaveform(hptilde, hctilde, m1, m2,
 						       S1x, S1y, S1z, S2x, S2y, S2z, r, i, phiRef,
-						       0., 0., 0., deltaF, f_min, f_ref, f_max,
+						       0., 0., 0., deltaF, f_min, f_max, f_ref,
 						       LALpars, approximant);
             }
             if (status == XLAL_FAILURE) return status;
