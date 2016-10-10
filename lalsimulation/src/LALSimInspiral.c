@@ -5656,7 +5656,7 @@ int XLALSimInspiralChooseTDWaveformOLD(
 
         case NR_hdf5:
             /* Waveform-specific sanity checks */
-	    numrel_data_path = XLALSimInspiralGetNumrelData(waveFlags);
+	    numrel_data_path = XLALSimInspiralGetNumrelDataOLD(waveFlags);
             /* Call the waveform driver routine */
             ret = XLALSimInspiralNRWaveformGetHplusHcross(hplus, hcross,
                     phiRef, inclination, deltaT, m1, m2, distance, f_min, f_ref, S1x, S1y, S1z,

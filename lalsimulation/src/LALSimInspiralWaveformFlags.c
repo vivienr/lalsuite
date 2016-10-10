@@ -30,6 +30,7 @@
  *
  * Developers: Do not add anything but enumerated flags to this struct. Avoid
  * adding extra flags whenever possible.
+ * DEPRECATED, use LALDict instead.
  */
 struct tagLALSimInspiralWaveformFlags
 {
@@ -338,7 +339,7 @@ bool XLALSimInspiralModesChoiceIsDefault(
 /**
  * Set the numreldata string within a LALSimInspiralWaveformFlags struct
  */
-void XLALSimInspiralSetNumrelData(
+void XLALSimInspiralSetNumrelDataOLD(
         LALSimInspiralWaveformFlags *waveFlags, /**< Struct whose value will be set */
         const char* numreldata /**< value to set numreldata to */
         )
@@ -353,7 +354,7 @@ void XLALSimInspiralSetNumrelData(
  * The returned value is independent of the waveFlags structure and will
  * need to be LALFree-d.
  */
-char* XLALSimInspiralGetNumrelData(
+char* XLALSimInspiralGetNumrelDataOLD(
         LALSimInspiralWaveformFlags *waveFlags
         )
 {

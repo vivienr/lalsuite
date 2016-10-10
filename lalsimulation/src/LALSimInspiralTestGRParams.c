@@ -229,8 +229,6 @@ int XLALSimInspiralWaveformParamsNonGRAreDefault(LALDict *params)
 	  && XLALSimInspiralWaveformParamsNonGRAlphaPPE5IsDefault(params)
 	  && XLALSimInspiralWaveformParamsNonGRAlphaPPE6IsDefault(params)
 	  && XLALSimInspiralWaveformParamsNonGRAlphaPPE7IsDefault(params));
-
-  return XLAL_SUCCESS;
 }
 
 /** @} */

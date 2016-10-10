@@ -660,7 +660,6 @@ static CacheVariableDiffersBitmask CacheArgsDifferenceBitmask(
         )
 {
     CacheVariableDiffersBitmask difference = NO_DIFFERENCE;
-
     if (cache == NULL) return INTRINSIC;
 
     if ( !XLALSimInspiralWaveformFlagsEqual(LALpars, cache->LALpars) )
