@@ -196,7 +196,7 @@ int XLALSimInspiralChooseWaveformFromSimInspiral(
          ret = XLALSimInspiralChooseTDWaveform(hplus, hcross, phi0, deltaT,
                m1, m2, S1x, S1y, S1z, S2x, S2y, S2z, f_min, f_ref, r, i,
                lambda1, lambda2, waveFlags, nonGRparams, amplitudeO,
-               order, approximant);
+               order, approximant, 0.0, 0.0, 0);
          XLALSimInspiralDestroyWaveformFlags(waveFlags);
          XLALSimInspiralDestroyTestGRParam(nonGRparams);
          if( ret == XLAL_FAILURE )
@@ -315,7 +315,7 @@ XLALSimInspiralChooseWaveformFromInspiralTemplate(
   /* generate +,x waveforms */
   ret = XLALSimInspiralChooseTDWaveform(hplus, hcross, phi0, deltaT, m1, m2,
             S1x, S1y, S1z, S2x, S2y, S2z, f_min, f_ref, r, i, lambda1, lambda2,
-            waveFlags, nonGRparams, amplitudeO, order, approximant);
+            waveFlags, nonGRparams, amplitudeO, order, approximant, 0.0, 0.0, 0);
   XLALSimInspiralDestroyWaveformFlags(waveFlags);
   XLALSimInspiralDestroyTestGRParam(nonGRparams);
   if( ret == XLAL_FAILURE)
@@ -745,4 +745,3 @@ LALInspiralWaveForInjection(
    DETATCHSTATUSPTR(status);
    RETURN (status);
 }
-

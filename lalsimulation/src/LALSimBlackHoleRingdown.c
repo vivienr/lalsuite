@@ -870,7 +870,10 @@ INT4 XLALSimIMREOBGenerateQNMFreqV2(COMPLEX16Vector * modefreqs,
     UINT4 l,                  /**<< The l value of the mode in question */
     INT4 m,                   /**<< The m value of the mode in question */
     UINT4 nmodes,             /**<< The number of overtones that should be included (max 8) */
-    Approximant approximant   /**<< The waveform approximant being used */
+    Approximant approximant,   /**<< The waveform approximant being used */
+    REAL8 omegaqnm,
+    REAL8 tauqnm,
+    INT4 modeqnm
     ) {
 
     REAL8 totalMass, finalMass, finalSpin;
@@ -890,7 +893,7 @@ INT4 XLALSimIMREOBGenerateQNMFreqV2(COMPLEX16Vector * modefreqs,
     totalMass = mass1 + mass2;
     finalMass *= totalMass;
 
-    if (XLALSimIMREOBGenerateQNMFreqV2fromFinal(modefreqs, finalMass, finalSpin, l, m, nmodes) == XLAL_FAILURE) {
+    if (XLALSimIMREOBGenerateQNMFreqV2fromFinal(modefreqs, finalMass, finalSpin, l, m, nmodes, omegaqnm, tauqnm, modeqnm) == XLAL_FAILURE) {
         XLAL_ERROR(XLAL_EFUNC);
     }
 
@@ -904,7 +907,10 @@ INT4 XLALSimIMREOBGenerateQNMFreqV2fromFinal(COMPLEX16Vector * modefreqs,
     const REAL8 finalSpin,    /**<< The spin of the final object; only needed for spin waveforms */
     UINT4 l,                  /**<< The l value of the mode in question */
     INT4 m,                   /**<< The m value of the mode in question */
-    UINT4 nmodes              /**<< The number of overtones that should be included (max 8) */
+    UINT4 nmodes,              /**<< The number of overtones that should be included (max 8) */
+    REAL8 omegaqnm,
+    REAL8 tauqnm,
+    INT4 modeqnm
     ) {
 
     /* Data for interpolating the quasinormal mode frequencies is taken from
@@ -2455,16 +2461,22 @@ INT4 XLALSimIMREOBGenerateQNMFreqV2fromFinal(COMPLEX16Vector * modefreqs,
     }
     /* Now get the QNM frequencies from interpolating the above data */
     for (i = 0; i < nmodes; i++) {
-        gsl_spline_init(spline, afinallist, reomegaqnm[i], 107);
-        gsl_interp_accel_reset(acc);
+        if (modeqnm==(INT4)l*100+m*10+(INT4)i) {
+          modefreqs->data[i] = omegaqnm;
+          modefreqs->data[i] += I / tauqnm;
+        }else{
+          gsl_spline_init(spline, afinallist, reomegaqnm[i], 107);
+          gsl_interp_accel_reset(acc);
 
-        modefreqs->data[i] = signm * gsl_spline_eval(spline, signm * finalSpin, acc);
+          modefreqs->data[i] = signm * gsl_spline_eval(spline, signm * finalSpin, acc);
 
-        gsl_spline_init(spline, afinallist, imomegaqnm[i], 107);
-        gsl_interp_accel_reset(acc);
+          gsl_spline_init(spline, afinallist, imomegaqnm[i], 107);
+          gsl_interp_accel_reset(acc);
 
-        modefreqs->data[i] += I * gsl_spline_eval(spline, signm * finalSpin, acc);
+          modefreqs->data[i] += I * gsl_spline_eval(spline, signm * finalSpin, acc);
 
+        }
+        //printf("(%d,%d,%d)\tomega=%g\ttau=%g\n",l,m,i,creal(modefreqs->data[i]),1/cimag(modefreqs->data[i]));
         /* Scale by the appropriate mass factors */
         modefreqs->data[i] *= 1. / (finalMass * LAL_MTSUN_SI);
     }

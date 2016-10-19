@@ -82,10 +82,10 @@ static int InterpolateWaveform(REAL8Vector *freqs, COMPLEX16FrequencySeries *src
   UINT4 j=ceil(freqs->data[0] / deltaF);
   COMPLEX16 *d=dest->data->data;
   memset(d, 0, sizeof(*(d))*j);
-  
+
   /* Loop over reduced frequency set */
   for(UINT4 i=0;i<freqs->length-1;i++)
-  {  
+  {
     double startpsi = carg(src->data->data[i]);
     double startamp = cabs(src->data->data[i]);
     double endpsi = carg(src->data->data[i+1]);
@@ -95,7 +95,7 @@ static int InterpolateWaveform(REAL8Vector *freqs, COMPLEX16FrequencySeries *src
     double endf=freqs->data[i+1];
 
     double df = endf - startf; /* Big freq step */
-    
+
     /* linear interpolation setup */
     double dpsi = (endpsi - startpsi);
 
@@ -105,12 +105,12 @@ static int InterpolateWaveform(REAL8Vector *freqs, COMPLEX16FrequencySeries *src
      * the phase wrapping around (e.g. TF2 1.4-1.4 srate=4096)
      */
     if (dpsi/df<-LAL_PI ) {dpsi+=LAL_TWOPI;}
-    
+
     double dpsidf = dpsi/df;
     double dampdf = (endamp - startamp)/df;
 
     double damp = dampdf *deltaF;
-    
+
     const double dim = sin(dpsidf*deltaF);
     const double dre = 2.0*sin(dpsidf*deltaF*0.5)*sin(dpsidf*deltaF*0.5);
 
@@ -119,9 +119,9 @@ static int InterpolateWaveform(REAL8Vector *freqs, COMPLEX16FrequencySeries *src
     for(f=j*deltaF,
 	re = cos(startpsi), im = sin(startpsi),
         a = startamp;
-        
+
         f<endf;
-        
+
         j++, f+=deltaF,
         newRe = re - dre*re-dim*im,
         newIm = im + re*dim-dre*im,
@@ -796,8 +796,15 @@ void LALInferenceTemplateXLALSimInspiralChooseWaveform(LALInferenceModel *model)
         break;
     }
   }
-
-
+  REAL8 omegaqnm=0.0;
+  REAL8 tauqnm=0.0;
+  INT4 modeqnm=0;
+  if(LALInferenceCheckVariable(model->params, "omegaqnm"))
+    omegaqnm = *(REAL8*) LALInferenceGetVariable(model->params, "omegaqnm");
+  if(LALInferenceCheckVariable(model->params, "tauqnm"))
+    tauqnm = *(REAL8*) LALInferenceGetVariable(model->params, "tauqnm");
+  if(LALInferenceCheckVariable(model->params, "modeqnm"))
+    modeqnm = *(INT4*) LALInferenceGetVariable(model->params, "modeqnm");
 
   /* ==== Call the waveform generator ==== */
   if(model->domain == LAL_SIM_DOMAIN_FREQUENCY) {
@@ -864,12 +871,11 @@ model->waveFlags(%d,%d,%d,%d,numreldata),nonGRparams,%d,%d,%d,model->waveformCac
     LALInferenceSetVariable(model->params, "time", &instant);
 
   } else {
-
     XLAL_TRY(ret=XLALSimInspiralChooseTDWaveformFromCache(&hplus, &hcross, phi0, deltaT,
             m1*LAL_MSUN_SI, m2*LAL_MSUN_SI, spin1x, spin1y, spin1z,
             spin2x, spin2y, spin2z, f_start, f_ref, distance,
             inclination, lambda1, lambda2, model->waveFlags, nonGRparams,
-            amporder, order, approximant,model->waveformCache), errnum);
+            amporder, order, approximant,model->waveformCache, omegaqnm, tauqnm, modeqnm), errnum);
     /* if the waveform failed to generate, fill the buffer with zeros
      * so that the previous waveform is not left there
      */
@@ -1325,8 +1331,8 @@ model->waveFlags(%d,%d,%d,%d,numreldata),nonGRparams,%d,%d,%d,model->waveformCac
             XLALPrintError(" ERROR in LALInferenceTemplateXLALSimInspiralChooseWaveform(): encountered unallocated 'hctilde'.\n");
             XLAL_ERROR_VOID(XLAL_EFAULT);
         }
-        
-        
+
+
         InterpolateWaveform(frequencies, hptilde, model->freqhPlus);
         InterpolateWaveform(frequencies, hctilde, model->freqhCross);
 
@@ -1343,7 +1349,7 @@ model->waveFlags(%d,%d,%d,%d,numreldata),nonGRparams,%d,%d,%d,model->waveformCac
                                                               m1*LAL_MSUN_SI, m2*LAL_MSUN_SI, spin1x, spin1y, spin1z,
                                                               spin2x, spin2y, spin2z, f_start, f_ref, distance,
                                                               inclination, lambda1, lambda2, model->waveFlags, nonGRparams,
-                                                              amporder, order, approximant,model->waveformCache), errnum);
+                                                              amporder, order, approximant,model->waveformCache, 0.0, 0.0, 0), errnum);
         /* if the waveform failed to generate, fill the buffer with zeros
          * so that the previous waveform is not left there
          */

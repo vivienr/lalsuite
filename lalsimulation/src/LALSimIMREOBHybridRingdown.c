@@ -399,7 +399,10 @@ static UNUSED INT4 XLALSimIMREOBHybridAttachRingdown(REAL8Vector * signal1,
     REAL8Vector * timeVec, /**<< Vector containing the time values */
     REAL8Vector * matchrange,
                            /**<< Time values chosen as points for performing comb matching */
-    Approximant approximant/**<<The waveform approximant being used */
+    Approximant approximant, /**<<The waveform approximant being used */
+    REAL8 omegaqnm,
+    REAL8 tauqnm,
+    INT4 modeqnm
     ) {
 
     COMPLEX16Vector *modefreqs;
@@ -436,7 +439,7 @@ static UNUSED INT4 XLALSimIMREOBHybridAttachRingdown(REAL8Vector * signal1,
         XLAL_ERROR(XLAL_ENOMEM);
     }
 
-    if (XLALSimIMREOBGenerateQNMFreqV2(modefreqs, mass1, mass2, spin1, spin2, l, m, nmodes, approximant) == XLAL_FAILURE) {
+    if (XLALSimIMREOBGenerateQNMFreqV2(modefreqs, mass1, mass2, spin1, spin2, l, m, nmodes, approximant, omegaqnm, tauqnm, modeqnm) == XLAL_FAILURE) {
         XLALDestroyCOMPLEX16Vector(modefreqs);
         XLAL_ERROR(XLAL_EFUNC);
     }
@@ -766,11 +769,10 @@ static UNUSED INT4 XLALSimIMREOBAttachFitRingdown(
 
     nmodes = 8;
     modefreqs = XLALCreateCOMPLEX16Vector(nmodes);
-    if (XLALSimIMREOBGenerateQNMFreqV2(modefreqs, mass1, mass2, spin1, spin2, l, m, nmodes, appr) == XLAL_FAILURE) {
+    if (XLALSimIMREOBGenerateQNMFreqV2(modefreqs, mass1, mass2, spin1, spin2, l, m, nmodes, appr, 0.0, 0.0, 0) == XLAL_FAILURE) {
         XLALDestroyCOMPLEX16Vector(modefreqs);
         XLAL_ERROR(XLAL_EFUNC);
     }
-
     /** Compute final mass final spin */
     if (XLALSimIMREOBFinalMassSpin(&finalMass, &finalSpin, mass1, mass2, spin1, spin2, appr) == XLAL_FAILURE) {
         XLAL_ERROR(XLAL_EFUNC);

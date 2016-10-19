@@ -393,7 +393,7 @@ static int dump_TD(FILE *f, REAL8TimeSeries *hplus, REAL8TimeSeries *hcross) {
 
     fprintf(f, "# t hplus hcross\n");
     for (i=0; i < hplus->data->length; i++)
-        fprintf(f, "%.16e %.16e %.16e\n", t0 + i * hplus->deltaT, 
+        fprintf(f, "%.16e %.16e %.16e\n", t0 + i * hplus->deltaT,
                 hplus->data->data[i], hcross->data->data[i]);
     return 0;
 }
@@ -439,7 +439,7 @@ int main (int argc , char **argv) {
     REAL8TimeSeries *hplus = NULL;
     REAL8TimeSeries *hcross = NULL;
     GSParams *params;
-	
+
     /* set us up to fail hard */
     XLALSetErrorHandler(XLALAbortErrorHandler);
 
@@ -450,29 +450,29 @@ int main (int argc , char **argv) {
     start_time = time(NULL);
     switch (params->domain) {
         case LAL_SIM_DOMAIN_FREQUENCY:
-            XLALSimInspiralChooseFDWaveform(&hptilde, &hctilde, params->phiRef, 
-                    params->deltaF, params->m1, params->m2, params->s1x, 
-                    params->s1y, params->s1z, params->s2x, params->s2y, 
-                    params->s2z, params->f_min, params->f_max, params->fRef, 
-                    params->distance, params->inclination, params->lambda1, 
+            XLALSimInspiralChooseFDWaveform(&hptilde, &hctilde, params->phiRef,
+                    params->deltaF, params->m1, params->m2, params->s1x,
+                    params->s1y, params->s1z, params->s2x, params->s2y,
+                    params->s2z, params->f_min, params->f_max, params->fRef,
+                    params->distance, params->inclination, params->lambda1,
                     params->lambda2, params->waveFlags, params->nonGRparams,
                     params->ampO, params->phaseO, params->approximant);
             break;
         case LAL_SIM_DOMAIN_TIME:
-            XLALSimInspiralChooseTDWaveform(&hplus, &hcross, params->phiRef, 
-                    params->deltaT, params->m1, params->m2, params->s1x, 
-                    params->s1y, params->s1z, params->s2x, params->s2y, 
-                    params->s2z, params->f_min, params->fRef, 
-                    params->distance, params->inclination, params->lambda1, 
+            XLALSimInspiralChooseTDWaveform(&hplus, &hcross, params->phiRef,
+                    params->deltaT, params->m1, params->m2, params->s1x,
+                    params->s1y, params->s1z, params->s2x, params->s2y,
+                    params->s2z, params->f_min, params->fRef,
+                    params->distance, params->inclination, params->lambda1,
                     params->lambda2, params->waveFlags,
                     params->nonGRparams, params->ampO, params->phaseO,
-                    params->approximant);
+                    params->approximant, 0.0, 0.0, 0);
             break;
         default:
             XLALPrintError("Error: domain must be either TD or FD\n");
     }
     if (params->verbose)
-        XLALPrintInfo("Generation took %.0f seconds\n", 
+        XLALPrintInfo("Generation took %.0f seconds\n",
                 difftime(time(NULL), start_time));
     if (((params->domain == LAL_SIM_DOMAIN_FREQUENCY) && (!hptilde || !hctilde)) ||
         ((params->domain == LAL_SIM_DOMAIN_TIME) && (!hplus || !hcross))) {

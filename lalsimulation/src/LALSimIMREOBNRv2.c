@@ -499,7 +499,7 @@ static REAL8 XLALvrP4PN( const REAL8 r,    /**<< Orbital separation (in units of
  * The time returned is in units of M.
  */
 static REAL8
-GetRingdownAttachCombSize( 
+GetRingdownAttachCombSize(
                          INT4 l, /**<< Mode l */
                          INT4 m  /**<< Mode m */
                          )
@@ -579,12 +579,12 @@ XLALSimIMREOBNRv2SetupFlux(
 {
 
   REAL8 a1, a2, a3, a4, a5, a6, a7, a8;
-  
+
   /* Powers of a */
   REAL8 a12, a22, a32, a42, a52, a62, a72, a23, a33, a43, a53, a34, a44;
 
   REAL8 c1, c2, c3, c4, c5, c6, c7, c8;
-  
+
   REAL8 vlso, vpole;
 
   memset( ak, 0, sizeof( *ak ) );
@@ -752,7 +752,10 @@ XLALSimIMREOBNRv2Generator(
               const REAL8       fLower,
               const REAL8       distance,
               const REAL8       inclination,
-              const int         higherModeFlag
+              const int         higherModeFlag,
+              REAL8 omegaqnm,
+              REAL8 tauqnm,
+              INT4 modeqnm
               )
 {
    UINT4                   count, nn=4, hiSRndx=0;
@@ -816,7 +819,7 @@ XLALSimIMREOBNRv2Generator(
    /* Min and max rInit and prInit to consider in root finding */
    const REAL8 rInitMin = 3.;
    const REAL8 rInitMax = 1000.;
-   
+
    const REAL8 prInitMin = -10.;
    const REAL8 prInitMax = 5.;
 
@@ -944,7 +947,7 @@ XLALSimIMREOBNRv2Generator(
    }
    else
    {
-     XLALPrintError( "Higher mode flag appears to be uninitialised " 
+     XLALPrintError( "Higher mode flag appears to be uninitialised "
          "(expected 0 or 1, but got %d\n)", higherModeFlag );
      XLAL_ERROR( XLAL_EINVAL );
    }
@@ -958,7 +961,7 @@ XLALSimIMREOBNRv2Generator(
      modeL = lmModes[currentMode][0];
      modeM = lmModes[currentMode][1];
      /* Get QNM frequencies */
-     xlalStatus = XLALSimIMREOBGenerateQNMFreqV2( modefreqs, mass1, mass2, NULL, NULL, modeL, modeM, 3, EOBNRv2);
+     xlalStatus = XLALSimIMREOBGenerateQNMFreqV2( modefreqs, mass1, mass2, NULL, NULL, modeL, modeM, 3, EOBNRv2, omegaqnm, tauqnm, modeqnm);
      if ( xlalStatus != XLAL_SUCCESS )
      {
        XLALDestroyCOMPLEX16Vector( modefreqs );
@@ -970,11 +973,11 @@ XLALSimIMREOBNRv2Generator(
      /* Note that we cancelled a factor of 2 occuring on both sides */
      if ( LAL_PI / creal(modefreqs->data[0]) < dt )
      {
+       XLALPrintError( "(%d,%d) mode ringdown freq %g greater than Nyquist freq %g. "
+             "Increase sample rate or consider using EOB approximant.\n",modeL,modeM,creal(modefreqs->data[0])/LAL_PI,1/dt);
        XLALDestroyCOMPLEX16Vector( modefreqs );
        XLALDestroyREAL8Vector( values );
        XLALDestroyREAL8Vector( dvalues );
-       XLALPrintError( "(%d,%d) mode ringdown freq greater than Nyquist freq. "
-             "Increase sample rate or consider using EOB approximant.\n",modeL,modeM );
        XLAL_ERROR( XLAL_EINVAL );
      }
    }
@@ -993,8 +996,8 @@ XLALSimIMREOBNRv2Generator(
    eobParams.nqcCoeffs = &nqcCoeffs;
    eobParams.prefixes  = &prefixes;
 
-   if ( XLALCalculateEOBACoefficients( &aCoeffs, eta ) == XLAL_FAILURE 
-   ||   XLALSimIMREOBCalcFacWaveformCoefficients( &hCoeffs, eta) == XLAL_FAILURE 
+   if ( XLALCalculateEOBACoefficients( &aCoeffs, eta ) == XLAL_FAILURE
+   ||   XLALSimIMREOBCalcFacWaveformCoefficients( &hCoeffs, eta) == XLAL_FAILURE
    ||   XLALSimIMREOBComputeNewtonMultipolePrefixes( &prefixes, eobParams.m1, eobParams.m2 )
          == XLAL_FAILURE )
    {
@@ -1256,7 +1259,7 @@ XLALSimIMREOBNRv2Generator(
   }
 
   i = 0;
-  /* TODO: discrete search for lfCut generates discontinuity w.r.t change in physical parameter. 
+  /* TODO: discrete search for lfCut generates discontinuity w.r.t change in physical parameter.
            Implement a continuous search. */
   while ( i < hiSRndx )
   {
@@ -1312,7 +1315,7 @@ XLALSimIMREOBNRv2Generator(
   gsl_spline    *spline = NULL;
   gsl_interp_accel *acc = NULL;
   REAL8 omegaDeriv1;
-  REAL8 time1, time2;   
+  REAL8 time1, time2;
   REAL8 timePeak, omegaDerivMid;
 
   spline = gsl_spline_alloc( gsl_interp_cspline, retLen );
@@ -1358,7 +1361,7 @@ XLALSimIMREOBNRv2Generator(
   /* Therefore we set them at the time when the orbital frequency reaches maximum */
   /* Note that the coalescence phase is defined for the ORBITAL phase, not the GW phasae */
   /* With PN corrections in the GW modes, GW phase is not exactly m times orbital phase */
-  /* In brief, at the highest orbital frequency, the orbital phase is phiC/2 */ 
+  /* In brief, at the highest orbital frequency, the orbital phase is phiC/2 */
   //t = m * (dynamics->data[hiSRndx] + dynamicsHi->data[peakIdx] - dynamics->data[startIdx]);
   t = m * (dynamics->data[hiSRndx] + timePeak - dynamics->data[startIdx]);
   gsl_spline_init( spline, dynamicsHi->data, phiVecHi.data, retLen );
@@ -1381,14 +1384,14 @@ XLALSimIMREOBNRv2Generator(
 
     if ( !(*hplus) || !(*hcross) ) // Check hp, hc allocated properly
     {
-      if ( *hplus )  
-      { 
-        XLALDestroyREAL8TimeSeries( *hplus ); 
+      if ( *hplus )
+      {
+        XLALDestroyREAL8TimeSeries( *hplus );
         *hplus = NULL;
       }
-      if ( *hcross )  
-      { 
-        XLALDestroyREAL8TimeSeries( *hcross ); 
+      if ( *hcross )
+      {
+        XLALDestroyREAL8TimeSeries( *hcross );
         *hcross = NULL;
       }
       XLALDestroyREAL8Vector( sigReHi );
@@ -1568,9 +1571,9 @@ XLALSimIMREOBNRv2Generator(
 
      rdMatchPoint->data[0] -= fmod( rdMatchPoint->data[0], dt/m );
      rdMatchPoint->data[1] -= fmod( rdMatchPoint->data[1], dt/m );
- 
+
      xlalStatus = XLALSimIMREOBHybridAttachRingdown(sigReHi, sigImHi,
-                   modeL, modeM, dt, mass1, mass2, 0, 0, 0, 0, 0, 0, &tVecHi, rdMatchPoint, EOBNRv2 );
+                   modeL, modeM, dt, mass1, mass2, 0, 0, 0, 0, 0, 0, &tVecHi, rdMatchPoint, EOBNRv2, omegaqnm, tauqnm, modeqnm);
      if (xlalStatus != XLAL_SUCCESS )
      {
        XLALDestroyREAL8Vector( rdMatchPoint );
@@ -1640,11 +1643,11 @@ XLALSimIMREOBNRv2Generator(
   {
     if ( cos(inclination) < 0.0 )
     {
-      cut_ind = find_instant_freq(*hplus, *hcross, fLower, 1, 1); 
+      cut_ind = find_instant_freq(*hplus, *hcross, fLower, 1, 1);
     }
     else
     {
-      cut_ind = find_instant_freq(*hplus, *hcross, fLower, 1, 0); 
+      cut_ind = find_instant_freq(*hplus, *hcross, fLower, 1, 0);
     }
     *hplus = XLALResizeREAL8TimeSeries(*hplus, cut_ind, (*hplus)->data->length - cut_ind);
     *hcross = XLALResizeREAL8TimeSeries(*hcross, cut_ind, (*hcross)->data->length - cut_ind);
@@ -1678,7 +1681,7 @@ XLALSimIMREOBNRv2Generator(
  *
  * @brief Functions to generate the EOBNRv2 waveforms, as defined in
  * Pan et al, PRD84, 124052(2011).
- * 
+ *
  * @review EOBNRv2 reviewed by Ilya Mandel, Riccardo Sturani, Prayush Kumar, John Whelan, Yi Pan. Review concluded with git hash b29f20ff11e62095dbd44e850b248ecc58b08a13 (April 2013).
  *
  * @{
@@ -1704,11 +1707,10 @@ XLALSimIMREOBNRv2DominantMode(
 {
 
   if ( XLALSimIMREOBNRv2Generator(hplus, hcross, NULL, phiC, deltaT, m1SI, m2SI,
-              fLower, distance, inclination, 0 ) == XLAL_FAILURE )
+              fLower, distance, inclination, 0 , 0.0, 0.0, 0) == XLAL_FAILURE )
   {
     XLAL_ERROR( XLAL_EFUNC );
   }
-
   return XLAL_SUCCESS;
 }
 
@@ -1727,16 +1729,18 @@ XLALSimIMREOBNRv2AllModes(
               const REAL8       m2SI,       /**<< Second component mass (in kg) */
               const REAL8       fLower,     /**<< Starting frequency (in Hz) */
               const REAL8       distance,   /**<< Distance to source (in metres) */
-              const REAL8       inclination /**<< Inclination of the source (in radians) */
+              const REAL8       inclination, /**<< Inclination of the source (in radians) */
+              REAL8 omegaqnm,
+              REAL8 tauqnm,
+              INT4 modeqnm
               )
 {
 
   if ( XLALSimIMREOBNRv2Generator(hplus, hcross, NULL, phiC, deltaT, m1SI, m2SI,
-              fLower, distance, inclination, 1 ) == XLAL_FAILURE )
+              fLower, distance, inclination, 1 , omegaqnm, tauqnm, modeqnm) == XLAL_FAILURE )
   {
     XLAL_ERROR( XLAL_EFUNC );
   }
-
   return XLAL_SUCCESS;
 }
 
@@ -1757,7 +1761,7 @@ SphHarmTimeSeries *XLALSimIMREOBNRv2Modes(
 {
   SphHarmTimeSeries *hlms = NULL;
   if ( XLALSimIMREOBNRv2Generator(NULL, NULL, &hlms, phiRef, deltaT, m1, m2,
-              fLower, distance, 0., 1) == XLAL_FAILURE )
+              fLower, distance, 0., 1, 0.0, 0.0, 0) == XLAL_FAILURE )
   {
     XLAL_ERROR_NULL( XLAL_EFUNC );
   }

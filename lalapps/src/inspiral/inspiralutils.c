@@ -1264,7 +1264,7 @@ REAL8 calculate_lalsim_snr(SimInspiralTable *inj, char *IFOname, REAL8FrequencyS
       timeHplus->data->data[j]=0.0;
     XLAL_TRY(ret=XLALSimInspiralChooseTDWaveform(&hplus, &hcross, phi0, deltaT,
         m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, f_min, 0., LAL_PC_SI*1.0e6,
-        iota, lambda1, lambda2, waveFlags, nonGRparams, amporder, order, approx),
+        iota, lambda1, lambda2, waveFlags, nonGRparams, amporder, order, approx, 0.0, 0.0, 0),
         errnum);
 
     if (ret == XLAL_FAILURE || hplus == NULL || hcross == NULL)
@@ -1282,7 +1282,7 @@ REAL8 calculate_lalsim_snr(SimInspiralTable *inj, char *IFOname, REAL8FrequencyS
       timeHplus->data->data[j]*=window->data->data[j];
     for (j=0; j<(UINT4) timeHcross->data->length; ++j)
       timeHcross->data->data[j]*=window->data->data[j];
-      
+
     for (j=0; j<(UINT4) freqHplus->data->length; ++j)
     {
       freqHplus->data->data[j]=0.0+I*0.0;
@@ -1342,7 +1342,7 @@ REAL8 calculate_lalsim_snr(SimInspiralTable *inj, char *IFOname, REAL8FrequencyS
   if ( psd )
   {
     psd = XLALInterpolatePSD(psd,  deltaF);
-  } 
+  }
   for (j=lower; j<=(UINT4) upper; ++j)
   {
     /* derive template (involving location/orientation parameters) from given plus/cross waveforms: */

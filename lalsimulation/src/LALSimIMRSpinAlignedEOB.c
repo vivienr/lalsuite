@@ -671,7 +671,7 @@ XLALSimIMRSpinAlignedEOBWaveformAll (REAL8TimeSeries ** hplus,
 
   if (XLALSimIMREOBGenerateQNMFreqV2
       (&modefreqVec, m1, m2, spin1, spin2, 2, 2, 1,
-       SpinAlignedEOBapproximant) == XLAL_FAILURE)
+       SpinAlignedEOBapproximant, 0.0, 0.0, 0) == XLAL_FAILURE)
     {
       XLALDestroyREAL8Vector (values);
       XLAL_ERROR (XLAL_EFUNC);
@@ -1566,7 +1566,7 @@ XLALSimIMRSpinAlignedEOBWaveformAll (REAL8TimeSeries ** hplus,
 					     spin1[1], spin1[2], spin2[0],
 					     spin2[1], spin2[2], &timeHi,
 					     rdMatchPoint,
-					     SpinAlignedEOBapproximant) ==
+					     SpinAlignedEOBapproximant, 0.0, 0.0, 0) ==
 	  XLAL_FAILURE)
 	{
 	  XLAL_ERROR (XLAL_EFUNC);
@@ -1595,7 +1595,7 @@ XLALSimIMRSpinAlignedEOBWaveformAll (REAL8TimeSeries ** hplus,
       // maybe dynamicstmp and dynamicsHitmp should be called "intermediateDynamics(Hi)" now since they aren't so temporary anymore?
       GenerateAmpPhaseFromEOMSoln (retLen_fromOptStep2, dynamicstmp->data,
 				   &seobParams);
-      /* 
+      /*
        * We used dynamics and dynamicsHi to store solution to equations of motion.
        *   The solution was needed to find, e.g., the time at peak freq (STEP 4).
        *   At this point, the solution to the EOMs is no longer needed, so we

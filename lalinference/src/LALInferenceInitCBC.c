@@ -45,15 +45,15 @@ static int checkParamInList(const char *list, const char *param)
   char *post=NULL,*pos=NULL;
   if (list==NULL) return 0;
   if (param==NULL) return 0;
-  
+
   if(!(pos=strstr(list,param))) return 0;
-  
+
   /* The string is a substring. Check that it is a token */
   /* Check the character before and after */
   if(pos!=list)
   if(*(pos-1)!=',')
   return 0;
-  
+
   post=&(pos[strlen(param)]);
   if(*post!='\0')
   if(*post!=',')
@@ -454,14 +454,14 @@ void LALInferenceInitCalibrationVariables(LALInferenceRunState *runState, LALInf
         fprintf(stderr,"Error, missing --%s-spcal-phase-uncertainty\n",ifo->name);
         exit(1);
       }
-      
+
       /* Now add each spline node */
       for(i=0;i<ncal;i++)
       {
 	snprintf(freqVarName, VARNAME_MAX, "%s_spcal_logfreq_%i",ifo->name,i);
 	snprintf(ampVarName, VARNAME_MAX, "%s_spcal_amp_%i", ifo->name,i);
 	snprintf(phaseVarName, VARNAME_MAX, "%s_spcal_phase_%i", ifo->name,i);
-	
+
 	REAL8 logFreq = logFMin + i*dLogF;
 	LALInferenceAddREAL8Variable(currentParams,freqVarName,logFreq,LALINFERENCE_PARAM_FIXED);
 	LALInferenceRegisterGaussianVariableREAL8(runState, currentParams, ampVarName, 0, 0, ampUncertaintyPrior, LALINFERENCE_PARAM_LINEAR);
@@ -532,12 +532,12 @@ void LALInferenceRegisterGaussianVariableREAL8(LALInferenceRunState *state, LALI
   char valopt[VARNAME_MAX+3];
   char fixopt[VARNAME_MAX+7];
   ProcessParamsTable *ppt=NULL;
-  
+
   sprintf(meanopt,"--%s-mean",name);
   sprintf(sigmaopt,"--%s-sigma",name);
   sprintf(valopt,"--%s",name);
   sprintf(fixopt,"--fix-%s",name);
-  
+
   if((ppt=LALInferenceGetProcParamVal(state->commandLine,meanopt))) mean=atof(ppt->value);
   if((ppt=LALInferenceGetProcParamVal(state->commandLine,sigmaopt))) stdev=atof(ppt->value);
   if((ppt=LALInferenceGetProcParamVal(state->commandLine,fixopt)))
@@ -546,7 +546,7 @@ void LALInferenceRegisterGaussianVariableREAL8(LALInferenceRunState *state, LALI
     startval = atof(ppt->value);
   }
   if((ppt=LALInferenceGetProcParamVal(state->commandLine,valopt))) startval=atof(ppt->value);
-  
+
   assert(stdev>0);
   LALInferenceAddVariable(var,name,&startval,LALINFERENCE_REAL8_t,varytype);
   LALInferenceAddGaussianPrior(state->priorArgs, name, &mean, &stdev, LALINFERENCE_REAL8_t);
@@ -1222,6 +1222,14 @@ LALInferenceModel *LALInferenceInitCBCModel(LALInferenceRunState *state) {
     LALInferenceRegisterUniformVariableREAL8(state, model->params, "lambda2", zero, lambda2Min, lambda2Max, LALINFERENCE_PARAM_LINEAR);
 
   }
+  if(LALInferenceGetProcParamVal(commandLine,"--QNM")){
+    LALInferenceRegisterUniformVariableREAL8(state, model->params, "omegaqnm", 1.0, 0.1, 2.0, LALINFERENCE_PARAM_LINEAR);
+    LALInferenceRegisterUniformVariableREAL8(state, model->params, "tauqnm", 0.5, 0.01, 1.0, LALINFERENCE_PARAM_LINEAR);
+    INT4 modeqnm=220;
+    ppt=LALInferenceGetProcParamVal(commandLine,"--modeqnm");
+    if(ppt) modeqnm=atoi(ppt->value);
+    LALInferenceAddVariable(model->params, "modeqnm", &modeqnm, LALINFERENCE_INT4_t, LALINFERENCE_PARAM_FIXED);
+  }
 
   LALSimInspiralSpinOrder spinO = LAL_SIM_INSPIRAL_SPIN_ORDER_ALL;
   ppt=LALInferenceGetProcParamVal(commandLine, "--spinOrder");
@@ -1361,7 +1369,7 @@ LALInferenceModel *LALInferenceInitModelReviewEvidence(LALInferenceRunState *sta
     model->ifo_SNRs = XLALCalloc(nifo, sizeof(REAL8));
 
 	i=0;
- 
+
   /* Parameter bounds at ±5 sigma */
   fprintf(stdout,"Setting up priors\n");
   LALInferenceParamVaryType type=LALINFERENCE_PARAM_LINEAR;
@@ -2053,11 +2061,9 @@ static void LALInferenceInitNonGRParams(LALInferenceRunState *state, LALInferenc
             if (checkParamInList(ppt->value,bPPEparam)) LALInferenceRegisterUniformVariableREAL8(state, model->params, bPPEparam, 0.0, bppe_min, bppe_max, LALINFERENCE_PARAM_LINEAR);
             sprintf(betaPPEparam, "%s%d","betaPPE",++counters[3]);
             if (checkParamInList(ppt->value,betaPPEparam)) LALInferenceRegisterUniformVariableREAL8(state, model->params, betaPPEparam, 0.0, betappe_min, betappe_max, LALINFERENCE_PARAM_LINEAR);
-            
+
         } while((checkParamInList(ppt->value,aPPEparam))||(checkParamInList(ppt->value,alphaPPEparam))||(checkParamInList(ppt->value,bPPEparam))||(checkParamInList(ppt->value,betaPPEparam)));
         if ((counters[0]!=counters[1])||(counters[2]!=counters[3])) {fprintf(stderr,"Unequal number of PPE parameters detected! Check your command line!\n"); exit(-1);}
     }
-    
+
 }
-
-
