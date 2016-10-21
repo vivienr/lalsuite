@@ -14,6 +14,7 @@ AUTHORS
 Makefile
 Makefile.in
 config.lt
+debian/control
 doxygen/autogen.dox
 doxygen/doxygen.cfg
 doxygen/doxygen_objdb_*.tmp
@@ -28,6 +29,7 @@ include/lal/header-link-stamp
 lalstochastic-*.tar.xz
 lalstochastic-user-env.csh
 lalstochastic-user-env.sh
+lalstochastic-user-env.fish
 lalstochastic-user-env.shell
 lalstochastic.spec
 libtool
@@ -49,8 +51,11 @@ src/stamp-h2
 swig/swiglal*
 test/??_714382918*.dat
 test/AstroOmegaTest
+test/CCoarseGrainFrequencySeriesTest
 test/CZeroPadAndFFTTest
+test/DCoarseGrainFrequencySeriesTest
 test/OverlapReductionFunctionTest
+test/SCoarseGrainFrequencySeriesTest
 test/SZeroPadAndFFTTest
 test/SimulatePopcornTest
 test/SimulateSBTest
@@ -61,4 +66,5 @@ test/StochasticInverseNoiseTest
 test/StochasticOmegaGWTest
 test/StochasticOptimalFilterNormalizationTest
 test/StochasticOptimalFilterTest
+test/ZCoarseGrainFrequencySeriesTest
 test/WHITENED-SB?

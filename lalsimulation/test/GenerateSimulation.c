@@ -506,6 +506,8 @@ int main (int argc , char **argv) {
 
     /* clean up */
     XLALDestroyDict(params->params);
+    XLALDestroyREAL8TimeSeries(hplus);
+    XLALDestroyREAL8TimeSeries(hcross);
     XLALFree(params);
 
     XLALDestroyCOMPLEX16FrequencySeries(hptilde);

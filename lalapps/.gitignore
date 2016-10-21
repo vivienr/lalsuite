@@ -2,8 +2,10 @@
 *.la
 *.lo
 *.log
+*.man
 *.o
 *.pyc
+*.pyman
 *.pyo
 .deps
 .libs
@@ -14,6 +16,7 @@ AUTHORS
 Makefile
 Makefile.in
 config.lt
+debian/control
 doxygen/autogen.dox
 doxygen/doxygen.cfg
 doxygen/doxygen_objdb_*.tmp
@@ -24,6 +27,7 @@ doxygen/out/
 doxygen/test_doxygen.*
 lalapps-*.tar.xz
 lalapps-user-env.csh
+lalapps-user-env.fish
 lalapps-user-env.sh
 lalapps-user-env.shell
 lalapps.spec
@@ -137,7 +141,7 @@ src/inspiral/posterior/lalapps_merge_nested_sampling_runs
 src/inspiral/posterior/lalapps_merge_posteriors
 src/inspiral/posterior/lalapps_nest2pos
 src/inspiral/posterior/lalapps_nest_pipe
-src/inspiral/posterior/lalapps_test_run_lalinference_pipe_example
+src/inspiral/posterior/lalinference_review_test
 src/inspiral/posterior/lalapps_vo_nest2pos
 src/inspiral/posterior/lalinference_bambi
 src/inspiral/posterior/lalinference_bench
@@ -158,14 +162,13 @@ src/lalapps/lalapps_tconvert
 src/lalapps/lalapps_version
 src/online/lalapps_online_datafind
 src/power/lalapps_binj
-src/power/lalapps_libbinj
 src/power/lalapps_gen_timeslides
+src/power/lalapps_libbinj
 src/power/lalapps_power
 src/power/lalapps_power_likelihood_pipe
 src/power/lalapps_power_online_pipe
 src/power/lalapps_power_pipe
 src/power/lalapps_simburst_to_frame
-src/power/sense_compare
 src/pulsar/CreateEphemeris/lalapps_create_solar_system_ephemeris
 src/pulsar/CreateEphemeris/lalapps_create_time_correction_ephemeris
 src/pulsar/CrossCorr/gsldata.dat
@@ -177,8 +180,9 @@ src/pulsar/FITSTools/lalapps_fits_array_imarith
 src/pulsar/FITSTools/lalapps_fits_array_list
 src/pulsar/FITSTools/lalapps_fits_array_stat
 src/pulsar/FITSTools/lalapps_fits_copy
+src/pulsar/FITSTools/lalapps_fits_header_getval
 src/pulsar/FITSTools/lalapps_fits_header_list
-src/pulsar/FITSTools/lalapps_fits_header_modify
+src/pulsar/FITSTools/lalapps_fits_header_setval
 src/pulsar/FITSTools/lalapps_fits_overview
 src/pulsar/FITSTools/lalapps_fits_table_calc
 src/pulsar/FITSTools/lalapps_fits_table_list

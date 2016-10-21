@@ -32,7 +32,6 @@ import lal
 
 
 from pylal import git_version
-from pylal import inject
 from pylal import rate
 from pylal import SnglBurstUtils
 
@@ -105,14 +104,12 @@ def hrss_in_instrument(sim, instrument, offsetvector):
 
 	# antenna response factors
 
-	# FIXME:  remove the LIGOTimeGPS typecast when lsctables port to
-	# lal's swig bindings
 	fplus, fcross = lal.ComputeDetAMResponse(
-		inject.cached_detector_by_prefix[instrument].response,
+		lal.cached_detector_by_prefix[instrument].response,
 		sim.ra,
 		sim.dec,
 		sim.psi,
-		lal.GreenwichMeanSiderealTime(lal.LIGOTimeGPS(sim.time_at_instrument(instrument, offsetvector)))
+		lal.GreenwichMeanSiderealTime(sim.time_at_instrument(instrument, offsetvector))
 	)
 
 	# hrss in detector
@@ -130,14 +127,12 @@ def string_amplitude_in_instrument(sim, instrument, offsetvector):
 
 	# antenna response factors
 
-	# FIXME:  remove the LIGOTimeGPS typecast when lsctables port to
-	# lal's swig bindings
 	fplus, fcross = lal.ComputeDetAMResponse(
-		inject.cached_detector_by_prefix[instrument].response,
+		lal.cached_detector_by_prefix[instrument].response,
 		sim.ra,
 		sim.dec,
 		sim.psi,
-		lal.GreenwichMeanSiderealTime(lal.LIGOTimeGPS(sim.time_at_instrument(instrument, offsetvector)))
+		lal.GreenwichMeanSiderealTime(sim.time_at_instrument(instrument, offsetvector))
 	)
 
 	# amplitude in detector
@@ -328,4 +323,3 @@ def plot_Efficiency_hrss_vs_freq(efficiency):
 
 MW_CENTER_J2000_RA_RAD = 2.0318570464121519
 MW_CENTER_J2000_DEC_RAD = -0.50628171572274738
-

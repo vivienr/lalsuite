@@ -262,7 +262,56 @@ distnorm : `numpy.ndarray`
 Returns
 -------
 pdf : `numpy.ndarray`
-    Conditional probability density according to ansatz.
+    Marginal probability density according to ansatz.
+""")
+
+
+_add_newdoc_ufunc(marginal_cdf, """\
+Calculate all-sky marginal cdf (ansatz).
+
+Parameters
+----------
+r : `numpy.ndarray`
+    Distance (Mpc)
+prob : `numpy.ndarray`
+    Marginal probability (pix^-2)
+distmu : `numpy.ndarray`
+    Distance location parameter (Mpc)
+distsigma : `numpy.ndarray`
+    Distance scale parameter (Mpc)
+distnorm : `numpy.ndarray`
+    Distance normalization factor (Mpc^-2)
+
+Returns
+-------
+cdf : `numpy.ndarray`
+    Marginal cumulative probability according to ansatz.
+""")
+
+
+_add_newdoc_ufunc(marginal_ppf, """\
+Point percent function (inverse cdf) of marginal distribution of distance
+(ansatz).
+
+Parameters
+----------
+p : `numpy.ndarray`
+    The cumulative distribution function
+prob : `numpy.ndarray`
+    Marginal probability (pix^-2)
+distmu : `numpy.ndarray`
+    Distance location parameter (Mpc)
+distsigma : `numpy.ndarray`
+    Distance scale parameter (Mpc)
+distnorm : `numpy.ndarray`
+    Distance normalization factor (Mpc^-2)
+r : `numpy.ndarray`
+    Distance at which the cdf is equal to `p`.
+
+Returns
+-------
+cdf : `numpy.ndarray`
+    Marginal cumulative probability according to ansatz.
 """)
 
 
@@ -430,7 +479,7 @@ def cartesian_kde_to_moments(n, datasets, inverse_covariances, weights):
         a = scipy.special.ndtr(x * np.sqrt(cinv))
         b = np.sqrt(0.5 / np.pi * c) * np.exp(-0.5 * cinv * x2)
         r0bar_ = (x2 + c) * a + x * b
-        r1bar_ = x * (x2 + 3 * c) * a + (x2 + 2 * c) * b,
+        r1bar_ = x * (x2 + 3 * c) * a + (x2 + 2 * c) * b
         r2bar_ = (x2 * x2 + 6 * x2 * c + 3 * c * c) * a + x * (x2 + 5 * c) * b
         r0bar += np.mean(w * r0bar_)
         r1bar += np.mean(w * r1bar_)

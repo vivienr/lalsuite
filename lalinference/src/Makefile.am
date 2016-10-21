@@ -2,6 +2,7 @@ BUILT_SOURCES =
 MOSTLYCLEANFILES =
 include $(top_srcdir)/gnuscripts/lalsuite_header_links.am
 include $(top_srcdir)/gnuscripts/lalsuite_vcs_info.am
+include $(top_srcdir)/gnuscripts/lalsuite_help2man.am
 
 LDADD = liblalinference.la
 
@@ -72,6 +73,7 @@ liblalinference_la_SOURCES = \
 	$(BAYESTARSRC) \
 	$(XMLSRC)
 nodist_liblalinference_la_SOURCES = LALInferenceBuildInfo.c
+noinst_HEADERS = six.h
 
 liblalinference_la_LDFLAGS = $(AM_LDFLAGS) $(HDF5_LDFLAGS) -version-info $(LIBVERSION)
 liblalinference_la_LIBADD = $(HDF5_LIBS)
