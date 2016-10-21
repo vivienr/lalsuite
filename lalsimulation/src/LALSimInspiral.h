@@ -506,7 +506,7 @@ int XLALSimInspiralTDConditionStage1(REAL8TimeSeries *hplus, REAL8TimeSeries *hc
 int XLALSimInspiralTDConditionStage2(REAL8TimeSeries *hplus, REAL8TimeSeries *hcross, REAL8 f_min, REAL8 f_max);
 
 /* routines for transforming initial conditions of precessing waveforms */
-int XLALSimInspiralTransformPrecessingNewInitialConditions(REAL8 *incl, REAL8 *S1x, REAL8 *S1y, REAL8 *S1z, REAL8 *S2x, REAL8 *S2y, REAL8 *S2z, const REAL8 thetaJN, const REAL8 phiJL, const REAL8 theta1, const REAL8 theta2, const REAL8 phi12, const REAL8 chi1, const REAL8 chi2, const REAL8 m1, const REAL8 m2, const REAL8 fRef, const REAL8 phiRef);
+int XLALSimInspiralTransformPrecessingNewInitialConditions(REAL8 *incl, REAL8 *S1x, REAL8 *S1y, REAL8 *S1z, REAL8 *S2x, REAL8 *S2y, REAL8 *S2z, const REAL8 thetaJN, const REAL8 phiJL, const REAL8 theta1, const REAL8 theta2, const REAL8 phi12, const REAL8 chi1, const REAL8 chi2, const REAL8 m1, const REAL8 m2, const REAL8 fRef);
 int XLALSimInspiralTransformPrecessingObsoleteInitialConditions(REAL8 *incl, REAL8 *S1x, REAL8 *S1y, REAL8 *S1z, REAL8 *S2x, REAL8 *S2y, REAL8 *S2z, REAL8 thetaJN, REAL8 phiJL, REAL8 theta1, REAL8 theta2, REAL8 phi12, REAL8 chi1, REAL8 chi2, REAL8 m1, REAL8 m2, REAL8 fRef);
 
 /* routines for generating PN modes based on orbital data */
