@@ -2132,7 +2132,7 @@ SphHarmTimeSeries *XLALSimInspiralChooseTDModes(
     REAL8 f_min,                                /**< starting GW frequency (Hz) */
     REAL8 f_ref,                                /**< reference GW frequency (Hz) */
     REAL8 r,                                    /**< distance of source (m) */
-    LALDict *LALpars,
+    LALDict *LALpars,                           /**< LAL dictionary containing accessory parameters */
     int lmax,                                   /**< generate all modes with l <= lmax */
     Approximant approximant                     /**< post-Newtonian approximant to use for waveform production */
     )
@@ -2280,12 +2280,7 @@ SphHarmTimeSeries *XLALSimInspiralChooseTDModes(
  * @param f_min       Starting GW frequency (Hz)
  * @param f_ref       Reference GW frequency (Hz)
  * @param r           Distance of source (m)
- * @param lambda1     (tidal deformability of mass 1) / m1^5 (dimensionless)
- * @param lambda2     (tidal deformability of mass 2) / m2^5 (dimensionless)
- * @param waveFlags   Set of flags to control special behavior of some waveform families. Pass in NULL (or None in python) for default flags
- * @param nonGRparams Linked list of non-GR parameters. Pass in NULL (or None in python) for standard GR waveforms
- * @param amplitudeO  Twice post-Newtonian amplitude order
- * @param phaseO      Twice post-Newtonian order
+ * @param LALpars     LAL dictionary containing accesory parameters
  * @param lmax        Generate all modes with l <= lmax
  * @param approximant Post-Newtonian approximant to use for waveform production
  * @return Linked list of SphHarmTimeSeries modes.

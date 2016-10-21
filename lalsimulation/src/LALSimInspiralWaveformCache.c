@@ -121,7 +121,7 @@ int XLALSimInspiralChooseTDWaveformFromCache(
         REAL8 f_ref,                            /**< reference GW frequency (Hz) */
         REAL8 r,                                /**< distance of source (m) */
         REAL8 i,                                /**< inclination of source (rad) */
-        LALDict *LALpars,
+        LALDict *LALpars,                       /**< LALDictionary containing non-mandatory variables/flags */
         Approximant approximant,                /**< post-Newtonian approximant to use for waveform production */
         LALSimInspiralWaveformCache *cache      /**< waveform cache structure; use NULL for no caching */
         )
@@ -437,7 +437,7 @@ int XLALSimInspiralChooseFDWaveformFromCache(
         REAL8 f_ref,                            /**< Reference GW frequency (Hz) */
         REAL8 r,                                /**< distance of source (m) */
         REAL8 i,                                /**< inclination of source (rad) */
-        LALDict *LALpars,
+        LALDict *LALpars,                       /**< LALDictionary containing non-mandatory variables/flags */
         Approximant approximant,                /**< post-Newtonian approximant to use for waveform production */
         LALSimInspiralWaveformCache *cache,     /**< waveform cache structure */
         REAL8Sequence *frequencies              /**< sequence of frequencies for which the waveform will be computed. Pass in NULL (or None in python) for standard f_min to f_max sequence. */
@@ -871,7 +871,7 @@ int XLALSimInspiralChooseFDWaveformSequence(
     REAL8 f_ref,                            /**< Reference frequency (Hz) */
     REAL8 distance,                         /**< distance of source (m) */
     REAL8 inclination,                      /**< inclination of source (rad) */
-    LALDict *LALpars,
+    LALDict *LALpars,                       /**< LALDictionary containing non-mandatory variables/flags */
     Approximant approximant,                /**< post-Newtonian approximant to use for waveform production */
     REAL8Sequence *frequencies              /**< sequence of frequencies for which the waveform will be computed. Pass in NULL (or None in python) for standard f_min to f_max sequence. */
 )
