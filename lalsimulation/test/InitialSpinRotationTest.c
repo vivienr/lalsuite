@@ -80,7 +80,7 @@ int main (int argc, char **argv)
       s2zIn=chi2*cos(theta2);
       inclIn=thetaJN;
 
-      errCode=XLALSimInspiralTransformPrecessingNewInitialConditions(&incl, &spin1x, &spin1y, &spin1z, &spin2x, &spin2y, &spin2z, thetaJN, phiJL, theta1, theta2, phi12, chi1, chi2, m1*LAL_MSUN_SI, m2*LAL_MSUN_SI, fRef, phiRef);
+      errCode=XLALSimInspiralTransformPrecessingNewInitialConditions(&incl, &spin1x, &spin1y, &spin1z, &spin2x, &spin2y, &spin2z, thetaJN, phiJL, theta1, theta2, phi12, chi1, chi2, m1*LAL_MSUN_SI, m2*LAL_MSUN_SI, fRef);
       ret += compare(chi1*chi1, spin1x*spin1x+spin1y*spin1y+spin1z*spin1z);
       ret += compare(chi2*chi2, spin2x*spin2x+spin2y*spin2y+spin2z*spin2z);
       ret += compare(s1zIn, spin1z);
