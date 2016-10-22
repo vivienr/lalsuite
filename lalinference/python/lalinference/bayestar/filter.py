@@ -366,7 +366,7 @@ def sngl_inspiral_psd(sngl, waveform, f_min=10, f_max=2048, f_ref=0):
             waveform = 'SEOBNRv2_ROM_DoubleSpin'
     approx, ampo, phaseo = get_approximant_and_orders_from_string(waveform)
     log.info('Selected template: %s', waveform)
-    lal.CreateLALDict(LALpars)
+    LALpars=lal.CreateDict()
     lalsimulation.SimInspiralWaveformParamsInsertPNPhaseOrder(LALpars,phaseo)
     lalsimulation.SimInspiralWaveformParamsInsertPNAmplitudeOrder(LALpars,ampo)
     # Generate conditioned template.
@@ -381,7 +381,7 @@ def sngl_inspiral_psd(sngl, waveform, f_min=10, f_max=2048, f_ref=0):
         distance=1e6*lal.PC_SI, inclination=0, phiRef=0,
         longAscNodes=0., eccentricity=0., meanPerAno=0.,
         deltaF=0, f_min=f_min, f_max=f_max, f_ref=f_ref,
-        LALpars, approximant=approx)
+        LALparams=LALpars, approximant=approx)
 
     # Force `plus' and `cross' waveform to be in quadrature.
     h = 0.5 * (hplus.data.data + 1j * hcross.data.data)
