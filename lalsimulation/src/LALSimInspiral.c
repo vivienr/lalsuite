@@ -307,7 +307,6 @@ int XLALSimInspiralChooseTDWaveform(
     const REAL8 longAscNodes,                   /**< longitude of ascending nodes, degenerate with the polarization angle, Omega in documentation */
     const REAL8 eccentricity,                   /**< eccentrocity at reference epoch */
     const REAL8 UNUSED meanPerAno,              /**< mean anomaly of periastron */
-    // frequency sampling parameters, no default value
     const REAL8 deltaT,                         /**< sampling interval (s) */
     const REAL8 f_min,                          /**< starting GW frequency (Hz) */
     REAL8 f_ref,                                /**< reference GW frequency (Hz) */
@@ -1479,9 +1478,9 @@ int XLALSimInspiralChooseFDWaveform(
  * the very end of the waveform are also tapered.  The resulting waveform is high-pass
  * filtered at frequency f_min so that it should have little content at lower frequencies.
  *
- * This routine has one additional parameter relative to XLALSimInspiralChooseTDWaveform.
- * The additional parameter is the redshift, z, of the waveform.  This should be set to
- * zero for sources in the nearby universe (that are nearly at rest relative to the
+ * This routine used to have one additional parameter relative to XLALSimInspiralChooseTDWaveform:
+ * the redshift, z, of the waveform, which is now stuffed into the LALDict structure.
+ * This should be set to zero (default value) for sources in the nearby universe (that are nearly at rest relative to the
  * earth).  For sources at cosmological distances, the mass parameters m1 and m2 should
  * be interpreted as the physical (source frame) masses of the bodies and the distance
  * parameter r is the comoving (transverse) distance.  If the calling routine has already
@@ -1586,6 +1585,17 @@ static int XLALSimInspiralTDFromTD(
      * otherwise do nothing */
     f_ref = fixReferenceFrequency(f_ref, f_min, approximant);
 
+    /* apply redshift correction to dimensionful source-frame quantities */
+    REAL8 z=XLALSimInspiralWaveformParamsLookupRedshift(LALparams);
+    if (z != 0.0) {
+        m1 *= (1.0 + z);
+        m2 *= (1.0 + z);
+        distance *= (1.0 + z);  /* change from comoving (transverse) distance to luminosity distance */
+    }
+    /* set redshift to zero so we don't accidentally apply it again later */
+    z=0.;
+    XLALSimInspiralWaveformParamsInsertRedshift(LALparams,z);
+
     /* if the requested low frequency is below the lowest Kerr ISCO
      * frequency then change it to that frequency */
     fisco = 1.0 / (pow(9.0, 1.5) * LAL_PI * (m1 + m2) * LAL_MTSUN_SI / LAL_MSUN_SI);
@@ -1678,6 +1688,17 @@ static int XLALSimInspiralTDFromFD(
      * if that approximate interprets f_ref==0 to be f_min, set f_ref=f_min;
      * otherwise do nothing */
     f_ref = fixReferenceFrequency(f_ref, f_min, approximant);
+
+    /* apply redshift correction to dimensionful source-frame quantities */
+    REAL8 z=XLALSimInspiralWaveformParamsLookupRedshift(LALparams);
+    if (z != 0.0) {
+        m1 *= (1.0 + z);
+        m2 *= (1.0 + z);
+        distance *= (1.0 + z);  /* change from comoving (transverse) distance to luminosity distance */
+    }
+    /* set redshift to zero so we don't accidentally apply it again later */
+    z=0.;
+    XLALSimInspiralWaveformParamsInsertRedshift(LALparams,z);
 
     /* if the requested low frequency is below the lowest Kerr ISCO
      * frequency then change it to that frequency */
@@ -1784,9 +1805,9 @@ static int XLALSimInspiralTDFromFD(
  * the very end of the waveform are also tapered.  The resulting waveform is high-pass
  * filtered at frequency f_min so that it should have little content at lower frequencies.
  *
- * This routine has one additional parameter relative to XLALSimInspiralChooseTDWaveform.
- * The additional parameter is the redshift, z, of the waveform.  This should be set to
- * zero for sources in the nearby universe (that are nearly at rest relative to the
+ * This routine used to have one additional parameter relative to XLALSimInspiralChooseTDWaveform:
+ * the redshift, z, of the waveform, which is now stuffed into the LALDict structure.
+ * This should be set to zero (default value) for sources in the nearby universe (that are nearly at rest relative to the
  * earth).  For sources at cosmological distances, the mass parameters m1 and m2 should
  * be interpreted as the physical (source frame) masses of the bodies and the distance
  * parameter r is the comoving (transverse) distance.  If the calling routine has already
@@ -1855,9 +1876,9 @@ int XLALSimInspiralTD(
  * power of 2.  (If the user wishes to discard the extra high frequency content, this must
  * be done separately.)
  *
- * This routine has one additional parameter relative to XLALSimInspiralChooseFDWaveform.
- * The additional parameter is the redshift, z, of the waveform.  This should be set to
- * zero for sources in the nearby universe (that are nearly at rest relative to the
+ * This routine used to have one additional parameter relative to XLALSimInspiralChooseTDWaveform:
+ * the redshift, z, of the waveform, which is now stuffed into the LALDict.
+ * This should be set to zero (default value) for sources in the nearby universe (that are nearly at rest relative to the
  * earth).  For sources at cosmological distances, the mass parameters m1 and m2 should
  * be interpreted as the physical (source frame) masses of the bodies and the distance
  * parameter r is the comoving (transverse) distance.  If the calling routine has already
@@ -1902,6 +1923,17 @@ int XLALSimInspiralFD(
      * if that approximate interprets f_ref==0 to be f_min, set f_ref=f_min;
      * otherwise do nothing */
     f_ref = fixReferenceFrequency(f_ref, f_min, approximant);
+
+    /* apply redshift correction to dimensionful source-frame quantities */
+    REAL8 z=XLALSimInspiralWaveformParamsLookupRedshift(LALparams);
+    if (z != 0.0) {
+        m1 *= (1.0 + z);
+        m2 *= (1.0 + z);
+        distance *= (1.0 + z);  /* change from comoving (transverse) distance to luminosity distance */
+    }
+    /* set redshift to zero so we don't accidentally apply it again later */
+    z = 0.0;
+    XLALSimInspiralWaveformParamsInsertRedshift(LALparams,z);
 
     /* FIXME: assume that f_max is the Nyquist frequency, and use it
      * to compute the requested deltaT */
