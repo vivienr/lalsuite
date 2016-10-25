@@ -84,7 +84,7 @@ XLALGeneratePulsarSignal ( const PulsarSignalParams *params /**< input params */
       /*------------------------------------------------------------ */
       /* temporary fix for comparison with Chris' code */
       /*
-	TRY (LALConvertGPS2SSB (status->statusPtr, &tmpTime, params->orbit->orbitEpoch, params), status);
+	TRY (XLALConvertGPS2SSB (status->statusPtr, &tmpTime, params->orbit->orbitEpoch, params), status);
 	sourceParams.orbitEpoch = tmpTime;
       */
       sourceParams.orbitEpoch =  params->orbit.tp;
@@ -510,7 +510,7 @@ LALComputeSkyAndZeroPsiAMResponse (LALStatus *status,		/**< pointer to LALStatus
 
   /* setup baryinput for LALComputeSky */
   baryinput.site = *(params->pSigParams->site);
-  /* account for a quirk in LALBarycenter(): -> see documentation of type BarycenterInput */
+  /* account for a quirk in XLALBarycenter(): -> see documentation of type BarycenterInput */
   baryinput.site.location[0] /= LAL_C_SI;
   baryinput.site.location[1] /= LAL_C_SI;
   baryinput.site.location[2] /= LAL_C_SI;
@@ -842,7 +842,7 @@ XLALConvertGPS2SSB ( LIGOTimeGPS *SSBout, 		/**< [out] arrival-time in SSB */
 
   BarycenterInput XLAL_INIT_DECL(baryinput);
   baryinput.site = *(params->site);
-  /* account for a quirk in LALBarycenter(): -> see documentation of type BarycenterInput */
+  /* account for a quirk in XLALBarycenter(): -> see documentation of type BarycenterInput */
   baryinput.site.location[0] /= LAL_C_SI;
   baryinput.site.location[1] /= LAL_C_SI;
   baryinput.site.location[2] /= LAL_C_SI;

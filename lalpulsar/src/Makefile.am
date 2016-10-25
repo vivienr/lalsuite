@@ -6,7 +6,6 @@ include $(top_srcdir)/gnuscripts/lalsuite_vcs_info.am
 pkginclude_HEADERS = \
 	BinaryPulsarTiming.h \
 	CWMakeFakeData.h \
-	ComplexAM.h \
 	ComputeFstat.h \
 	ComputeSky.h \
 	DetectorStates.h \
@@ -15,12 +14,11 @@ pkginclude_HEADERS = \
 	EstimateAmplitudeParams.h \
 	ExtrapolatePulsarSpins.h \
 	FITSFileIO.h \
-	FlatMesh.h \
-	FlatPulsarMetric.h \
 	GSLHelpers.h \
 	GeneratePulsarSignal.h \
 	GenerateSpinOrbitCW.h \
 	GenerateTaylorCW.h \
+	GetEarthTimes.h \
 	HoughMap.h \
 	LALBarycenter.h \
 	LALComputeAM.h \
@@ -43,7 +41,6 @@ pkginclude_HEADERS = \
 	PulsarCrossCorr_v2.h \
 	PulsarDataTypes.h \
 	PulsarSimulateCoherentGW.h \
-	PulsarTimes.h \
 	ReadPulsarParFile.h \
 	SFTClean.h \
 	SFTfileIO.h \
@@ -51,7 +48,6 @@ pkginclude_HEADERS = \
 	SSBtimes.h \
 	SimulatePulsarSignal.h \
 	SinCosLUT.h \
-	StackMetric.h \
 	Statistics.h \
 	SuperskyMetrics.h \
 	SynthesizeCWDraws.h \
@@ -65,8 +61,6 @@ lib_LTLIBRARIES = liblalpulsar.la
 liblalpulsar_la_SOURCES = \
 	BinaryPulsarTiming.c \
 	CWMakeFakeData.c \
-	CoherentMetric.c \
-	ComplexAM.c \
 	ComputeFstat.c \
 	ComputeFstat_Demod.c \
 	ComputeFstat_DemodHL_Generic.c \
@@ -74,7 +68,6 @@ liblalpulsar_la_SOURCES = \
 	ComputeFstat_Resamp.c \
 	ComputeSky.c \
 	ConstructPLUT.c \
-	DTEphemeris.c \
 	DetectorStates.c \
 	DopplerFullScan.c \
 	DopplerScan.c \
@@ -82,8 +75,6 @@ liblalpulsar_la_SOURCES = \
 	EstimateAmplitudeParams.c \
 	ExtrapolatePulsarSpins.c \
 	FITSFileIO.c \
-	FlatMesh.c \
-	FlatPulsarMetric.c \
 	GenerateEllipticSpinOrbitCW.c \
 	GenerateHyperbolicSpinOrbitCW.c \
 	GenerateParabolicSpinOrbitCW.c \
@@ -107,7 +98,6 @@ liblalpulsar_la_SOURCES = \
 	PatchGrid.c \
 	Peak2PHMD.c \
 	ProbabilityDensity.c \
-	ProjectMetric.c \
 	PtoleMetric.c \
 	PulsarCrossCorr.c \
 	PulsarCrossCorr_v2.c \
@@ -119,19 +109,13 @@ liblalpulsar_la_SOURCES = \
 	SSBtimes.c \
 	SimulatePulsarSignal.c \
 	SinCosLUT.c \
-	StackMetric.c \
 	Statistics.c \
 	Stereographic.c \
 	SuperskyMetrics.c \
 	SynthesizeCWDraws.c \
-	TBaryPtolemaic.c \
-	TComp.c \
-	TSpin.c \
 	TransientCW_utils.c \
 	TwoDMesh.c \
 	TwoDMeshInternal.c \
-	TwoDMeshMetrics.c \
-	TwoDMeshRanges.c \
 	UniversalDopplerMetric.c \
 	Velocity.c \
 	$(END_OF_LIST)

@@ -335,14 +335,11 @@ int main(int argc, char *argv[]){
     UINT4 iIFO, iSFT, j;
 
     /*  get ephemeris  */
-    edat = (EphemerisData *)LALCalloc(1, sizeof(EphemerisData));
-    (*edat).ephiles.earthEphemeris = uvar_earthEphemeris;
-    (*edat).ephiles.sunEphemeris = uvar_sunEphemeris;
-    LAL_CALL( LALInitBarycenter( &status, edat), &status);
+    XLAL_CHECK_MAIN( ( edat = XLALInitBarycenter( uvar_earthEphemeris, uvar_sunEphemeris ) ) != NULL, XLAL_EFUNC);
 
 
     /* normalize sfts */
-    LAL_CALL( LALNormalizeMultiSFTVect (&status, &multPSD, inputSFTs, uvar_blocksRngMed), &status);
+    XLAL_CHECK_MAIN( ( multPSD = XLALNormalizeMultiSFTVect(  inputSFTs, uvar_blocksRngMed, NULL ) ) != NULL, XLAL_EFUNC);
 
     /* set up weights */
     weightsV.length = mObsCoh;
@@ -362,8 +359,8 @@ int main(int argc, char *argv[]){
     /* get information about all detectors including velocity and timestamps */
     /* note that this function returns the velocity at the 
        mid-time of the SFTs -- should not make any difference */
-    LAL_CALL ( LALGetMultiDetectorStates ( &status, &mdetStates, inputSFTs, edat), &status);
-
+    const REAL8 tOffset = 0.5 / inputSFTs->data[0]->data[0].deltaF;
+    XLAL_CHECK_MAIN ( ( mdetStates = XLALGetMultiDetectorStatesFromMultiSFTs ( inputSFTs, edat, tOffset ) ) != NULL, XLAL_EFUNC);
 
     /* copy the timestamps, weights, and velocity vector */
     for (j = 0, iIFO = 0; iIFO < numifo; iIFO++ ) {
@@ -413,7 +410,7 @@ int main(int argc, char *argv[]){
       skypos.longitude = uvar_AlphaWeight;
       skypos.latitude = uvar_DeltaWeight;
       skypos.system = COORDINATESYSTEM_EQUATORIAL;
-      LAL_CALL ( LALGetMultiAMCoeffs ( &status, &multiAMcoef, mdetStates, skypos), &status);
+      XLAL_CHECK_MAIN ( ( multiAMcoef = XLALComputeMultiAMCoeffs ( mdetStates, NULL, skypos) ) != NULL, XLAL_EFUNC);
       
       /* loop over the weights and multiply them by the appropriate
 	 AM coefficients */
@@ -526,9 +523,7 @@ int main(int argc, char *argv[]){
 
   XLALDestroyMultiDetectorStateSeries ( mdetStates );
 
-  LALFree(edat->ephemE);
-  LALFree(edat->ephemS);
-  LALFree(edat);
+  XLALDestroyEphemerisData(edat);
 
   XLALDestroyMultiSFTVector( inputSFTs);
   LALFree(pg1.data);

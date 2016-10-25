@@ -189,7 +189,7 @@ typedef struct {
   PulsarSpinRange spinRange_endTime;   /**< freq and fdot range at end-time of observation */
   PulsarSpinRange spinRange_refTime;   /**< freq and fdot range at the reference time */
   PulsarSpinRange spinRange_midTime;   /**< freq and fdot range at mid-time of observation */
-  EphemerisData *edat;   /**< ephemeris data for LALBarycenter */
+  EphemerisData *edat;   /**< ephemeris data for XLALBarycenter */
   LIGOTimeGPSVector *midTstack;    /**< timestamps vector for mid time of each stack */
   LIGOTimeGPSVector *startTstack;  /**< timestamps vector for start time of each stack */
   LIGOTimeGPS minStartTimeGPS;     /**< Only use SFTs with timestamps starting from (including) this GPS time */
@@ -1371,9 +1371,9 @@ void SetUpSFTs( LALStatus *status,			/**< pointer to LALStatus structure */
   in->spinRange_refTime.refTime = refTimeGPS;
 
 
-  TRY( LALExtrapolatePulsarSpinRange( status->statusPtr, &in->spinRange_startTime, tStartGPS, &in->spinRange_refTime), status);
-  TRY( LALExtrapolatePulsarSpinRange( status->statusPtr, &in->spinRange_endTime, tEndGPS, &in->spinRange_refTime), status);
-  TRY( LALExtrapolatePulsarSpinRange( status->statusPtr, &in->spinRange_midTime, tMidGPS, &in->spinRange_refTime), status);
+  XLAL_CHECK_LAL( status, XLALExtrapolatePulsarSpinRange( &in->spinRange_startTime, &in->spinRange_refTime, XLALGPSDiff( &tStartGPS, &(&in->spinRange_refTime)->refTime ) ) == XLAL_SUCCESS, XLAL_EFUNC);
+  XLAL_CHECK_LAL( status, XLALExtrapolatePulsarSpinRange( &in->spinRange_endTime, &in->spinRange_refTime, XLALGPSDiff( &tEndGPS, &(&in->spinRange_refTime)->refTime ) ) == XLAL_SUCCESS, XLAL_EFUNC);
+  XLAL_CHECK_LAL( status, XLALExtrapolatePulsarSpinRange( &in->spinRange_midTime, &in->spinRange_refTime, XLALGPSDiff( &tMidGPS, &(&in->spinRange_refTime)->refTime ) ) == XLAL_SUCCESS, XLAL_EFUNC);
 
 
   /* set wings of sfts to be read */
@@ -2911,7 +2911,7 @@ void PrintSemiCohCandidates(LALStatus *status,
     fkdotIn[0] = in->list[k].freq;
     fkdotIn[1] = in->list[k].fdot;
 
-    TRY( LALExtrapolatePulsarSpins ( status->statusPtr, fkdotOut, refTime, fkdotIn, in->refTime), status);
+    XLAL_CHECK_LAL( status, XLALExtrapolatePulsarSpins( fkdotOut, fkdotIn, XLALGPSDiff( &refTime, &in->refTime ) ) == XLAL_SUCCESS, XLAL_EFUNC);
 
     fprintf(fp, "%f %f %f %e %f\n", fkdotOut[0], in->list[k].alpha, in->list[k].delta,
 	    fkdotOut[1], in->list[k].significance);
@@ -2955,7 +2955,7 @@ void PrintSemiCohCandidates(LALStatus *status,
       fkdot[0] = f0 + k*deltaF;
 
       /* propagate fkdot back to reference-time  */
-      TRY ( LALExtrapolatePulsarSpins (status->statusPtr, fkdot, refTime, fkdot, thisPoint->refTime ), status );
+      XLAL_CHECK_LAL ( status, XLALExtrapolatePulsarSpins( fkdot, fkdot, XLALGPSDiff( &refTime, &thisPoint->refTime  ) ) == XLAL_SUCCESS, XLAL_EFUNC );
 
       fprintf(fp, "%.13g %.7g %.7g %.5g %.6g\n", fkdot[0], alpha, delta, fkdot[1], 2*in->data->data[k]);
     }
@@ -3355,7 +3355,7 @@ void ComputeStackNoiseAndAMWeights( LALStatus *status,
     out->data[iStack] = 0;
 
     multiAMcoef = NULL;
-    TRY ( LALGetMultiAMCoeffs ( status->statusPtr, &multiAMcoef, multDetStates, skypos), status);
+    XLAL_CHECK_LAL ( status, ( multiAMcoef = XLALComputeMultiAMCoeffs ( multDetStates, NULL, skypos) ) != NULL, XLAL_EFUNC);
 
 
     for ( iIFO = 0; iIFO < numifo; iIFO++) {

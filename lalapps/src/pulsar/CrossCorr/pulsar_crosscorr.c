@@ -608,8 +608,8 @@ int main(int argc, char *argv[]){
       spinRange_refTime.fkdotBand[2] = uvar_fddotBand;
     }
 
-    LAL_CALL( LALExtrapolatePulsarSpinRange( &status, &spinRange_startTime, firstTimeStamp, &spinRange_refTime), &status); 
-    LAL_CALL( LALExtrapolatePulsarSpinRange( &status, &spinRange_endTime, lastTimeStamp, &spinRange_refTime), &status); 
+    XLAL_CHECK_MAIN( XLALExtrapolatePulsarSpinRange( &spinRange_startTime, &spinRange_refTime, XLALGPSDiff( &firstTimeStamp, &spinRange_refTime.refTime ) ) == XLAL_SUCCESS, XLAL_EFUNC); 
+    XLAL_CHECK_MAIN( XLALExtrapolatePulsarSpinRange( &spinRange_endTime, &spinRange_refTime, XLALGPSDiff( &lastTimeStamp, &spinRange_refTime.refTime ) ) == XLAL_SUCCESS, XLAL_EFUNC); 
 
     startTime_freqLo = spinRange_startTime.fkdot[0]; /* lowest search freq at start time */
     startTime_freqHi = startTime_freqLo + spinRange_startTime.fkdotBand[0]; /* highest search freq. at start time*/
@@ -690,8 +690,8 @@ int main(int argc, char *argv[]){
       tmpSFT = &(sftTail->sft);
       tmpPSD = &(psdTail->psd);
     
-      LAL_CALL( LALNormalizeSFT (&status, tmpPSD,
-				 tmpSFT, uvar_blocksRngMed),	&status);
+      XLAL_CHECK_MAIN( XLALNormalizeSFT (tmpPSD,
+                                         tmpSFT, uvar_blocksRngMed, 0.0) == XLAL_SUCCESS, XLAL_EFUNC);
 
       LAL_CALL( AddREAL8toList(&status, &freqHead, &freqTail), &status);
 
@@ -1334,9 +1334,6 @@ void GetBeamInfo(LALStatus *status,
   while (sft) {
 
     DetectorStateSeries *detState = NULL;
-    AMcoef = (AMCoeffs *)LALCalloc(1, sizeof(AMCoeffs));
-    AMcoef->a = XLALCreateREAL4Vector(1);
-    AMcoef->b = XLALCreateREAL4Vector(1);
 
     /* get midpoint of sft */
     tgps = sft->sft.epoch;
@@ -1349,12 +1346,11 @@ void GetBeamInfo(LALStatus *status,
        mid-time of the SFTs -- should not make any 
        difference */
 
-    LALGetDetectorStates ( status->statusPtr, &detState, ts, det,
-			   edat, tOffs);
+    detState = XLALGetDetectorStates ( ts, det, edat, tOffs );
 
     detState->detector = *det;
 
-    LALNewGetAMCoeffs ( status->statusPtr, AMcoef, detState, skypos);
+    AMcoef = XLALComputeAMCoeffs ( detState, skypos);
     thisVel.data = detState->data[0].vDetector;
     thisPos.data = detState->data[0].rDetector;
 

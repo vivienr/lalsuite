@@ -480,7 +480,7 @@ int main(int argc, char *argv[]){
     }
 
     /* normalize sfts */
-    LAL_CALL( LALNormalizeSFTVect (&status, inputSFTs, uvar_blocksRngMed), &status);
+    XLAL_CHECK_MAIN( XLALNormalizeSFTVect( inputSFTs, uvar_blocksRngMed, 0.0 ) == XLAL_SUCCESS, XLAL_EFUNC);
 
   } /* end of sft reading block */
   
@@ -541,13 +541,8 @@ int main(int argc, char *argv[]){
     velPar.vTol = ACCURACY; /* irrelevant */
     velPar.edat = NULL; 
 
-    /*  ephemeris info */
-    edat = (EphemerisData *)LALCalloc(1, sizeof(EphemerisData));
-   (*edat).ephiles.earthEphemeris = uvar_earthEphemeris;
-   (*edat).ephiles.sunEphemeris = uvar_sunEphemeris;
-
     /* read in ephemeris data */
-    LAL_CALL( LALInitBarycenter( &status, edat), &status);
+    XLAL_CHECK_MAIN( ( edat = XLALInitBarycenter( uvar_earthEphemeris, uvar_sunEphemeris ) ) != NULL, XLAL_EFUNC);
     velPar.edat = edat;
 
     /* calculate average velocity for each SFT duration */    
@@ -1064,9 +1059,7 @@ int main(int argc, char *argv[]){
   LALFree(weightsV.data);
   LALFree(weightsNoise.data);  
 
-  LALFree(edat->ephemE);
-  LALFree(edat->ephemS);
-  LALFree(edat);
+  XLALDestroyEphemerisData(edat);
 
   LALFree(skyAlpha);
   LALFree(skyDelta);
@@ -1507,7 +1500,7 @@ ComputeNoiseWeights  (LALStatus        *status,
     sft = sftVect->data + j;
 
     /* calculate the periodogram */
-    TRY (LALSFTtoPeriodogram (status->statusPtr, &periodo, sft), status);
+    XLAL_CHECK_LAL (status, XLALSFTtoPeriodogram (&periodo, sft) == XLAL_SUCCESS, XLAL_EFUNC);
 
     /* calculate the running median */
     inputV.length = lengthSFT;
