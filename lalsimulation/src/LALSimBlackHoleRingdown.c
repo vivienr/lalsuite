@@ -909,8 +909,8 @@ INT4 XLALSimIMREOBGenerateQNMFreqV2fromFinal(COMPLEX16Vector * modefreqs,
     UINT4 l,                  /**<< The l value of the mode in question */
     INT4 m,                   /**<< The m value of the mode in question */
     UINT4 nmodes,              /**<< The number of overtones that should be included (max 8) */
-    REAL8 reomegaqnm,
-    REAL8 imomegaqnm,
+    REAL8 reomegaqnm_nk,
+    REAL8 imomegaqnm_nk,
     INT4 modeqnm
     ) {
 
@@ -2463,8 +2463,8 @@ INT4 XLALSimIMREOBGenerateQNMFreqV2fromFinal(COMPLEX16Vector * modefreqs,
     /* Now get the QNM frequencies from interpolating the above data */
     for (i = 0; i < nmodes; i++) {
         if (modeqnm==(INT4)l*100+m*10+(INT4)i) {
-          modefreqs->data[i] = reomegaqnm;
-          modefreqs->data[i] += I * imomegaqnm;
+          modefreqs->data[i] = reomegaqnm_nk;
+          modefreqs->data[i] += I * imomegaqnm_nk;
           //printf("(%d,%d,%d)\tomega=%g\t1/tau=%g\n",l,m,i,creal(modefreqs->data[i]),cimag(modefreqs->data[i]));
         }else{
           gsl_spline_init(spline, afinallist, reomegaqnm[i], 107);
