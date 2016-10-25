@@ -2879,6 +2879,7 @@ int XLALSimInspiralPNPolarizationWaveforms(
     } /* end loop over time series samples idx */
     return XLAL_SUCCESS;
 }
+/** @} */
 
 /**
  * Given time series for a binary's orbital dynamical variables,
@@ -3903,6 +3904,267 @@ int XLALSimInspiralPrecessingPolarizationWaveformHarmonic(
       break;
   }
   return XLAL_SUCCESS;
+}
+
+/** @} */
+
+/**
+ * @defgroup lalsimulation_inference XLALSimInspiralTransformPrecessingNewInitialConditions()
+ *
+ * @brief Transform Precessing Parameters
+ *
+ * @details Routine for transforming LALInference geometric variables to ChooseWaveform input
+ *
+ * Function to specify the desired orientation of a precessing binary in terms
+ * of several angles and then compute the vector components with respect to
+ * orbital angular momentum as needed to specify binary configuration for
+ * ChooseTDWaveform.
+ *
+ * @anchor lalsiminspiral_orbitelementsJ
+ * @image html lalsiminspiral_orbitelementsJ.svg Representation of input variables.
+ *
+ * ### Input:
+ * * thetaJN is the inclination between total angular momentum (J) and the
+ *   direction of propagation (N=(0,sin(thetaJN),cos(thetaJN)))
+ *   @note This choice has been made to made so that thetaJN -> inclination
+ *   for \f$ S_{1}+S_{2} \to 0\f$.
+ * * theta1 and theta2 are the inclinations of \f$S_{1,2}\f$
+ *   measured from the Newtonian orbital angular momentum (\f$L_{N}\f$).
+ * * phi12 is the difference in azimuthal angles of \f$S_{1,2}\f$.
+ * * chi1, chi2 are the dimensionless spin magnitudes ( chi1, chi2 \f$\le 1\f$)
+ * * phiJL is the azimuthal angle of \f$L_{N}\f$ on its cone about J.
+ * * m1, m2, f_ref, phiref are the component masses and reference GW frequency
+     and orbital phase, they are needed to compute the magnitude of
+     \f$L_{N}\f$, and thus J.
+ *
+ * ### Output:
+ * incl - inclination angle of N relative to L_N (N=(0,sin(incl),cos(incl)))
+ * in the X-Y-Z frame.
+ * x, y, z components \f$S_{1,2}\f$ (unit spin vectors times their
+ * dimensionless spin magnitudes - i.e. they have unit magnitude for
+ * extremal BHs and smaller magnitude for slower spins).
+ * where x-y are rotated by phiRef with respect to X-Y,
+ * i.e. is \f$S_{1}\f$ wrt to x-y is (a,b,0), wrt to X-Y will be
+ * (a cos(phiRef) + b sin (phiRef), )
+ * @note Here the \"total\" angular momentum is computed as
+ * J = \f$L_{N}(1+l_{1PN}) + S_{1} + S_{2}\f$
+ * where \f$L_N\f$ is the Newtonian orbital angular momentum and \f$l_{1PN}\f$
+ * its relative 1PN corrections. In fact, there are
+ * PN corrections to L which contribute to J that are NOT ACCOUNTED FOR
+ * in this function. This is done so to avoid complications with spin-orbit
+ * contributions to L, which would require the full knowledge fo the orbital
+ * motion, not just the evolution of L (see e.g. eq.2.9c of
+ * arXiv:gr-qc/9506022). Also, it is believed that the difference in Jhat
+ * with or without these PN corrections to L is quite small.
+ *
+ * @attention fRef = 0 is not a valid choice. If you will pass fRef=0 into
+ * ChooseWaveform, then here pass in f_min, the starting GW frequency
+ *
+ * UNREVIEWED
+ */
+
+int XLALSimInspiralTransformPrecessingNewInitialConditions(
+		REAL8 *incl,	/**< Inclination angle of L_N (returned) */
+		REAL8 *S1x,	/**< S1 x component (returned) */
+		REAL8 *S1y,	/**< S1 y component (returned) */
+		REAL8 *S1z,	/**< S1 z component (returned) */
+		REAL8 *S2x,	/**< S2 x component (returned) */
+		REAL8 *S2y,	/**< S2 y component (returned) */
+		REAL8 *S2z,	/**< S2 z component (returned) */
+		const REAL8 thetaJN, 	/**< zenith angle between J and N (rad) */
+		const REAL8 phiJL,  	/**< azimuthal angle of L_N on its cone about J (rad) */
+		const REAL8 theta1,  	/**< zenith angle between S1 and LNhat (rad) */
+		const REAL8 theta2,  	/**< zenith angle between S2 and LNhat (rad) */
+		const REAL8 phi12,  	/**< difference in azimuthal angle btwn S1, S2 (rad) */
+		const REAL8 chi1,	/**< dimensionless spin of body 1 */
+		const REAL8 chi2,	/**< dimensionless spin of body 2 */
+		const REAL8 m1_SI,	/**< mass of body 1 (kg) */
+		const REAL8 m2_SI,	/**< mass of body 2 (kg) */
+		const REAL8 fRef,	/**< reference GW frequency (Hz) */
+		const REAL8 phiRef	/**< reference orbital phase */
+		)
+{
+	/* Check that fRef is sane */
+	if( fRef == 0. )
+	{
+		XLALPrintError("XLAL Error - %s: fRef=0 is invalid. Please pass in the starting GW frequency instead.\n", __func__);
+		XLAL_ERROR(XLAL_EINVAL);
+	}
+	if( (chi1<0.) || (chi1>1.) || (chi2<0.) || (chi2>1.) )
+	{
+	  XLALPrintError("XLAL Error - %s: chi1,2=0  must be between 0 and 1, values %8.4f -- %8.4f passed.\n", __func__,chi1,chi2);
+		XLAL_ERROR(XLAL_EINVAL);
+	}
+
+	REAL8 m1, m2, eta, v0, theta0, phi0, Jnorm, tmp1, tmp2;
+	REAL8 Jhatx, Jhaty, Jhatz, LNhx, LNhy, LNhz, Jx, Jy, Jz, Lmag;
+	REAL8 s1hatx,s1haty,s1hatz,s2hatx,s2haty,s2hatz;
+	REAL8 s1x, s1y, s1z, s2x, s2y, s2z;
+
+	/* Starting frame: LNhat is along the z-axis and the unit
+	 * spin vectors are defined from the angles relative to LNhat.
+	 * Note that we put s1hat in the x-z plane, and phi12
+	 * sets the azimuthal angle of s2hat measured from the x-axis.
+	 */
+	LNhx = 0.;
+	LNhy = 0.;
+	LNhz = 1.;
+	/* Spins are given wrt to L,
+         * but still we cannot fill the spin as we do not know
+	 * what will be the relative orientation of L and N.
+         * Note that these spin components are NOT wrt to binary
+	 * separation vector, but wrt to binary separation vector
+	 * at phiref=0.
+	 */
+	s1hatx = sin(theta1)*cos(phiRef);
+	s1haty = sin(theta1)*sin(phiRef);
+	s1hatz = cos(theta1);
+	s2hatx = sin(theta2) * cos(phi12+phiRef);
+	s2haty = sin(theta2) * sin(phi12+phiRef);
+	s2hatz = cos(theta2);
+
+	/* Define several internal variables needed for magnitudes */
+	m1 = m1_SI/LAL_MSUN_SI;
+	m2 = m2_SI/LAL_MSUN_SI;
+	eta=m1*m2/(m1+m2)/(m1+m2);
+	// v parameter at reference point
+	v0 = cbrt( (m1+m2) * LAL_MTSUN_SI *LAL_PI * fRef );
+
+	/* Define S1, S2, J with proper magnitudes */
+	Lmag = XLALSimInspiralLN(m1+m2,eta,v0)*(1+v0*v0*XLALSimInspiralL_2PN(eta));
+	s1x = m1 * m1 * chi1 * s1hatx;
+	s1y = m1 * m1 * chi1 * s1haty;
+	s1z = m1 * m1 * chi1 * s1hatz;
+	s2x = m2 * m2 * chi2 * s2hatx;
+	s2y = m2 * m2 * chi2 * s2haty;
+	s2z = m2 * m2 * chi2 * s2hatz;
+	Jx = s1x + s2x;
+	Jy = s1y + s2y;
+	Jz = Lmag * LNhz + s1z + s2z;
+
+	/* Normalize J to Jhat, find its angles in starting frame */
+	Jnorm = sqrt( Jx*Jx + Jy*Jy + Jz*Jz);
+	Jhatx = Jx / Jnorm;
+	Jhaty = Jy / Jnorm;
+	Jhatz = Jz / Jnorm;
+	theta0 = acos(Jhatz);
+	phi0 = atan2(Jhaty, Jhatx);
+
+	/* Rotation 1: Rotate about z-axis by -phi0 to put Jhat in x-z plane */
+	ROTATEZ(-phi0, LNhx, LNhy, LNhz);
+	ROTATEZ(-phi0, s1hatx, s1haty, s1hatz);
+	ROTATEZ(-phi0, s2hatx, s2haty, s2hatz);
+	//do not need to perform explicitly the rotation on L and J
+	//ROTATEZ(-phi0, Jhatx, Jhaty, Jhatz);
+	//ROTATEZ(-phi0, LNhx, LNhy, LNhz);
+
+	/* Rotation 2: Rotate about new y-axis by -theta0
+	 * to put Jhat along z-axis
+	 */
+	ROTATEY(-theta0, LNhx, LNhy, LNhz);
+	ROTATEY(-theta0, s1hatx, s1haty, s1hatz);
+	ROTATEY(-theta0, s2hatx, s2haty, s2hatz);
+	//do not need to perform explicitly the rotation on J
+	//ROTATEY(-theta0, Jhatx, Jhaty, Jhatz);
+
+	/* Rotation 3: Rotate about new z-axis by phiJL to put L at desired
+	 * azimuth about J. Note that is currently in x-z plane towards -x
+	 * (i.e. azimuth=pi). Hence we rotate about z by phiJL - LAL_PI
+	 */
+	ROTATEZ(phiJL - LAL_PI, LNhx, LNhy, LNhz);
+	ROTATEZ(phiJL - LAL_PI, s1hatx, s1haty, s1hatz);
+	ROTATEZ(phiJL - LAL_PI, s2hatx, s2haty, s2hatz);
+	//do not need to perform explicitly the rotation on J
+	//ROTATEZ(phiJL - LAL_PI, Jhatx, Jhaty, Jhatz);
+
+	/* The cosinus of the angle between L and N is the scalar
+         * product of the two vectors.
+         * We do not need to perform additional rotation to compute it.
+         */
+	REAL8 Nx=0.;
+	REAL8 Ny=sin(thetaJN);
+	REAL8 Nz=cos(thetaJN);
+	*incl=acos(Nx*LNhx+Ny*LNhy+Nz*LNhz); //output
+
+	/* Rotation 4-5: Now J is along z and N in y-z plane, inclined from J
+         * by thetaJN and with >ve component along y.
+         * Now we bring L into the z axis to get spin components.
+	 */
+	REAL8 thetaLJ = acos(LNhz);
+	REAL8 phiL    = atan2(LNhy, LNhx);
+
+	ROTATEZ(-phiL, s1hatx, s1haty, s1hatz);
+	ROTATEZ(-phiL, s2hatx, s2haty, s2hatz);
+	// do not need to perform explicitly the rotations on N,L and J
+	//ROTATEZ(-phiL, Nx, Ny, Nz);
+	//ROTATEZ(-phiL, LNhx, LNhy, LNhz);
+	//ROTATEZ(-phiL, Jhatx, Jhaty, Jhatz);
+
+	ROTATEY(-thetaLJ, s1hatx, s1haty, s1hatz);
+	ROTATEY(-thetaLJ, s2hatx, s2haty, s2hatz);
+	// do not need to perform explicitly the rotations on N,L and J
+	//ROTATEY(-thetaLJ, Nx, Ny, Nz);
+	//ROTATEY(-thetaLJ, LNhx, LNhy, LNhz);
+	//ROTATEY(-thetaLJ, Jhatx, Jhaty, Jhatz);
+
+	/* Rotation 6: Now L is along z and we have to bring N
+	 * in the y-z plane with >ve y components.
+	 */
+	REAL8 phiN = atan2(Ny, Nx);
+	//Note the extra -phiRef here:
+        // output spins must be given wrt to two body separations
+        // which are rigidly rotated with spins
+	ROTATEZ(LAL_PI/2.-phiN-phiRef, s1hatx, s1haty, s1hatz);
+	ROTATEZ(LAL_PI/2.-phiN-phiRef, s2hatx, s2haty, s2hatz);
+	// do not need to perform explicitly the rotations on L, J and N
+	//ROTATEZ(LAL_PI/2.-phiN, LNhx, LNhy, LNhz);
+	//ROTATEZ(LAL_PI/2.-phiN, Nx, Ny, LNz);
+	//ROTATEZ(LAL_PI/2.-phiN, Jhatx, Jhaty, Jhatz);
+
+	/* Set pointers to rotated spin vectors */
+	*S1x = s1hatx*chi1;
+	*S1y = s1haty*chi1;
+	*S1z = s1hatz*chi1;
+	*S2x = s2hatx*chi2;
+	*S2y = s2haty*chi2;
+	*S2z = s2hatz*chi2;
+
+	//Uncomment the following lines for a check of the rotation
+	/*printf("*****************************************\n");
+	printf("** Check of TransformPrec...Conditions **\n");
+	printf("*****************************************\n");
+	//Rot 1:
+	ROTATEZ(-phi0, Jhatx, Jhaty, Jhatz);
+	//Rot 2:
+	ROTATEY(-theta0, Jhatx, Jhaty, Jhatz);
+	//Rot 3:
+	ROTATEZ(phiJL - LAL_PI, Jhatx, Jhaty, Jhatz);
+	//Rot 4:
+	ROTATEZ(-phiL, Nx, Ny, Nz);
+	ROTATEZ(-phiL, LNhx, LNhy, LNhz);
+	ROTATEZ(-phiL, Jhatx, Jhaty, Jhatz);
+	//Rot 5:
+	ROTATEY(-thetaLJ, Nx, Ny, Nz);
+	ROTATEY(-thetaLJ, LNhx, LNhy, LNhz);
+	ROTATEY(-thetaLJ, Jhatx, Jhaty, Jhatz);
+	//Rot 6:
+	ROTATEZ(LAL_PI/2.-phiN, Nx, Ny, Nz);
+	ROTATEZ(LAL_PI/2.-phiN, LNhx, LNhy, LNhz);
+	ROTATEZ(LAL_PI/2.-phiN, Jhatx, Jhaty, Jhatz);
+	printf("LNhat: %12.4e  %12.4e  %12.4e\n",LNhx,LNhy,LNhz);
+	printf("       %12.4e  %12.4e  %12.4e\n",0.,0.,1.);
+	printf("N:     %12.4e  %12.4e  %12.4e\n",Nx,Ny,Nz);
+	printf("       %12.4e  %12.4e  %12.4e\n",0.,sin(*incl),cos(*incl));
+	printf("J.Lhat  i: %12.4e f: %12.4e\n",Jz,Jnorm*Jhatz);
+	printf("S1.L    i: %12.4e f: %12.4e\n",chi1*cos(theta1),*S1z);
+	printf("S2.L    i: %12.4e f: %12.4e\n",chi2*cos(theta2),*S2z);
+	printf("S1.S2   i: %12.4e f: %12.4e\n",chi1*chi2*(sin(theta1)*sin(theta2)*cos(phi12)+cos(theta1)*cos(theta2)),(*S1x)*(*S2x)+(*S1y)*(*S2y)+(*S1z)*(*S2z));
+	printf("S1.J i: %12.4e f: %12.4e\n",chi1*(sin(theta1)*Jx+cos(theta1)*Jz),Jnorm*((*S1x)*Jhatx+(*S1y)*Jhaty+(*S1z)*Jhatz));
+	printf("S2.J i: %12.4e f: %12.4e\n",chi2*(sin(theta2)*(cos(phi12)*Jx+sin(phi12)*Jy)+cos(theta2)*Jz),Jnorm*((*S2x)*Jhatx+(*S2y)*Jhaty+(*S2z)*Jhatz));
+	printf("Jhat.Nhat i: %12.4e f: %12.4e\n",cos(thetaJN),Jhatx*Nx+Jhaty*Ny+Jhatz*Nz);
+	printf("Norm Jhat: %12.4e  norm N: %12.4e\n",Jhatx*Jhatx+Jhaty*Jhaty+Jhatz*Jhatz,Nx*Nx+Ny*Ny+Nz*Nz);
+	printf("*****************************************\n");*/
+	return XLAL_SUCCESS;
 }
 
 /** @} */
@@ -5141,6 +5403,7 @@ REAL8 XLALSimInspiralfLow2fStart(REAL8 fLow, INT4 ampOrder, INT4 approximant)
 }
 
 /**
+ * @deprecated Use XLALSimInspiralChooseTDWaveform() instead
  * Chooses between different approximants when requesting a waveform to be generated
  * For spinning waveforms, all known spin effects up to given PN order are included
  * Returns the waveform in the time domain.
@@ -5727,6 +5990,7 @@ int XLALSimInspiralChooseTDWaveformOLD(
 }
 
 /**
+ * @deprecated Use XLALSimInspiralChooseFDWaveform() instead
  * Chooses between different approximants when requesting a waveform to be generated
  * For spinning waveforms, all known spin effects up to given PN order are included
  * Returns the waveform in the frequency domain.

@@ -129,6 +129,11 @@ extern "C" {
  * (@p S2x,@p S2y, @p S2z), are defined in the source-frame.  Therefore,
  * when the spins are aligned with the orbital angular momentum,
  * @p S1x = @p S1y = @p S2x = @p S2y = 0.
+ * @note
+ * The spin components transverse to the orbital angular momentum @b L at the
+ * reference gravitational wave frequency @p f_ref are given with respect to
+ * the triad x-y-z, with x-axis parallel to the vector pointing from
+ * body 2 to body 1.
  *
  * The wave frame is defined by the Z-axis, which points toward the Earth,
  * and some reference direction, defining the X-axis.  The X-Y-plane is
@@ -137,49 +142,46 @@ extern "C" {
  * The plus- and cross-polarizations of the gravitational waveform are defined
  * in this wave frame.  Specifically, if \f$ h^{ij} \f$ is computed in the
  * source frame, then
- * \f[ h_+ = \frac12 ( \hat{p}_i \hat{p}_j - \hat{q}_i \hat{q}_j ) h^{ij} \f]
+ * \f[ h_+ = \frac12 ( \hat{P}_i \hat{P}_j - \hat{Q}_i \hat{Q}_j ) h^{ij} \f]
  * and
- * \f[ h_\times = \frac12 ( \hat{p}_i \hat{q}_j + \hat{q}_i \hat{p}_j ) h^{ij} \f]
- * where \f$ \hat{p}_i \f$ are the components of the unit vector pointing
- * along the X-axis and \f$ \hat{q}_i \f$ are the components of the unit
+ * \f[ h_\times = \frac12 ( \hat{P}_i \hat{Q}_j + \hat{Q}_i \hat{P}_j ) h^{ij} \f]
+ * where \f$ \hat{P}_i \f$ are the components of the unit vector pointing
+ * along the X-axis and \f$ \hat{Q}_i \f$ are the components of the unit
  * vector pointing along the Y-axis.
  *
  * The orbital elements are:
  *
  *  * Inclination (&iota;).  The angle between the Z-axis of the wave frame
  *    and the z-axis of the source frame.
+ *  * Reference phase (&Phi;) : The angle on the plane of the orbit from the
+ *    line of ascending nodes to the position of body 1
+ *    (x axis in our convention).
+ *    ascending node @htmlonly &#x260A; @endhtmlonly.
  *  * Longitude of ascending node (&Omega;).  The angle on the plane of the
  *    sky from the X-axis of the reference direction in the wave frame to the
  *    ascending node @htmlonly &#x260A; @endhtmlonly.
  *    @note This angle is entirely degenerate with the polarization angle &psi;.
- *  * Argument of pariapsis (&omega;).  The angle on the orbital plane from
- *    the ascending node @htmlonly &#x260A; @endhtmlonly to the x-axis in the
- *    source frame.
- *  * True anomaly (&phi;).  The angle along the orbital plane from the
- *    periapsis to the present position of the orbiting body (body 1).
- *    The reference phase @p phiRef is @e twice the true anomaly of body 1
- *    at the moment when the system reaches the gravitational wave frequency
- *    @p f_ref which is @e twice the orbital frequency.
- *
- * @attention
- * At present, eccentric orbits are not fully supported, and the x-axis
- * of the source frame is defined to be the ascending node
- * @htmlonly &#x260A; @endhtmlonly.  Therefore, &omega;=0 by definition.
- *
- * @attention
- * In the present implementation, the reference direction in the wave frame,
- * i.e., the X-axis, is defined to be the ascending node
- * @htmlonly &#x260A; @endhtmlonly.  Therefore, &Omega;=0 by definition.  At
- * present, then, the X-axis and the x-axis coincide.
+ *    @attention
+ *    In the present implementation, the Y-axis in the wave frame is defined to
+ *    be the ascending node @htmlonly &#x260A; @endhtmlonly.
+ *    Therefore, &Omega;=&pi; /2 by definition with the consequences that
+ *    the z axis lies in the X-Z plane, with positive projection over X.
+ *    Another consequence is that the Z axis lies in the plane spanned by z
+ *    and the axis perpendicular both z and the line of ascending nodes
+ *    (i.e. y at &Phi;=0) with positive projection over the latter.
+ *  * True anomaly (&delta;). The angle along the orbital plane from the
+ *    periapsis to the present position of the orbiting body 1
+ *    (it only applies to eccentric orbits).
  *
  * @sa
- * The coordinate systems used here follow those of
- * > Clifford M. Will and Alan G. Wiseman
- * > "Gravitational radiation from compact binary systems: Gravitational
- * > waveforms and energy loss to second post-Newtonian order"
- * > Phys. Rev. D @b 54, 4813 (1996)
- * > http://dx.doi.org/10.1103/PhysRevD.54.4813
- *
+ * The coordinate systems used here follows those of
+ * > L. Blanchet, G. Faye, B. R. Iyer and S. Sinha,
+ * > "The Third post-Newtonian gravitational wave polarisations and
+ * > associated spherical harmonic modes for inspiralling compact binaries
+ * > in quasi-circular orbits"
+ * > Class. Quant. Grav. @b 25, (2008) 165003
+ * > Erratum: [Class. Quant. Grav. @b 29, (2012) 239501,
+ * > arXiv:0802.1249 [gr-qc].
  */
 
 /**
@@ -509,7 +511,7 @@ int XLALSimInspiralTDConditionStage1(REAL8TimeSeries *hplus, REAL8TimeSeries *hc
 int XLALSimInspiralTDConditionStage2(REAL8TimeSeries *hplus, REAL8TimeSeries *hcross, REAL8 f_min, REAL8 f_max);
 
 /* routines for transforming initial conditions of precessing waveforms */
-int XLALSimInspiralTransformPrecessingNewInitialConditions(REAL8 *incl, REAL8 *S1x, REAL8 *S1y, REAL8 *S1z, REAL8 *S2x, REAL8 *S2y, REAL8 *S2z, const REAL8 thetaJN, const REAL8 phiJL, const REAL8 theta1, const REAL8 theta2, const REAL8 phi12, const REAL8 chi1, const REAL8 chi2, const REAL8 m1, const REAL8 m2, const REAL8 fRef);
+int XLALSimInspiralTransformPrecessingNewInitialConditions(REAL8 *incl, REAL8 *S1x, REAL8 *S1y, REAL8 *S1z, REAL8 *S2x, REAL8 *S2y, REAL8 *S2z, const REAL8 thetaJN, const REAL8 phiJL, const REAL8 theta1, const REAL8 theta2, const REAL8 phi12, const REAL8 chi1, const REAL8 chi2, const REAL8 m1, const REAL8 m2, const REAL8 fRef, REAL8 phiRef);
 int XLALSimInspiralTransformPrecessingObsoleteInitialConditions(REAL8 *incl, REAL8 *S1x, REAL8 *S1y, REAL8 *S1z, REAL8 *S2x, REAL8 *S2y, REAL8 *S2z, REAL8 thetaJN, REAL8 phiJL, REAL8 theta1, REAL8 theta2, REAL8 phi12, REAL8 chi1, REAL8 chi2, REAL8 m1, REAL8 m2, REAL8 fRef);
 
 /* routines for generating PN modes based on orbital data */

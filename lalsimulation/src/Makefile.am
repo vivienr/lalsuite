@@ -223,6 +223,7 @@ EXTRA_DIST = \
 	lalsimburst_sinegaussianexamples.svg \
 	lalsimburst_stringcuspexamples.svg \
 	lalsiminspiral_orbitelements.svg \
+	lalsiminspiral_orbitelementsJ.svg \
 	lalsimulation_inject.svg \
 	$(NOISEPSDFILES) \
 	$(EOSDATAFILES)
