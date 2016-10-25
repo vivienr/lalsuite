@@ -2521,7 +2521,7 @@ void LALInferenceInjectionToVariables(SimInspiralTable *theEventTable, LALInfere
 
   REAL8 injGPSTime = XLALGPSGetREAL8(&(theEventTable->geocent_end_time));
 
-  REAL8 dist = theEventTable->distance;
+  REAL8 logdist = log(theEventTable->distance);
   REAL8 cosinclination = cos(theEventTable->inclination);
   REAL8 phase = theEventTable->coa_phase;
   REAL8 dec = theEventTable->latitude;
@@ -2538,7 +2538,7 @@ void LALInferenceInjectionToVariables(SimInspiralTable *theEventTable, LALInfere
   LALInferenceAddVariable(vars, "chirpmass", &chirpmass, LALINFERENCE_REAL8_t, LALINFERENCE_PARAM_FIXED);
   LALInferenceAddVariable(vars, "q", &q, LALINFERENCE_REAL8_t, LALINFERENCE_PARAM_FIXED);
   LALInferenceAddVariable(vars, "time", &injGPSTime, LALINFERENCE_REAL8_t, LALINFERENCE_PARAM_FIXED);
-  LALInferenceAddVariable(vars, "distance", &dist, LALINFERENCE_REAL8_t, LALINFERENCE_PARAM_FIXED);
+  LALInferenceAddVariable(vars, "logdistance", &logdist, LALINFERENCE_REAL8_t, LALINFERENCE_PARAM_FIXED);
   LALInferenceAddVariable(vars, "costheta_jn", &cosinclination, LALINFERENCE_REAL8_t, LALINFERENCE_PARAM_FIXED);
   LALInferenceAddVariable(vars, "polarisation", &(psi), LALINFERENCE_REAL8_t, LALINFERENCE_PARAM_FIXED);
   LALInferenceAddVariable(vars, "phase", &phase, LALINFERENCE_REAL8_t, LALINFERENCE_PARAM_FIXED);

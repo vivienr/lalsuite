@@ -753,8 +753,8 @@ XLALSimIMREOBNRv2Generator(
               const REAL8       distance,
               const REAL8       inclination,
               const int         higherModeFlag,
-              REAL8 omegaqnm,
-              REAL8 tauqnm,
+              REAL8 reomegaqnm,
+              REAL8 imomegaqnm,
               INT4 modeqnm
               )
 {
@@ -961,7 +961,7 @@ XLALSimIMREOBNRv2Generator(
      modeL = lmModes[currentMode][0];
      modeM = lmModes[currentMode][1];
      /* Get QNM frequencies */
-     xlalStatus = XLALSimIMREOBGenerateQNMFreqV2( modefreqs, mass1, mass2, NULL, NULL, modeL, modeM, 3, EOBNRv2, omegaqnm, tauqnm, modeqnm);
+     xlalStatus = XLALSimIMREOBGenerateQNMFreqV2( modefreqs, mass1, mass2, NULL, NULL, modeL, modeM, 3, EOBNRv2, reomegaqnm, imomegaqnm, modeqnm);
      if ( xlalStatus != XLAL_SUCCESS )
      {
        XLALDestroyCOMPLEX16Vector( modefreqs );
@@ -1573,7 +1573,7 @@ XLALSimIMREOBNRv2Generator(
      rdMatchPoint->data[1] -= fmod( rdMatchPoint->data[1], dt/m );
 
      xlalStatus = XLALSimIMREOBHybridAttachRingdown(sigReHi, sigImHi,
-                   modeL, modeM, dt, mass1, mass2, 0, 0, 0, 0, 0, 0, &tVecHi, rdMatchPoint, EOBNRv2, omegaqnm, tauqnm, modeqnm);
+                   modeL, modeM, dt, mass1, mass2, 0, 0, 0, 0, 0, 0, &tVecHi, rdMatchPoint, EOBNRv2, reomegaqnm, imomegaqnm, modeqnm);
      if (xlalStatus != XLAL_SUCCESS )
      {
        XLALDestroyREAL8Vector( rdMatchPoint );
@@ -1730,14 +1730,14 @@ XLALSimIMREOBNRv2AllModes(
               const REAL8       fLower,     /**<< Starting frequency (in Hz) */
               const REAL8       distance,   /**<< Distance to source (in metres) */
               const REAL8       inclination, /**<< Inclination of the source (in radians) */
-              REAL8 omegaqnm,
-              REAL8 tauqnm,
+              REAL8 reomegaqnm,
+              REAL8 imomegaqnm,
               INT4 modeqnm
               )
 {
 
   if ( XLALSimIMREOBNRv2Generator(hplus, hcross, NULL, phiC, deltaT, m1SI, m2SI,
-              fLower, distance, inclination, 1 , omegaqnm, tauqnm, modeqnm) == XLAL_FAILURE )
+              fLower, distance, inclination, 1 , reomegaqnm, imomegaqnm, modeqnm) == XLAL_FAILURE )
   {
     XLAL_ERROR( XLAL_EFUNC );
   }

@@ -1223,8 +1223,8 @@ LALInferenceModel *LALInferenceInitCBCModel(LALInferenceRunState *state) {
 
   }
   if(LALInferenceGetProcParamVal(commandLine,"--QNM")){
-    LALInferenceRegisterUniformVariableREAL8(state, model->params, "omegaqnm", 1.0, 0.1, 2.0, LALINFERENCE_PARAM_LINEAR);
-    LALInferenceRegisterUniformVariableREAL8(state, model->params, "tauqnm", 0.5, 0.01, 1.0, LALINFERENCE_PARAM_LINEAR);
+    LALInferenceRegisterUniformVariableREAL8(state, model->params, "reomegaqnm", 0.526943, 0.3, 0.8, LALINFERENCE_PARAM_LINEAR);
+    LALInferenceRegisterUniformVariableREAL8(state, model->params, "imomegaqnm", 0.0812686, 0.06, 0.095, LALINFERENCE_PARAM_LINEAR);
     INT4 modeqnm=220;
     ppt=LALInferenceGetProcParamVal(commandLine,"--modeqnm");
     if(ppt) modeqnm=atoi(ppt->value);

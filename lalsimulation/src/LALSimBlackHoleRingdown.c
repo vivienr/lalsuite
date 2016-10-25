@@ -15,6 +15,7 @@
 #define EPS LAL_REAL4_EPS
 #define TINY LAL_REAL4_MIN
 #define MAXITER 16384
+#define GRVAL -1
 
 #ifdef __GNUC__
 #define UNUSED __attribute__ ((unused))
@@ -871,8 +872,8 @@ INT4 XLALSimIMREOBGenerateQNMFreqV2(COMPLEX16Vector * modefreqs,
     INT4 m,                   /**<< The m value of the mode in question */
     UINT4 nmodes,             /**<< The number of overtones that should be included (max 8) */
     Approximant approximant,   /**<< The waveform approximant being used */
-    REAL8 omegaqnm,
-    REAL8 tauqnm,
+    REAL8 reomegaqnm,
+    REAL8 imomegaqnm,
     INT4 modeqnm
     ) {
 
@@ -893,7 +894,7 @@ INT4 XLALSimIMREOBGenerateQNMFreqV2(COMPLEX16Vector * modefreqs,
     totalMass = mass1 + mass2;
     finalMass *= totalMass;
 
-    if (XLALSimIMREOBGenerateQNMFreqV2fromFinal(modefreqs, finalMass, finalSpin, l, m, nmodes, omegaqnm, tauqnm, modeqnm) == XLAL_FAILURE) {
+    if (XLALSimIMREOBGenerateQNMFreqV2fromFinal(modefreqs, finalMass, finalSpin, l, m, nmodes, reomegaqnm, imomegaqnm, modeqnm) == XLAL_FAILURE) {
         XLAL_ERROR(XLAL_EFUNC);
     }
 
@@ -908,8 +909,8 @@ INT4 XLALSimIMREOBGenerateQNMFreqV2fromFinal(COMPLEX16Vector * modefreqs,
     UINT4 l,                  /**<< The l value of the mode in question */
     INT4 m,                   /**<< The m value of the mode in question */
     UINT4 nmodes,              /**<< The number of overtones that should be included (max 8) */
-    REAL8 omegaqnm,
-    REAL8 tauqnm,
+    REAL8 reomegaqnm,
+    REAL8 imomegaqnm,
     INT4 modeqnm
     ) {
 
@@ -2462,8 +2463,9 @@ INT4 XLALSimIMREOBGenerateQNMFreqV2fromFinal(COMPLEX16Vector * modefreqs,
     /* Now get the QNM frequencies from interpolating the above data */
     for (i = 0; i < nmodes; i++) {
         if (modeqnm==(INT4)l*100+m*10+(INT4)i) {
-          modefreqs->data[i] = omegaqnm;
-          modefreqs->data[i] += I / tauqnm;
+          modefreqs->data[i] = reomegaqnm;
+          modefreqs->data[i] += I * imomegaqnm;
+          //printf("(%d,%d,%d)\tomega=%g\t1/tau=%g\n",l,m,i,creal(modefreqs->data[i]),cimag(modefreqs->data[i]));
         }else{
           gsl_spline_init(spline, afinallist, reomegaqnm[i], 107);
           gsl_interp_accel_reset(acc);
@@ -2476,7 +2478,7 @@ INT4 XLALSimIMREOBGenerateQNMFreqV2fromFinal(COMPLEX16Vector * modefreqs,
           modefreqs->data[i] += I * gsl_spline_eval(spline, signm * finalSpin, acc);
 
         }
-        //printf("(%d,%d,%d)\tomega=%g\ttau=%g\n",l,m,i,creal(modefreqs->data[i]),1/cimag(modefreqs->data[i]));
+        //printf("Generating: (%d,%d,%d)\tomega=%g\t1/tau=%g\n",l,m,i,creal(modefreqs->data[i]),cimag(modefreqs->data[i]));
         /* Scale by the appropriate mass factors */
         modefreqs->data[i] *= 1. / (finalMass * LAL_MTSUN_SI);
     }

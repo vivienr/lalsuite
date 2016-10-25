@@ -400,8 +400,8 @@ static UNUSED INT4 XLALSimIMREOBHybridAttachRingdown(REAL8Vector * signal1,
     REAL8Vector * matchrange,
                            /**<< Time values chosen as points for performing comb matching */
     Approximant approximant, /**<<The waveform approximant being used */
-    REAL8 omegaqnm,
-    REAL8 tauqnm,
+    REAL8 reomegaqnm,
+    REAL8 imomegaqnm,
     INT4 modeqnm
     ) {
 
@@ -439,7 +439,7 @@ static UNUSED INT4 XLALSimIMREOBHybridAttachRingdown(REAL8Vector * signal1,
         XLAL_ERROR(XLAL_ENOMEM);
     }
 
-    if (XLALSimIMREOBGenerateQNMFreqV2(modefreqs, mass1, mass2, spin1, spin2, l, m, nmodes, approximant, omegaqnm, tauqnm, modeqnm) == XLAL_FAILURE) {
+    if (XLALSimIMREOBGenerateQNMFreqV2(modefreqs, mass1, mass2, spin1, spin2, l, m, nmodes, approximant, reomegaqnm, imomegaqnm, modeqnm) == XLAL_FAILURE) {
         XLALDestroyCOMPLEX16Vector(modefreqs);
         XLAL_ERROR(XLAL_EFUNC);
     }

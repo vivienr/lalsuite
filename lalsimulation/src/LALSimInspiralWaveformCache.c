@@ -142,8 +142,8 @@ int XLALSimInspiralChooseTDWaveformFromCache(
         int phaseO,                             /**< twice post-Newtonian order */
         Approximant approximant,                /**< post-Newtonian approximant to use for waveform production */
         LALSimInspiralWaveformCache *cache,      /**< waveform cache structure; use NULL for no caching */
-        REAL8 omegaqnm,
-        REAL8 tauqnm,
+        REAL8 reomegaqnm,
+        REAL8 imomegaqnm,
         INT4 modeqnm
         )
 {
@@ -154,11 +154,11 @@ int XLALSimInspiralChooseTDWaveformFromCache(
     CacheVariableDiffersBitmask changedParams;
 
     // If nonGRparams are not NULL, don't even try to cache.
-    if ( nonGRparams != NULL || (!cache) )
+    if ( nonGRparams != NULL || (!cache) || modeqnm != 0)
         return XLALSimInspiralChooseTDWaveform(hplus, hcross, phiRef, deltaT,
                 m1, m2, S1x, S1y, S1z, S2x, S2y, S2z, f_min, f_ref, r, i,
                 lambda1, lambda2, waveFlags, nonGRparams, amplitudeO, phaseO,
-                approximant, omegaqnm, tauqnm, modeqnm);
+                approximant, reomegaqnm, imomegaqnm, modeqnm);
 
     // Check which parameters have changed
     changedParams = CacheArgsDifferenceBitmask(cache, phiRef, deltaT,
@@ -187,7 +187,7 @@ int XLALSimInspiralChooseTDWaveformFromCache(
         status = XLALSimInspiralChooseTDWaveform(hplus, hcross, phiRef, deltaT,
                 m1, m2, S1x, S1y, S1z, S2x, S2y, S2z, f_min, f_ref, r, i,
                 lambda1, lambda2, waveFlags, nonGRparams, amplitudeO, phaseO,
-                approximant, omegaqnm, tauqnm, modeqnm);
+                approximant, reomegaqnm, imomegaqnm, modeqnm);
         if (status == XLAL_FAILURE) return status;
 
         // FIXME: Need to add hlms, dynamic variables, etc. in cache
@@ -204,7 +204,7 @@ int XLALSimInspiralChooseTDWaveformFromCache(
             status = XLALSimInspiralChooseTDWaveform(hplus, hcross, phiRef,
                     deltaT, m1, m2, S1x, S1y, S1z, S2x, S2y, S2z, f_min, f_ref,
                     r, i, lambda1, lambda2, waveFlags, nonGRparams,
-                    amplitudeO, phaseO, approximant, omegaqnm, tauqnm, modeqnm);
+                    amplitudeO, phaseO, approximant, reomegaqnm, imomegaqnm, modeqnm);
             if (status == XLAL_FAILURE) return status;
 
             // FIXME: Need to add hlms, dynamic variables, etc. in cache
@@ -220,7 +220,7 @@ int XLALSimInspiralChooseTDWaveformFromCache(
             status = XLALSimInspiralChooseTDWaveform(hplus, hcross, phiRef,
                     deltaT, m1, m2, S1x, S1y, S1z, S2x, S2y, S2z, f_min, f_ref,
                     r, i, lambda1, lambda2, waveFlags, nonGRparams, amplitudeO,
-                    phaseO, approximant, omegaqnm, tauqnm, modeqnm);
+                    phaseO, approximant, reomegaqnm, imomegaqnm, modeqnm);
             if (status == XLAL_FAILURE) return status;
 
             // FIXME: Need to add hlms, dynamic variables, etc. in cache
@@ -235,7 +235,7 @@ int XLALSimInspiralChooseTDWaveformFromCache(
             status = XLALSimInspiralChooseTDWaveform(hplus, hcross, phiRef,
                     deltaT, m1, m2, S1x, S1y, S1z, S2x, S2y, S2z, f_min, f_ref,
                     r, i, lambda1, lambda2, waveFlags, nonGRparams, amplitudeO,
-                    phaseO, approximant, omegaqnm, tauqnm, modeqnm);
+                    phaseO, approximant, reomegaqnm, imomegaqnm, modeqnm);
             if (status == XLAL_FAILURE) return status;
 
             // FIXME: Need to add hlms, dynamic variables, etc. in cache
@@ -283,7 +283,7 @@ int XLALSimInspiralChooseTDWaveformFromCache(
             status = XLALSimInspiralChooseTDWaveform(hplus, hcross, phiRef,
                     deltaT, m1, m2, S1x, S1y, S1z, S2x, S2y, S2z, f_min, f_ref,
                     r, i, lambda1, lambda2, waveFlags, nonGRparams,
-                    amplitudeO, phaseO, approximant, omegaqnm, tauqnm, modeqnm);
+                    amplitudeO, phaseO, approximant, reomegaqnm, imomegaqnm, modeqnm);
             if (status == XLAL_FAILURE) return status;
 
             // FIXME: Need to add hlms, dynamic variables, etc. in cache
@@ -359,7 +359,7 @@ int XLALSimInspiralChooseTDWaveformFromCache(
             status = XLALSimInspiralChooseTDWaveform(hplus, hcross, phiRef,
                     deltaT, m1, m2, S1x, S1y, S1z, S2x, S2y, S2z, f_min, f_ref,
                     r, i, lambda1, lambda2, waveFlags, nonGRparams,
-                    amplitudeO, phaseO, approximant, omegaqnm, tauqnm, modeqnm);
+                    amplitudeO, phaseO, approximant, reomegaqnm, imomegaqnm, modeqnm);
             if (status == XLAL_FAILURE) return status;
 
             // FIXME: Need to add hlms, dynamic variables, etc. in cache
@@ -375,7 +375,7 @@ int XLALSimInspiralChooseTDWaveformFromCache(
             status = XLALSimInspiralChooseTDWaveform(hplus, hcross, phiRef,
                     deltaT, m1, m2, S1x, S1y, S1z, S2x, S2y, S2z, f_min, f_ref,
                     r, i, lambda1, lambda2, waveFlags, nonGRparams, amplitudeO,
-                    phaseO, approximant, omegaqnm, tauqnm, modeqnm);
+                    phaseO, approximant, reomegaqnm, imomegaqnm, modeqnm);
             if (status == XLAL_FAILURE) return status;
 
             // FIXME: Need to add hlms, dynamic variables, etc. in cache
@@ -391,7 +391,7 @@ int XLALSimInspiralChooseTDWaveformFromCache(
             status = XLALSimInspiralChooseTDWaveform(hplus, hcross, phiRef,
                     deltaT, m1, m2, S1x, S1y, S1z, S2x, S2y, S2z, f_min, f_ref,
                     r, i, lambda1, lambda2, waveFlags, nonGRparams, amplitudeO,
-                    phaseO, approximant, omegaqnm, tauqnm, modeqnm);
+                    phaseO, approximant, reomegaqnm, imomegaqnm, modeqnm);
             if (status == XLAL_FAILURE) return status;
 
             // FIXME: Need to add hlms, dynamic variables, etc. in cache
@@ -438,7 +438,7 @@ int XLALSimInspiralChooseTDWaveformFromCache(
         return XLALSimInspiralChooseTDWaveform(hplus, hcross, phiRef, deltaT,
                 m1, m2, S1x, S1y, S1z, S2x, S2y, S2z, f_min, f_ref, r, i,
                 lambda1, lambda2, waveFlags, nonGRparams, amplitudeO, phaseO,
-                approximant, omegaqnm, tauqnm, modeqnm);
+                approximant, reomegaqnm, imomegaqnm, modeqnm);
     }
 }
 

@@ -315,8 +315,8 @@ int XLALSimInspiralChooseTDWaveform(
     int amplitudeO,                             /**< twice post-Newtonian amplitude order */
     int phaseO,                                 /**< twice post-Newtonian order */
     Approximant approximant,                    /**< post-Newtonian approximant to use for waveform production */
-		REAL8 omegaqnm,
-		REAL8 tauqnm,
+		REAL8 reomegaqnm,
+		REAL8 imomegaqnm,
 		INT4 modeqnm
     )
 {
@@ -508,7 +508,7 @@ int XLALSimInspiralChooseTDWaveform(
             /* Call the waveform driver routine */
             // FIXME: need to create a function to take in different modes or produce an error if all modes not given
             ret = XLALSimIMREOBNRv2AllModes(hplus, hcross, phiRef, deltaT,
-                    m1, m2, f_min, r, i, omegaqnm, tauqnm, modeqnm);
+                    m1, m2, f_min, r, i, reomegaqnm, imomegaqnm, modeqnm);
             break;
 
         case EOBNRv2:

@@ -796,13 +796,13 @@ void LALInferenceTemplateXLALSimInspiralChooseWaveform(LALInferenceModel *model)
         break;
     }
   }
-  REAL8 omegaqnm=0.0;
-  REAL8 tauqnm=0.0;
+  REAL8 reomegaqnm=0.0;
+  REAL8 imomegaqnm=0.0;
   INT4 modeqnm=0;
-  if(LALInferenceCheckVariable(model->params, "omegaqnm"))
-    omegaqnm = *(REAL8*) LALInferenceGetVariable(model->params, "omegaqnm");
-  if(LALInferenceCheckVariable(model->params, "tauqnm"))
-    tauqnm = *(REAL8*) LALInferenceGetVariable(model->params, "tauqnm");
+  if(LALInferenceCheckVariable(model->params, "reomegaqnm"))
+    reomegaqnm = *(REAL8*) LALInferenceGetVariable(model->params, "reomegaqnm");
+  if(LALInferenceCheckVariable(model->params, "imomegaqnm"))
+    imomegaqnm = *(REAL8*) LALInferenceGetVariable(model->params, "imomegaqnm");
   if(LALInferenceCheckVariable(model->params, "modeqnm"))
     modeqnm = *(INT4*) LALInferenceGetVariable(model->params, "modeqnm");
 
@@ -871,11 +871,12 @@ model->waveFlags(%d,%d,%d,%d,numreldata),nonGRparams,%d,%d,%d,model->waveformCac
     LALInferenceSetVariable(model->params, "time", &instant);
 
   } else {
+    //printf("Requesting: (%d)\tomega=%g\t1/tau=%g\n",modeqnm,omegaqnm,imomegaqnm);
     XLAL_TRY(ret=XLALSimInspiralChooseTDWaveformFromCache(&hplus, &hcross, phi0, deltaT,
             m1*LAL_MSUN_SI, m2*LAL_MSUN_SI, spin1x, spin1y, spin1z,
             spin2x, spin2y, spin2z, f_start, f_ref, distance,
             inclination, lambda1, lambda2, model->waveFlags, nonGRparams,
-            amporder, order, approximant,model->waveformCache, omegaqnm, tauqnm, modeqnm), errnum);
+            amporder, order, approximant,model->waveformCache, reomegaqnm, imomegaqnm, modeqnm), errnum);
     /* if the waveform failed to generate, fill the buffer with zeros
      * so that the previous waveform is not left there
      */
