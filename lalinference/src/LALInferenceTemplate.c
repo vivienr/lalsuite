@@ -796,15 +796,25 @@ void LALInferenceTemplateXLALSimInspiralChooseWaveform(LALInferenceModel *model)
         break;
     }
   }
-  REAL8 reomegaqnm=0.0;
-  REAL8 imomegaqnm=0.0;
-  INT4 modeqnm=0;
-  if(LALInferenceCheckVariable(model->params, "reomegaqnm"))
-    reomegaqnm = *(REAL8*) LALInferenceGetVariable(model->params, "reomegaqnm");
-  if(LALInferenceCheckVariable(model->params, "imomegaqnm"))
-    imomegaqnm = *(REAL8*) LALInferenceGetVariable(model->params, "imomegaqnm");
-  if(LALInferenceCheckVariable(model->params, "modeqnm"))
-    modeqnm = *(INT4*) LALInferenceGetVariable(model->params, "modeqnm");
+  REAL8 reomegaqnm_a=0.0;
+  REAL8 imomegaqnm_a=0.0;
+  INT4 modeqnm_a=0;
+  REAL8 reomegaqnm_b=0.0;
+  REAL8 imomegaqnm_b=0.0;
+  INT4 modeqnm_b=0;
+  if(LALInferenceCheckVariable(model->params, "reomegaqnm_a"))
+    reomegaqnm_a = *(REAL8*) LALInferenceGetVariable(model->params, "reomegaqnm_a");
+  if(LALInferenceCheckVariable(model->params, "imomegaqnm_a"))
+    imomegaqnm_a = *(REAL8*) LALInferenceGetVariable(model->params, "imomegaqnm_a");
+  if(LALInferenceCheckVariable(model->params, "modeqnm_a"))
+    modeqnm_a = *(INT4*) LALInferenceGetVariable(model->params, "modeqnm_a");
+  if(LALInferenceCheckVariable(model->params, "reomegaqnm_b"))
+    reomegaqnm_b = *(REAL8*) LALInferenceGetVariable(model->params, "reomegaqnm_b");
+  if(LALInferenceCheckVariable(model->params, "imomegaqnm_b"))
+    imomegaqnm_b = *(REAL8*) LALInferenceGetVariable(model->params, "imomegaqnm_b");
+  if(LALInferenceCheckVariable(model->params, "modeqnm_b"))
+    modeqnm_b = *(INT4*) LALInferenceGetVariable(model->params, "modeqnm_b");
+
 
   /* ==== Call the waveform generator ==== */
   if(model->domain == LAL_SIM_DOMAIN_FREQUENCY) {
@@ -876,7 +886,7 @@ model->waveFlags(%d,%d,%d,%d,numreldata),nonGRparams,%d,%d,%d,model->waveformCac
             m1*LAL_MSUN_SI, m2*LAL_MSUN_SI, spin1x, spin1y, spin1z,
             spin2x, spin2y, spin2z, f_start, f_ref, distance,
             inclination, lambda1, lambda2, model->waveFlags, nonGRparams,
-            amporder, order, approximant,model->waveformCache, reomegaqnm, imomegaqnm, modeqnm), errnum);
+            amporder, order, approximant,model->waveformCache, reomegaqnm_a, imomegaqnm_a, modeqnm_a, reomegaqnm_b, imomegaqnm_b, modeqnm_b), errnum);
     /* if the waveform failed to generate, fill the buffer with zeros
      * so that the previous waveform is not left there
      */
@@ -1350,7 +1360,7 @@ model->waveFlags(%d,%d,%d,%d,numreldata),nonGRparams,%d,%d,%d,model->waveformCac
                                                               m1*LAL_MSUN_SI, m2*LAL_MSUN_SI, spin1x, spin1y, spin1z,
                                                               spin2x, spin2y, spin2z, f_start, f_ref, distance,
                                                               inclination, lambda1, lambda2, model->waveFlags, nonGRparams,
-                                                              amporder, order, approximant,model->waveformCache, 0.0, 0.0, 0), errnum);
+                                                              amporder, order, approximant,model->waveformCache, 0.0, 0.0, 0, 0.0, 0.0, 0), errnum);
         /* if the waveform failed to generate, fill the buffer with zeros
          * so that the previous waveform is not left there
          */

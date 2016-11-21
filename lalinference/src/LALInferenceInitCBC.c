@@ -1223,12 +1223,18 @@ LALInferenceModel *LALInferenceInitCBCModel(LALInferenceRunState *state) {
 
   }
   if(LALInferenceGetProcParamVal(commandLine,"--QNM")){
-    LALInferenceRegisterUniformVariableREAL8(state, model->params, "reomegaqnm", 0.526943, 0.3, 0.8, LALINFERENCE_PARAM_LINEAR);
-    LALInferenceRegisterUniformVariableREAL8(state, model->params, "imomegaqnm", 0.0812686, 0.06, 0.095, LALINFERENCE_PARAM_LINEAR);
-    INT4 modeqnm=220;
-    ppt=LALInferenceGetProcParamVal(commandLine,"--modeqnm");
-    if(ppt) modeqnm=atoi(ppt->value);
-    LALInferenceAddVariable(model->params, "modeqnm", &modeqnm, LALINFERENCE_INT4_t, LALINFERENCE_PARAM_FIXED);
+    LALInferenceRegisterUniformVariableREAL8(state, model->params, "reomegaqnm_a", 0.526943, 0.3, 0.8, LALINFERENCE_PARAM_LINEAR);
+    LALInferenceRegisterUniformVariableREAL8(state, model->params, "reomegaqnm_b", 0.526943, 0.3, 0.8, LALINFERENCE_PARAM_LINEAR);
+    LALInferenceRegisterUniformVariableREAL8(state, model->params, "imomegaqnm_a", 0.0812686, 0.06, 0.095, LALINFERENCE_PARAM_LINEAR);
+    LALInferenceRegisterUniformVariableREAL8(state, model->params, "imomegaqnm_b", 0.0812686, 0.06, 0.095, LALINFERENCE_PARAM_LINEAR);
+    INT4 modeqnm_a=220;
+    INT4 modeqnm_b=330;
+    ppt=LALInferenceGetProcParamVal(commandLine,"--modeqnm_a");
+    if(ppt) modeqnm_a=atoi(ppt->value);
+    ppt=LALInferenceGetProcParamVal(commandLine,"--modeqnm_b");
+    if(ppt) modeqnm_b=atoi(ppt->value);
+    LALInferenceAddVariable(model->params, "modeqnm_a", &modeqnm_a, LALINFERENCE_INT4_t, LALINFERENCE_PARAM_FIXED);
+    LALInferenceAddVariable(model->params, "modeqnm_b", &modeqnm_b, LALINFERENCE_INT4_t, LALINFERENCE_PARAM_FIXED);
   }
 
   LALSimInspiralSpinOrder spinO = LAL_SIM_INSPIRAL_SPIN_ORDER_ALL;

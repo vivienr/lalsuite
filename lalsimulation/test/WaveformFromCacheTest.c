@@ -64,7 +64,7 @@ int main(void) {
     s1 = clock();
     ret = XLALSimInspiralChooseTDWaveform(&hplus, &hcross, phiref1, dt, m1, m2,
         s1x, s1y, s1z, s2x, s2y, s2z, f_min, f_ref, dist1, inc1,
-        lambda1, lambda2, NULL, NULL, ampO, phaseO, approx, 0.0, 0.0, 0);
+        lambda1, lambda2, NULL, NULL, ampO, phaseO, approx, 0.0, 0.0, 0, 0.0, 0.0, 0);
     e1 = clock();
     diff1 = (double) (e1 - s1) / CLOCKS_PER_SEC;
     if( ret == XLAL_FAILURE )
@@ -74,7 +74,7 @@ int main(void) {
     s2 = clock();
     ret = XLALSimInspiralChooseTDWaveformFromCache(&hplusC, &hcrossC, phiref1,
         dt, m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, f_min, f_ref, dist1, inc1,
-        lambda1, lambda2, NULL, NULL, ampO, phaseO, approx, cache, 0.0, 0.0, 0);
+        lambda1, lambda2, NULL, NULL, ampO, phaseO, approx, cache, 0.0, 0.0, 0, 0.0, 0.0, 0);
     e2 = clock();
     diff2 = (double) (e2 - s2) / CLOCKS_PER_SEC;
     if( ret == XLAL_FAILURE )
@@ -107,7 +107,7 @@ int main(void) {
     s1 = clock();
     ret = XLALSimInspiralChooseTDWaveform(&hplus, &hcross, phiref2, dt, m1, m2,
         s1x, s1y, s1z, s2x, s2y, s2z, f_min, f_ref, dist2, inc2,
-        lambda1, lambda2, NULL, NULL, ampO, phaseO, approx, 0.0, 0.0, 0);
+        lambda1, lambda2, NULL, NULL, ampO, phaseO, approx, 0.0, 0.0, 0, 0.0, 0.0, 0);
     e1 = clock();
     diff1 = (double) (e1 - s1) / CLOCKS_PER_SEC;
     if( ret == XLAL_FAILURE )
@@ -117,7 +117,7 @@ int main(void) {
     s2 = clock();
     ret = XLALSimInspiralChooseTDWaveformFromCache(&hplusC, &hcrossC, phiref2,
         dt, m1, m2, s1x, s1y, s1z, s2x, s2y, s2z, f_min, f_ref, dist2, inc2,
-        lambda1, lambda2, NULL, NULL, ampO, phaseO, approx, cache, 0.0, 0.0, 0);
+        lambda1, lambda2, NULL, NULL, ampO, phaseO, approx, cache, 0.0, 0.0, 0, 0.0, 0.0, 0);
     e2 = clock();
     diff2 = (double) (e2 - s2) / CLOCKS_PER_SEC;
     if( ret == XLAL_FAILURE )

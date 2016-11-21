@@ -466,7 +466,7 @@ int main (int argc , char **argv) {
                     params->distance, params->inclination, params->lambda1,
                     params->lambda2, params->waveFlags,
                     params->nonGRparams, params->ampO, params->phaseO,
-                    params->approximant, 0.0, 0.0, 0);
+                    params->approximant, 0.0, 0.0, 0, 0.0, 0.0, 0);
             break;
         default:
             XLALPrintError("Error: domain must be either TD or FD\n");
