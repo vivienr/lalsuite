@@ -1223,10 +1223,10 @@ LALInferenceModel *LALInferenceInitCBCModel(LALInferenceRunState *state) {
 
   }
   if(LALInferenceGetProcParamVal(commandLine,"--QNM")){
-    LALInferenceRegisterUniformVariableREAL8(state, model->params, "reomegaqnm_a", 0.526943, 0.3, 0.8, LALINFERENCE_PARAM_LINEAR);
-    LALInferenceRegisterUniformVariableREAL8(state, model->params, "reomegaqnm_b", 0.526943, 0.3, 0.8, LALINFERENCE_PARAM_LINEAR);
-    LALInferenceRegisterUniformVariableREAL8(state, model->params, "imomegaqnm_a", 0.0812686, 0.06, 0.095, LALINFERENCE_PARAM_LINEAR);
-    LALInferenceRegisterUniformVariableREAL8(state, model->params, "imomegaqnm_b", 0.0812686, 0.06, 0.095, LALINFERENCE_PARAM_LINEAR);
+    LALInferenceRegisterUniformVariableREAL8(state, model->params, "reomegaqnm_a", 0.65, 0.3, 1.0, LALINFERENCE_PARAM_LINEAR);
+    LALInferenceRegisterUniformVariableREAL8(state, model->params, "reomegaqnm_b", 0.65, 0.3, 1.0, LALINFERENCE_PARAM_LINEAR);
+    LALInferenceRegisterUniformVariableREAL8(state, model->params, "imomegaqnm_a", 0.065, 0.03, 0.1, LALINFERENCE_PARAM_LINEAR);
+    LALInferenceRegisterUniformVariableREAL8(state, model->params, "imomegaqnm_b", 0.065, 0.03, 0.1, LALINFERENCE_PARAM_LINEAR);
     INT4 modeqnm_a=220;
     INT4 modeqnm_b=330;
     ppt=LALInferenceGetProcParamVal(commandLine,"--modeqnm_a");
