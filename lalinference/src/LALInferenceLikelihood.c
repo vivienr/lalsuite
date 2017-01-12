@@ -643,7 +643,6 @@ static REAL8 LALInferenceFusedFreqDomainLogLikelihood(LALInferenceVariables *cur
       }
 
         /* Template is now in model->timeFreqhPlus and hCross */
-
         /* Calibration stuff if necessary */
         /*spline*/
         if (spcal_active) {
@@ -836,6 +835,8 @@ static REAL8 LALInferenceFusedFreqDomainLogLikelihood(LALInferenceVariables *cur
     REAL8 templatesq=0.0;
     REAL8 this_ifo_S=0.0;
     COMPLEX16 this_ifo_Rcplx=0.0;
+
+    //printf("Likelihood: %e,%e\n",creal(model->freqhPlus->data->data[320]),cimag(model->freqhPlus->data->data[320]));
 
     for (i=lower,chisq=0.0,re = cos(twopit*deltaF*i),im = -sin(twopit*deltaF*i);
          i<=upper;

@@ -263,7 +263,7 @@ void LALInferenceInitCBCThreads(LALInferenceRunState *run_state, INT4 nthreads) 
 /* Defaults to using LALSimulation */
 LALInferenceTemplateFunction LALInferenceInitCBCTemplate(LALInferenceRunState *runState)
 {
-  char help[]="(--template [LAL,PhenSpin,LALGenerateInspiral,LALSim,multiband]\tSpecify template (default LAL)\n";
+  char help[]="(--template [LAL,PhenSpin,LALGenerateInspiral,LALSim,multiband,RingDown]\tSpecify template (default LAL)\n";
   ProcessParamsTable *ppt=NULL;
   ProcessParamsTable *commandLine=runState->commandLine;
   /* Print command line arguments if help requested */
@@ -285,7 +285,11 @@ LALInferenceTemplateFunction LALInferenceInitCBCTemplate(LALInferenceRunState *r
 	else if(!strcmp("multiband",ppt->value)){
         templt=&LALInferenceTemplateXLALSimInspiralChooseWaveformPhaseInterpolated;
         fprintf(stdout,"Template function called is \"LALInferenceTemplateXLALSimInspiralChooseWaveformPhaseInterpolated\"\n");
-    }
+  }
+  else if(!strcmp("RingDown",ppt->value)){
+        templt=&LALInferenceSimpleRingdown;
+        fprintf(stdout,"Template function called is \"LALInferenceSimpleRingdown\"\n");
+  }
     else {
         XLALPrintError("Error: unknown template %s\n",ppt->value);
         XLALPrintError("%s", help);
@@ -1235,6 +1239,17 @@ LALInferenceModel *LALInferenceInitCBCModel(LALInferenceRunState *state) {
     if(ppt) modeqnm_b=atoi(ppt->value);
     LALInferenceAddVariable(model->params, "modeqnm_a", &modeqnm_a, LALINFERENCE_INT4_t, LALINFERENCE_PARAM_FIXED);
     LALInferenceAddVariable(model->params, "modeqnm_b", &modeqnm_b, LALINFERENCE_INT4_t, LALINFERENCE_PARAM_FIXED);
+  }
+  ppt=LALInferenceGetProcParamVal(commandLine,"--template");
+  if(ppt) {
+    if(!strcmp("RingDown",ppt->value)){
+      //model->domain = LAL_SIM_DOMAIN_FREQUENCY;
+      LALInferenceRegisterUniformVariableREAL8(state, model->params, "reomegaqnm_a", 0.65, 0.3, 1.0, LALINFERENCE_PARAM_LINEAR);
+      LALInferenceRegisterUniformVariableREAL8(state, model->params, "imomegaqnm_a", 0.065, 0.03, 0.1, LALINFERENCE_PARAM_LINEAR);
+      LALInferenceRegisterUniformVariableREAL8(state, model->params, "amplitude_a", 0.0, 0.0, 1.0e-20, LALINFERENCE_PARAM_LINEAR);
+      LALInferenceRegisterUniformVariableREAL8(state, model->params, "phase_a", 0.0, 0.0, LAL_TWOPI, LALINFERENCE_PARAM_LINEAR);
+      LALInferenceRegisterUniformVariableREAL8(state, model->params, "t_0_a", 0.0, -0.2, 0.2, LALINFERENCE_PARAM_LINEAR);
+    }
   }
 
   LALSimInspiralSpinOrder spinO = LAL_SIM_INSPIRAL_SPIN_ORDER_ALL;
