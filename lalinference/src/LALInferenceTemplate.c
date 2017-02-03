@@ -2017,10 +2017,10 @@ void LALInferenceSimpleRingdown(LALInferenceModel *model){
     for (i=index_min; i<index_max; ++i) {
       //t = i*deltaT;
       t = (i-index_min)*deltaT;
-      model->timehPlus->data->data[i] = amplitude_a * exp(-t*imomegaqnm_a) * cos(LAL_TWOPI*reomegaqnm_a*t + phase_a)
-                                        + amplitude_b * exp(-t*imomegaqnm_b) * cos(LAL_TWOPI*reomegaqnm_b*t + phase_b);
-      model->timehCross->data->data[i] = amplitude_a * exp(-t*imomegaqnm_a) * sin(LAL_TWOPI*reomegaqnm_a*t + phase_a)
-                                        + amplitude_b * exp(-t*imomegaqnm_b) * sin(LAL_TWOPI*reomegaqnm_b*t + phase_b);
+      model->timehPlus->data->data[i] = amplitude_a * exp(-(t+t_0_a)*imomegaqnm_a) * cos(LAL_TWOPI*reomegaqnm_a*(t+t_0_a) + phase_a)
+                                        + amplitude_b * exp(-(t+t_0_b)*imomegaqnm_b) * cos(LAL_TWOPI*reomegaqnm_b*(t+t_0_b) + phase_b);
+      model->timehCross->data->data[i] = amplitude_a * exp(-(t+t_0_a)*imomegaqnm_a) * sin(LAL_TWOPI*reomegaqnm_a*(t+t_0_a) + phase_a)
+                                        + amplitude_b * exp(-(t+t_0_b)*imomegaqnm_b) * sin(LAL_TWOPI*reomegaqnm_b*(t+t_0_b) + phase_b);
     }
 
     //REAL8 injTc=XLALGPSGetREAL8(&(model->timehPlus->epoch));
