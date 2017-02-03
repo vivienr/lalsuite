@@ -1965,6 +1965,8 @@ void LALInferenceSimpleRingdown(LALInferenceModel *model){
   if(LALInferenceCheckVariable(model->params, "t_0_b"))
     t_0_b = *(REAL8*) LALInferenceGetVariable(model->params, "t_0_b");
 
+  //fprintf(stdout,"%g,%g,%g,%g,%g,%g,%g,%g,%g,%g,\n",reomegaqnm_a,imomegaqnm_a,reomegaqnm_b,imomegaqnm_b,amplitude_a,phase_a,t_0_a,amplitude_b,phase_b,t_0_b);
+
   if (model->domain == LAL_SIM_DOMAIN_FREQUENCY) {
     memset(model->freqhPlus->data->data,0,sizeof(model->freqhPlus->data->data[0])*model->freqhPlus->data->length);
     memset(model->freqhCross->data->data,0,sizeof(model->freqhCross->data->data[0])*model->freqhCross->data->length);
@@ -2017,15 +2019,20 @@ void LALInferenceSimpleRingdown(LALInferenceModel *model){
     for (i=index_min; i<index_max; ++i) {
       //t = i*deltaT;
       t = (i-index_min)*deltaT;
-      model->timehPlus->data->data[i] = amplitude_a * exp(-(t+t_0_a)*imomegaqnm_a) * cos(LAL_TWOPI*reomegaqnm_a*(t+t_0_a) + phase_a)
-                                        + amplitude_b * exp(-(t+t_0_b)*imomegaqnm_b) * cos(LAL_TWOPI*reomegaqnm_b*(t+t_0_b) + phase_b);
-      model->timehCross->data->data[i] = amplitude_a * exp(-(t+t_0_a)*imomegaqnm_a) * sin(LAL_TWOPI*reomegaqnm_a*(t+t_0_a) + phase_a)
-                                        + amplitude_b * exp(-(t+t_0_b)*imomegaqnm_b) * sin(LAL_TWOPI*reomegaqnm_b*(t+t_0_b) + phase_b);
+      if (t+t_0_a>0.0){
+        model->timehPlus->data->data[i] += amplitude_a * exp(-(t+t_0_a)*imomegaqnm_a) * cos(LAL_TWOPI*reomegaqnm_a*(t+t_0_a) + phase_a);
+        model->timehCross->data->data[i] += amplitude_a * exp(-(t+t_0_a)*imomegaqnm_a) * sin(LAL_TWOPI*reomegaqnm_a*(t+t_0_a) + phase_a);
+      }
+      if (t+t_0_b>0.0){
+        model->timehPlus->data->data[i] += amplitude_b * exp(-(t+t_0_b)*imomegaqnm_b) * cos(LAL_TWOPI*reomegaqnm_b*(t+t_0_b) + phase_b);
+        model->timehCross->data->data[i] += amplitude_b * exp(-(t+t_0_b)*imomegaqnm_b) * sin(LAL_TWOPI*reomegaqnm_b*(t+t_0_b) + phase_b);
+      }
     }
 
     //REAL8 injTc=XLALGPSGetREAL8(&(model->timehPlus->epoch));
     REAL8 injTc=XLALGPSGetREAL8(&(model->timehPlus->epoch))-2.+index_max*deltaT;
     LALInferenceSetVariable(model->params, "time", &injTc);
+    //fprintf(stdout,"%g,%g\n",model->timehPlus->data->data[index_min],model->timehCross->data->data[index_min]);
   }
 
   return;
