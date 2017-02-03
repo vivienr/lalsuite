@@ -569,6 +569,11 @@ REAL8 LALInferenceInspiralPrior(LALInferenceRunState *runState, LALInferenceVari
   /* Evaluate glitch prior (returns 0 if no glitch model) */
   logPrior += LALInferenceGlitchPrior(runState, params);
 
+  /* SimpleRingDown priors. */
+  if(LALInferenceCheckVariable(params,"log_amplitude_a") && LALInferenceCheckVariable(params,"log_amplitude_b"))
+    if(LALInferenceGetREAL8Variable(params,"log_amplitude_a") < LALInferenceGetREAL8Variable(params,"log_amplitude_b"))
+      return -INFINITY;
+
   return(logPrior);
 }
 
