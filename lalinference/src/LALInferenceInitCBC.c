@@ -864,6 +864,13 @@ LALInferenceModel *LALInferenceInitCBCModel(LALInferenceRunState *state) {
     exit(1);
   }
 
+  ppt=LALInferenceGetProcParamVal(commandLine,"--template");
+  if(ppt) {
+    if(!strcmp("RingDown",ppt->value)){
+      model->domain = LAL_SIM_DOMAIN_FREQUENCY;
+    }
+  }
+
   ppt=LALInferenceGetProcParamVal(commandLine, "--fref");
   if (ppt) f_ref = atof(ppt->value);
 
@@ -1243,7 +1250,6 @@ LALInferenceModel *LALInferenceInitCBCModel(LALInferenceRunState *state) {
   ppt=LALInferenceGetProcParamVal(commandLine,"--template");
   if(ppt) {
     if(!strcmp("RingDown",ppt->value)){
-      model->domain = LAL_SIM_DOMAIN_FREQUENCY;
       LALInferenceRegisterUniformVariableREAL8(state, model->params, "rd_omega_a", 1.0, 50.0, 300.0, LALINFERENCE_PARAM_LINEAR);
       LALInferenceRegisterUniformVariableREAL8(state, model->params, "rd_decay_a", 1.0, 50.0, 300.0, LALINFERENCE_PARAM_LINEAR);
       LALInferenceRegisterUniformVariableREAL8(state, model->params, "log_amplitude_a", -45.0, -50.0, -40.0, LALINFERENCE_PARAM_LINEAR);

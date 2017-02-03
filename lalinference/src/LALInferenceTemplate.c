@@ -1957,13 +1957,13 @@ void LALInferenceSimpleRingdown(LALInferenceModel *model){
   if(LALInferenceCheckVariable(model->params, "phase_a"))
     phase_a = *(REAL8*) LALInferenceGetVariable(model->params, "phase_a");
   if(LALInferenceCheckVariable(model->params, "t_0_a"))
-    t_0_a = *(INT4*) LALInferenceGetVariable(model->params, "t_0_a");
+    t_0_a = *(REAL8*) LALInferenceGetVariable(model->params, "t_0_a");
   if(LALInferenceCheckVariable(model->params, "log_amplitude_b"))
     amplitude_b = exp(*(REAL8*) LALInferenceGetVariable(model->params, "log_amplitude_b"));
   if(LALInferenceCheckVariable(model->params, "phase_b"))
     phase_b = *(REAL8*) LALInferenceGetVariable(model->params, "phase_b");
   if(LALInferenceCheckVariable(model->params, "t_0_b"))
-    t_0_b = *(INT4*) LALInferenceGetVariable(model->params, "t_0_b");
+    t_0_b = *(REAL8*) LALInferenceGetVariable(model->params, "t_0_b");
 
   if (model->domain == LAL_SIM_DOMAIN_FREQUENCY) {
     memset(model->freqhPlus->data->data,0,sizeof(model->freqhPlus->data->data[0])*model->freqhPlus->data->length);
