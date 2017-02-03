@@ -1227,10 +1227,10 @@ LALInferenceModel *LALInferenceInitCBCModel(LALInferenceRunState *state) {
 
   }
   if(LALInferenceGetProcParamVal(commandLine,"--QNM")){
-    LALInferenceRegisterUniformVariableREAL8(state, model->params, "reomegaqnm_a", 0.65, 0.3, 1.0, LALINFERENCE_PARAM_LINEAR);
-    LALInferenceRegisterUniformVariableREAL8(state, model->params, "reomegaqnm_b", 0.65, 0.3, 1.0, LALINFERENCE_PARAM_LINEAR);
-    LALInferenceRegisterUniformVariableREAL8(state, model->params, "imomegaqnm_a", 0.065, 0.03, 0.1, LALINFERENCE_PARAM_LINEAR);
-    LALInferenceRegisterUniformVariableREAL8(state, model->params, "imomegaqnm_b", 0.065, 0.03, 0.1, LALINFERENCE_PARAM_LINEAR);
+    LALInferenceRegisterUniformVariableREAL8(state, model->params, "reomegaqnm_a", 0.5, 0.3, 1.0, LALINFERENCE_PARAM_LINEAR);
+    LALInferenceRegisterUniformVariableREAL8(state, model->params, "reomegaqnm_b", 0.5, 0.3, 1.0, LALINFERENCE_PARAM_LINEAR);
+    LALInferenceRegisterUniformVariableREAL8(state, model->params, "imomegaqnm_a", 0.05, 0.03, 0.2, LALINFERENCE_PARAM_LINEAR);
+    LALInferenceRegisterUniformVariableREAL8(state, model->params, "imomegaqnm_b", 0.05, 0.03, 0.2, LALINFERENCE_PARAM_LINEAR);
     INT4 modeqnm_a=220;
     INT4 modeqnm_b=330;
     ppt=LALInferenceGetProcParamVal(commandLine,"--modeqnm_a");
@@ -1243,12 +1243,17 @@ LALInferenceModel *LALInferenceInitCBCModel(LALInferenceRunState *state) {
   ppt=LALInferenceGetProcParamVal(commandLine,"--template");
   if(ppt) {
     if(!strcmp("RingDown",ppt->value)){
-      //model->domain = LAL_SIM_DOMAIN_FREQUENCY;
-      LALInferenceRegisterUniformVariableREAL8(state, model->params, "reomegaqnm_a", 0.65, 0.3, 1.0, LALINFERENCE_PARAM_LINEAR);
-      LALInferenceRegisterUniformVariableREAL8(state, model->params, "imomegaqnm_a", 0.065, 0.03, 0.1, LALINFERENCE_PARAM_LINEAR);
-      LALInferenceRegisterUniformVariableREAL8(state, model->params, "amplitude_a", 0.0, 0.0, 1.0e-20, LALINFERENCE_PARAM_LINEAR);
+      model->domain = LAL_SIM_DOMAIN_FREQUENCY;
+      LALInferenceRegisterUniformVariableREAL8(state, model->params, "rd_omega_a", 1.0, 50.0, 300.0, LALINFERENCE_PARAM_LINEAR);
+      LALInferenceRegisterUniformVariableREAL8(state, model->params, "rd_decay_a", 1.0, 50.0, 300.0, LALINFERENCE_PARAM_LINEAR);
+      LALInferenceRegisterUniformVariableREAL8(state, model->params, "log_amplitude_a", -45.0, -50.0, -40.0, LALINFERENCE_PARAM_LINEAR);
       LALInferenceRegisterUniformVariableREAL8(state, model->params, "phase_a", 0.0, 0.0, LAL_TWOPI, LALINFERENCE_PARAM_LINEAR);
       LALInferenceRegisterUniformVariableREAL8(state, model->params, "t_0_a", 0.0, -0.2, 0.2, LALINFERENCE_PARAM_LINEAR);
+      LALInferenceRegisterUniformVariableREAL8(state, model->params, "rd_omega_b", 1.0, 50.0, 300.0, LALINFERENCE_PARAM_LINEAR);
+      LALInferenceRegisterUniformVariableREAL8(state, model->params, "rd_decay_b", 1.0, 50.0, 300.0, LALINFERENCE_PARAM_LINEAR);
+      LALInferenceRegisterUniformVariableREAL8(state, model->params, "log_amplitude_b", -45.0, -50.0, -40.0, LALINFERENCE_PARAM_LINEAR);
+      LALInferenceRegisterUniformVariableREAL8(state, model->params, "phase_b", 0.0, 0.0, LAL_TWOPI, LALINFERENCE_PARAM_LINEAR);
+      LALInferenceRegisterUniformVariableREAL8(state, model->params, "t_0_b", 0.0, -0.2, 0.2, LALINFERENCE_PARAM_LINEAR);
     }
   }
 
