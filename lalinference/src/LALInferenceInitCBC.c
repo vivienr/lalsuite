@@ -1250,6 +1250,11 @@ LALInferenceModel *LALInferenceInitCBCModel(LALInferenceRunState *state) {
   ppt=LALInferenceGetProcParamVal(commandLine,"--template");
   if(ppt) {
     if(!strcmp("RingDown",ppt->value)){
+      LALInferenceRemoveVariable(model->params,"chirpmass");
+      LALInferenceRemoveVariable(model->params,"q");
+      LALInferenceRemoveVariable(model->params,"costheta_jn");
+      LALInferenceRemoveVariable(model->params,"logdistance");
+      LALInferenceRemoveVariable(model->params,"phase");
       LALInferenceRegisterUniformVariableREAL8(state, model->params, "rd_omega_a", 1.0, 50.0, 300.0, LALINFERENCE_PARAM_LINEAR);
       LALInferenceRegisterUniformVariableREAL8(state, model->params, "rd_decay_a", 1.0, 50.0, 300.0, LALINFERENCE_PARAM_LINEAR);
       LALInferenceRegisterUniformVariableREAL8(state, model->params, "log_amplitude_a", -45.0, -50.0, -40.0, LALINFERENCE_PARAM_LINEAR);
