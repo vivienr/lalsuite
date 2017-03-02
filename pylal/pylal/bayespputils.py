@@ -147,7 +147,7 @@ bransDickeParams=['omegaBD','ScalarCharge1','ScalarCharge2']
 massiveGravitonParams=['lambdaG']
 tidalParams=['lambda1','lambda2','lam_tilde','dlam_tilde','lambdat','dlambdat']
 energyParams=['e_rad', 'l_peak']
-ringdownParams=['reomegaqnm_a','imomegaqnm_a','reomegaqnm_b','imomegaqnm_b','rd_omega_a','rd_decay_a','log_amplitude_a','phase_a','t_0_a','rd_omega_b','rd_decay_b','log_amplitude_b','phase_b','t_0_b']
+ringdownParams=['reomegaqnm_a','imomegaqnm_a','reomegaqnm_b','imomegaqnm_b','rd_omega_a','rd_decay_a','logamplitude_a','phase_a','t0_a','rd_omega_b','rd_decay_b','logamplitude_b','phase_b','t0_b','delta_logamplitude_b','delta_t0_b']
 strongFieldParams=ppEParams+tigerParams+bransDickeParams+massiveGravitonParams+tidalParams+energyParams+ringdownParams
 
 #Extrinsic

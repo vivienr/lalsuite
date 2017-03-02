@@ -1945,25 +1945,30 @@ void LALInferenceSimpleRingdown(LALInferenceModel *model){
   if(LALInferenceCheckVariable(model->params, "rd_decay_b"))
     imomegaqnm_b = *(REAL8*) LALInferenceGetVariable(model->params, "rd_decay_b");
 
+  REAL8 logdistance=1.0;
+  REAL8 costheta_jn=1.0;
   REAL8 amplitude_a=0.0;
   REAL8 phase_a=0.0;
-  REAL8 t_0_a=0.0;
+  REAL8 t_0_a=0.0; //set by tc
   REAL8 amplitude_b=0.0;
   REAL8 phase_b=0.0;
   REAL8 t_0_b=0.0;
 
-  if(LALInferenceCheckVariable(model->params, "log_amplitude_a"))
-    amplitude_a = exp(*(REAL8*) LALInferenceGetVariable(model->params, "log_amplitude_a"));
-  if(LALInferenceCheckVariable(model->params, "phase_a"))
-    phase_a = *(REAL8*) LALInferenceGetVariable(model->params, "phase_a");
-  if(LALInferenceCheckVariable(model->params, "t_0_a"))
-    t_0_a = *(REAL8*) LALInferenceGetVariable(model->params, "t_0_a");
-  if(LALInferenceCheckVariable(model->params, "log_amplitude_b"))
-    amplitude_b = exp(*(REAL8*) LALInferenceGetVariable(model->params, "log_amplitude_b"));
+  if(LALInferenceCheckVariable(model->params, "costheta_jn"))
+    costheta_jn = *(REAL8*) LALInferenceGetVariable(model->params, "costheta_jn");
+  if(LALInferenceCheckVariable(model->params, "logdistance"))
+    logdistance = *(REAL8*) LALInferenceGetVariable(model->params, "logdistance");
+    amplitude_a = exp(-43.749116766886864-logdistance); //10^-21 as fiducial amplitude at 100 Mpc, log(10^-21)-(log(1/100))=-43.749116766886864
+  if(LALInferenceCheckVariable(model->params, "phase"))
+    phase_a = *(REAL8*) LALInferenceGetVariable(model->params, "phase");
+  //if(LALInferenceCheckVariable(model->params, "t0_a"))
+    t_0_a = 0.0; //*(REAL8*) LALInferenceGetVariable(model->params, "t0_a");
+  if(LALInferenceCheckVariable(model->params, "delta_logamplitude_b"))
+    amplitude_b = amplitude_a*exp(*(REAL8*) LALInferenceGetVariable(model->params, "delta_logamplitude_b"));
   if(LALInferenceCheckVariable(model->params, "phase_b"))
     phase_b = *(REAL8*) LALInferenceGetVariable(model->params, "phase_b");
-  if(LALInferenceCheckVariable(model->params, "t_0_b"))
-    t_0_b = *(REAL8*) LALInferenceGetVariable(model->params, "t_0_b");
+  if(LALInferenceCheckVariable(model->params, "delta_t0_b"))
+    t_0_b = *(REAL8*) LALInferenceGetVariable(model->params, "delta_t0_b");
 
   //fprintf(stdout,"%g,%g,%g,%g,%g,%g,%g,%g,%g,%g,\n",reomegaqnm_a,imomegaqnm_a,reomegaqnm_b,imomegaqnm_b,amplitude_a,phase_a,t_0_a,amplitude_b,phase_b,t_0_b);
 
@@ -2002,6 +2007,9 @@ void LALInferenceSimpleRingdown(LALInferenceModel *model){
                                 + LAL_TWOPI * reomegaqnm_a / imomegaqnm_a * cos(phase_a) )
                                 + norm_b * ( (1.0 + 2.0j * LAL_PI * freq / imomegaqnm_b) * sin(phase_b)
                                 + LAL_TWOPI * reomegaqnm_b / imomegaqnm_b * cos(phase_b) );
+
+      model->freqhPlus->data->data[i] *= (1.+costheta_jn*costheta_jn)/2.;
+      model->freqhCross->data->data[i] *= costheta_jn;
     }
 
     REAL8 instant = model->freqhPlus->epoch.gpsSeconds + 1e-9*model->freqhPlus->epoch.gpsNanoSeconds;
@@ -2028,6 +2036,8 @@ void LALInferenceSimpleRingdown(LALInferenceModel *model){
         model->timehCross->data->data[i] += amplitude_b * exp(-(t+t_0_b)*imomegaqnm_b) * sin(LAL_TWOPI*reomegaqnm_b*(t+t_0_b) + phase_b);
       }
     }
+    model->timehPlus->data->data[i] *= (1.+costheta_jn*costheta_jn)/2.;
+    model->timehCross->data->data[i] *= costheta_jn;
 
     //REAL8 injTc=XLALGPSGetREAL8(&(model->timehPlus->epoch));
     REAL8 injTc=XLALGPSGetREAL8(&(model->timehPlus->epoch))-2.+index_max*deltaT;
