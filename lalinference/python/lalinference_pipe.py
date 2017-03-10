@@ -172,8 +172,11 @@ outerdag.set_dag_file(os.path.join(rundir_root,'multidag'))
 #delta_t0s=[None]
 
 if cp.has_option('input','delta_t0_M'):
-#and cp.has_option('input','injection-file'):
-    delta_t0_M = cp.get('input','delta_t0_M').replace('[','').replace(']','').split(',')
+    if cp.has_option('input','injection-file') or opts.injections is not None:
+        delta_t0_M = cp.get('input','delta_t0_M').replace('[','').replace(']','').split(',')
+    else:
+        print 'ERROR: the delta_t0_M option is only enabled with an injection file.'
+        sys.exit(1)
     #signal_table_row = cp.get('input','injection-file')
     #delta_t0s=compute_delta_t0s(signal_table_row,delta_t0_M)
 
