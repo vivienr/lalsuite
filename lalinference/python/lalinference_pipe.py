@@ -169,7 +169,7 @@ outerdaglog=os.path.join(daglogdir,'lalinference_multi_'+str(uuid.uuid1())+'.log
 outerdag=pipeline.CondorDAG(outerdaglog,dax=opts.dax)
 outerdag.set_dag_file(os.path.join(rundir_root,'multidag'))
 
-#delta_t0s=[None]
+delta_t0_M=[None]
 
 if cp.has_option('input','delta_t0_M'):
     if cp.has_option('input','injection-file') or opts.injections is not None:
