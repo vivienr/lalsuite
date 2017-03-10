@@ -51,8 +51,8 @@ if len(args)!=1:
   sys.exit(1)
 
 if opts.condor_submit and opts.pegasus_submit:
-   print 'Error: Please only specify one of --condor-submit or --pegasus-submit'
-   sys.exit(1)
+  print 'Error: Please only specify one of --condor-submit or --pegasus-submit'
+  sys.exit(1)
 
 inifile=args[0]
 
@@ -66,6 +66,8 @@ if cp.has_option('engine','approx'):
   pass
 elif cp.has_option('engine','approximant'):
   approx='approximant'
+elif cp.has_option('engine','template'):
+  approx='template'
 else:
   print "Error: was expecting an 'approx' filed in the [engine] section\n"
   sys.exit(1)
@@ -167,195 +169,218 @@ outerdaglog=os.path.join(daglogdir,'lalinference_multi_'+str(uuid.uuid1())+'.log
 outerdag=pipeline.CondorDAG(outerdaglog,dax=opts.dax)
 outerdag.set_dag_file(os.path.join(rundir_root,'multidag'))
 
+#delta_t0s=[None]
+
+if cp.has_option('input','delta_t0_M'):
+#and cp.has_option('input','injection-file'):
+    delta_t0_M = cp.get('input','delta_t0_M').replace('[','').replace(']','').split(',')
+    #signal_table_row = cp.get('input','injection-file')
+    #delta_t0s=compute_delta_t0s(signal_table_row,delta_t0_M)
 
 for sampler in samps:
 
   for app in apps:
 
-    for roq in roq_paths:
+    for delta_t0 in delta_t0_M:
 
-      if not os.path.isdir(os.path.join(rundir_root,sampler,app)):
-        os.makedirs(os.path.join(rundir_root,sampler,app))
-      opts.run_path=os.path.abspath(os.path.join(rundir_root,sampler,app))
+        #if delta_t0 is not None:
+        #    cp.set('engine',fix-time,delta_t0)
 
-      inifile=args[0]
+        for roq in roq_paths:
 
-      cp=ConfigParser.ConfigParser()
-      fp=open(inifile)
-      cp.optionxform = str
-      cp.readfp(fp)
-      fp.close()
-      cp.set('engine',approx,app)
-      cp.set('analysis','engine',sampler)
-      if roq is None:
-        for p in dict(cp.items('paths')).keys():
-          #current value
-          if 'webdir' in p or 'url' in p or 'basedir' in p or 'daglogdir' in p:
-            out=cp.get('paths',p)
-            # append approximant prefix
-            cp.set('paths',p,os.path.join(out,sampler,app))
-      else:
-        # do the appropriate hacks for ROQ
-        if not os.path.isdir(os.path.join(rundir_root,sampler,app,roq)):
-          os.makedirs(os.path.join(rundir_root,sampler,app,roq))
-        opts.run_path=os.path.abspath(os.path.join(rundir_root,sampler,app,roq))
-        for p in dict(cp.items('paths')).keys():
-          #current value
-          if 'webdir' in p or 'url' in p or 'basedir' in p or 'daglogdir' in p:
-            out=cp.get('paths',p)
-            # append approximant prefix
-            cp.set('paths',p,os.path.join(out,sampler,app,roq))
+          if not os.path.isdir(os.path.join(rundir_root,sampler,app)):
+            os.makedirs(os.path.join(rundir_root,sampler,app))
+          opts.run_path=os.path.abspath(os.path.join(rundir_root,sampler,app))
 
-        path=cp.get('paths','roq_b_matrix_directory')
-        thispath=os.path.join(path,roq)
-        cp.set('paths','roq_b_matrix_directory',thispath)
-        flow=roq_params[roq]['flow'] / roq_mass_freq_scale_factor
-        srate=2.*roq_params[roq]['fhigh'] / roq_mass_freq_scale_factor
-	if srate > 8192:
-		srate = 8192
+          if delta_t0 is not None:
+            if not os.path.isdir(os.path.join(rundir_root,sampler,app,delta_t0+'M')):
+              os.makedirs(os.path.join(rundir_root,sampler,app,delta_t0+'M'))
+            opts.run_path=os.path.abspath(os.path.join(rundir_root,sampler,app,delta_t0+'M'))
 
-        seglen=roq_params[roq]['seglen'] * roq_mass_freq_scale_factor
-        # params.dat uses the convention q>1 so our q_min is the inverse of their qmax
-        cp.set('engine','srate',str(srate))
-        cp.set('engine','seglen',str(seglen))
-        if cp.has_option('lalinference','flow'):
-          tmp=cp.get('lalinference','flow')
-          tmp=eval(tmp)
-          ifos=tmp.keys()
-        else:
-          tmp={}
-          ifos=eval(cp.get('analysis','ifos'))
-        for i in ifos:
-          tmp[i]=flow
-        cp.set('lalinference','flow',str(tmp))
-        if roq_bounds == 'chirp_mass_q':
-          mc_min=mc_priors[roq][0]*roq_mass_freq_scale_factor
-          mc_max=mc_priors[roq][1]*roq_mass_freq_scale_factor
-          # params.dat uses the convention q>1 so our q_min is the inverse of their qmax
-          q_min=1./float(roq_params[roq]['qmax'])
-          cp.set('engine','chirpmass-min',str(mc_min))
-          cp.set('engine','chirpmass-max',str(mc_max))
-          cp.set('engine','q-min',str(q_min))
-          cp.set('engine','comp-min', str(max(roq_params[roq]['compmin'] * roq_mass_freq_scale_factor, mc_min * pow(1+q_min, 1./5.) * pow(q_min, 2./5.))))
-          cp.set('engine','comp-max', str(mc_max * pow(1+q_min, 1./5.) * pow(q_min, -3./5.)))
-        elif roq_bounds == 'component_mass':
-          m1_min = m1_priors[roq][0]
-          m1_max = m1_priors[roq][1]
-          m2_min = m2_priors[roq][0]
-          m2_max = m2_priors[roq][1]
-          cp.set('engine','mass1-min',str(m1_min))
-          cp.set('engine','mass1-max',str(m1_max))
-          cp.set('engine','mass2-min',str(m2_min))
-          cp.set('engine','mass2-max',str(m2_max))
+          inifile=args[0]
 
-      if opts.run_path is not None:
-        cp.set('paths','basedir',os.path.abspath(opts.run_path))
+          cp=ConfigParser.ConfigParser()
+          fp=open(inifile)
+          cp.optionxform = str
+          cp.readfp(fp)
+          fp.close()
+          cp.set('engine',approx,app)
+          cp.set('analysis','engine',sampler)
+          if delta_t0 is not None:
+            cp.set('input','delta_t0_requested',delta_t0)
 
-      if not cp.has_option('paths','basedir'):
-        print 'Warning: No --run-path specified, using %s'%(os.getcwd())
-        cp.set('paths','basedir',os.path.abspath(os.getcwd()))
+          if roq is None:
+            for p in dict(cp.items('paths')).keys():
+              #current value
+              if 'webdir' in p or 'url' in p or 'basedir' in p or 'daglogdir' in p:
+                out=cp.get('paths',p)
+                # append approximant prefix
+                cp.set('paths',p,os.path.join(out,sampler,app))
+          else:
+            # do the appropriate hacks for ROQ
+            if not os.path.isdir(os.path.join(rundir_root,sampler,app,roq)):
+              os.makedirs(os.path.join(rundir_root,sampler,app,roq))
+            opts.run_path=os.path.abspath(os.path.join(rundir_root,sampler,app,roq))
+            if delta_t0 is not None:
+                print 'ERROR: delta_to_M logic not implemented for ROQ'
+                sys.exit(1)
+            for p in dict(cp.items('paths')).keys():
+              #current value
+              if 'webdir' in p or 'url' in p or 'basedir' in p or 'daglogdir' in p:
+                out=cp.get('paths',p)
+                # append approximant prefix
+                cp.set('paths',p,os.path.join(out,sampler,app,roq))
 
-      if opts.daglog_path is not None:
-        cp.set('paths','daglogdir',os.path.abspath(opts.daglog_path))
-      elif opts.run_path is not None:
-        cp.set('paths','daglogdir',os.path.abspath(opts.run_path))
-      else:
-        cp.set('paths','daglogdir',os.path.abspath(cp.get('paths','basedir')))
+            path=cp.get('paths','roq_b_matrix_directory')
+            thispath=os.path.join(path,roq)
+            cp.set('paths','roq_b_matrix_directory',thispath)
+            flow=roq_params[roq]['flow'] / roq_mass_freq_scale_factor
+            srate=2.*roq_params[roq]['fhigh'] / roq_mass_freq_scale_factor
+            if srate > 8192:
+                srate = 8192
 
-      local_work_dir=cp.get('paths','daglogdir')
+            seglen=roq_params[roq]['seglen'] * roq_mass_freq_scale_factor
+            # params.dat uses the convention q>1 so our q_min is the inverse of their qmax
+            cp.set('engine','srate',str(srate))
+            cp.set('engine','seglen',str(seglen))
+            if cp.has_option('lalinference','flow'):
+              tmp=cp.get('lalinference','flow')
+              tmp=eval(tmp)
+              ifos=tmp.keys()
+            else:
+              tmp={}
+              ifos=eval(cp.get('analysis','ifos'))
+            for i in ifos:
+              tmp[i]=flow
+            cp.set('lalinference','flow',str(tmp))
+            if roq_bounds == 'chirp_mass_q':
+              mc_min=mc_priors[roq][0]*roq_mass_freq_scale_factor
+              mc_max=mc_priors[roq][1]*roq_mass_freq_scale_factor
+              # params.dat uses the convention q>1 so our q_min is the inverse of their qmax
+              q_min=1./float(roq_params[roq]['qmax'])
+              cp.set('engine','chirpmass-min',str(mc_min))
+              cp.set('engine','chirpmass-max',str(mc_max))
+              cp.set('engine','q-min',str(q_min))
+              cp.set('engine','comp-min', str(max(roq_params[roq]['compmin'] * roq_mass_freq_scale_factor, mc_min * pow(1+q_min, 1./5.) * pow(q_min, 2./5.))))
+              cp.set('engine','comp-max', str(mc_max * pow(1+q_min, 1./5.) * pow(q_min, -3./5.)))
+            elif roq_bounds == 'component_mass':
+              m1_min = m1_priors[roq][0]
+              m1_max = m1_priors[roq][1]
+              m2_min = m2_priors[roq][0]
+              m2_max = m2_priors[roq][1]
+              cp.set('engine','mass1-min',str(m1_min))
+              cp.set('engine','mass1-max',str(m1_max))
+              cp.set('engine','mass2-min',str(m2_min))
+              cp.set('engine','mass2-max',str(m2_max))
 
-      if opts.gps_time_file is not None:
-        cp.set('input','gps-time-file',os.path.abspath(opts.gps_time_file))
+          if opts.run_path is not None:
+            cp.set('paths','basedir',os.path.abspath(opts.run_path))
 
-      if opts.single_triggers is not None:
-        cp.set('input','sngl-inspiral-file',os.path.abspath(opts.single_triggers))
+          if not cp.has_option('paths','basedir'):
+            print 'Warning: No --run-path specified, using %s'%(os.getcwd())
+            cp.set('paths','basedir',os.path.abspath(os.getcwd()))
 
-      if opts.injections is not None:
-        cp.set('input','injection-file',os.path.abspath(opts.injections))
+          if opts.daglog_path is not None:
+            cp.set('paths','daglogdir',os.path.abspath(opts.daglog_path))
+          elif opts.run_path is not None:
+            cp.set('paths','daglogdir',os.path.abspath(opts.run_path))
+          else:
+            cp.set('paths','daglogdir',os.path.abspath(cp.get('paths','basedir')))
 
-      if opts.burst_injections is not None:
-        if opts.injections is not None:
-          print "ERROR: cannot pass both inspiral and burst tables for injection\n"
-          sys.exit(1)
-        cp.set('input','burst-injection-file',os.path.abspath(opts.burst_injections))
+          local_work_dir=cp.get('paths','daglogdir')
 
-      if opts.coinc_triggers is not None:
-        cp.set('input','coinc-inspiral-file',os.path.abspath(opts.coinc_triggers))
+          if opts.gps_time_file is not None:
+            cp.set('input','gps-time-file',os.path.abspath(opts.gps_time_file))
 
-      #if opts.lvalert is not None:
-      #  cp.set('input','lvalert-file',os.path.abspath(opts.lvalert))
+          if opts.single_triggers is not None:
+            cp.set('input','sngl-inspiral-file',os.path.abspath(opts.single_triggers))
 
-      if opts.gid is not None:
-        cp.set('input','gid',opts.gid)
+          if opts.injections is not None:
+            cp.set('input','injection-file',os.path.abspath(opts.injections))
 
-      if opts.pipedown_db is not None:
-        cp.set('input','pipedown-db',os.path.abspath(opts.pipedown_db))
+          if opts.burst_injections is not None:
+            if opts.injections is not None:
+              print "ERROR: cannot pass both inspiral and burst tables for injection\n"
+              sys.exit(1)
+            cp.set('input','burst-injection-file',os.path.abspath(opts.burst_injections))
+
+          if opts.coinc_triggers is not None:
+            cp.set('input','coinc-inspiral-file',os.path.abspath(opts.coinc_triggers))
+
+          #if opts.lvalert is not None:
+          #  cp.set('input','lvalert-file',os.path.abspath(opts.lvalert))
+
+          if opts.gid is not None:
+            cp.set('input','gid',opts.gid)
+
+          if opts.pipedown_db is not None:
+            cp.set('input','pipedown-db',os.path.abspath(opts.pipedown_db))
 
 
-      # Create the DAG from the configparser object
-      dag=pipe_utils.LALInferencePipelineDAG(cp,dax=opts.dax,site=opts.grid_site)
-      if((opts.dax) and not cp.has_option('lalinference','fake-cache')):
-        # Create a text file with the frames listed
-        pfnfile = dag.create_frame_pfn_file()
-        peg_frame_cache = inspiralutils.create_pegasus_cache_file(pfnfile)
-      else:
-        peg_frame_cache = '/dev/null'
+          # Create the DAG from the configparser object
+          dag=pipe_utils.LALInferencePipelineDAG(cp,dax=opts.dax,site=opts.grid_site)
+          if((opts.dax) and not cp.has_option('lalinference','fake-cache')):
+            # Create a text file with the frames listed
+            pfnfile = dag.create_frame_pfn_file()
+            peg_frame_cache = inspiralutils.create_pegasus_cache_file(pfnfile)
+          else:
+            peg_frame_cache = '/dev/null'
 
-      # A directory to store the DAX temporary files
-      execdir=os.path.join(local_work_dir,'lalinference_pegasus_'+str(uuid.uuid1()))
-      olddir=os.getcwd()
-      os.chdir(cp.get('paths','basedir'))
-      if opts.grid_site is not None:
-        site='local,'+opts.grid_site
-      else:
-        site=None
-      # Create the DAX scripts
-      if opts.dax:
-        dag.prepare_dax(tmp_exec_dir=execdir,grid_site=site,peg_frame_cache=peg_frame_cache)
-        # Ugly hack to replace pegasus.transfer.links=true in the pegasus.properties files created by pipeline.py
-        # Turns off the creation of links for files on the local file system. We use pegasus.transfer.links=false
-        # to make sure we have a copy of the data in the runing directory (useful when the data comes from temporary
-        # low latency buffer).
-        if cp.has_option('analysis','pegasus.transfer.links'):
-          if cp.get('analysis','pegasus.transfer.links')=='false':
-            lines=[]
-            with open('pegasus.properties') as fin:
-              for line in fin:
-                line = line.replace('pegasus.transfer.links=true', 'pegasus.transfer.links=false')
-                lines.append(line)
-            with open('pegasus.properties','w') as fout:
-              for line in lines:
-                fout.write(line)
-        if cp.has_option('analysis','accounting_group'):
-          lines=[]
-          with open('sites.xml') as fin:
-            for line in fin:
-              if '<profile namespace="condor" key="getenv">True</profile>' in line:
-                line=line+'    <profile namespace="condor" key="accounting_group">'+cp.get('analysis','accounting_group')+'</profile>\n'
-              lines.append(line)
-          with open('sites.xml','w') as fout:
-            for line in lines:
-              fout.write(line)
-        if cp.has_option('analysis','accounting_group_user'):
-          lines=[]
-          with open('sites.xml') as fin:
-            for line in fin:
-              if '<profile namespace="condor" key="getenv">True</profile>' in line:
-                line=line+'    <profile namespace="condor" key="accounting_group_user">'+cp.get('analysis','accounting_group_user')+'</profile>\n'
-              lines.append(line)
-          with open('sites.xml','w') as fout:
-            for line in lines:
-              fout.write(line)
+          # A directory to store the DAX temporary files
+          execdir=os.path.join(local_work_dir,'lalinference_pegasus_'+str(uuid.uuid1()))
+          olddir=os.getcwd()
+          os.chdir(cp.get('paths','basedir'))
+          if opts.grid_site is not None:
+            site='local,'+opts.grid_site
+          else:
+            site=None
+          # Create the DAX scripts
+          if opts.dax:
+            dag.prepare_dax(tmp_exec_dir=execdir,grid_site=site,peg_frame_cache=peg_frame_cache)
+            # Ugly hack to replace pegasus.transfer.links=true in the pegasus.properties files created by pipeline.py
+            # Turns off the creation of links for files on the local file system. We use pegasus.transfer.links=false
+            # to make sure we have a copy of the data in the runing directory (useful when the data comes from temporary
+            # low latency buffer).
+            if cp.has_option('analysis','pegasus.transfer.links'):
+              if cp.get('analysis','pegasus.transfer.links')=='false':
+                lines=[]
+                with open('pegasus.properties') as fin:
+                  for line in fin:
+                    line = line.replace('pegasus.transfer.links=true', 'pegasus.transfer.links=false')
+                    lines.append(line)
+                with open('pegasus.properties','w') as fout:
+                  for line in lines:
+                    fout.write(line)
+            if cp.has_option('analysis','accounting_group'):
+              lines=[]
+              with open('sites.xml') as fin:
+                for line in fin:
+                  if '<profile namespace="condor" key="getenv">True</profile>' in line:
+                    line=line+'    <profile namespace="condor" key="accounting_group">'+cp.get('analysis','accounting_group')+'</profile>\n'
+                  lines.append(line)
+              with open('sites.xml','w') as fout:
+                for line in lines:
+                  fout.write(line)
+            if cp.has_option('analysis','accounting_group_user'):
+              lines=[]
+              with open('sites.xml') as fin:
+                for line in fin:
+                  if '<profile namespace="condor" key="getenv">True</profile>' in line:
+                    line=line+'    <profile namespace="condor" key="accounting_group_user">'+cp.get('analysis','accounting_group_user')+'</profile>\n'
+                  lines.append(line)
+              with open('sites.xml','w') as fout:
+                for line in lines:
+                  fout.write(line)
 
-      full_dag_path=os.path.join(cp.get('paths','basedir'),dag.get_dag_file())
-      dagjob=pipeline.CondorDAGManJob(full_dag_path,dir=rundir_root)
-      dagnode=pipeline.CondorDAGManNode(dagjob)
-      outerdag.add_node(dagnode)
+          full_dag_path=os.path.join(cp.get('paths','basedir'),dag.get_dag_file())
+          dagjob=pipeline.CondorDAGManJob(full_dag_path,dir=rundir_root)
+          dagnode=pipeline.CondorDAGManNode(dagjob)
+          outerdag.add_node(dagnode)
 
-      dag.write_sub_files()
-      dag.write_dag()
-      dag.write_script()
-      os.chdir(olddir)
+          dag.write_sub_files()
+          dag.write_dag()
+          dag.write_script()
+          os.chdir(olddir)
 
 if(opts.dax):
   # Create a text file with the frames listed

@@ -1551,6 +1551,11 @@ class LALInferencePipelineDAG(pipeline.CondorDAG):
        for ifo in ifos:
           node.add_parent(bayeswavepsdnode[ifo])
           prenode.add_parent(bayeswavepsdnode[ifo])
+    if self.config.has_option('input','delta_t0_requested'):
+        delta_t0=self.config.get('input','delta_t0_requested')
+        delta_t0_computed=compute_delta_t0(event.injection,delta_t0,srate=srate)
+        node.add_var_arg('--fix-time '+str(delta_t0_computed))
+
     return node,bayeswavepsdnode
 
   def add_results_page_node(self,resjob=None,outdir=None,parent=None,extra_options=None,gzip_output=None,ifos=None):
@@ -2616,3 +2621,51 @@ class SkyAreaJob(pipeline.CondorDAGJob,pipeline.AnalysisJob):
       self.add_condor_cmd('getenv','True')
       # Add user-specified options from ini file
       self.add_ini_opts(cp,'skyarea')
+
+def compute_delta_t0(signal_table_row,delta_t0_requested,srate=8192,f_ref=100.0):
+
+    import lal as lal
+    import lalsimulation as lalsim
+
+    approx_str=str(signal_table_row.waveform)
+    approx = lalsim.GetApproximantFromString(approx_str)
+    amplitudeO=int(signal_table_row.amp_order )
+    phaseO=lalsim.GetOrderFromString(approx_str)
+
+    time=signal_table_row.geocent_end_time+1e-9*signal_table_row.geocent_end_time_ns
+    GPStime=lal.LIGOTimeGPS(time)
+    M1=signal_table_row.mass1
+    M2=signal_table_row.mass2
+    D=signal_table_row.distance
+    m1=M1*lal.MSUN_SI
+    m2=M2*lal.MSUN_SI
+    phiRef=signal_table_row.coa_phase
+
+    f_min = signal_table_row.f_lower
+    s1x = signal_table_row.spin1x
+    s1y = signal_table_row.spin1y
+    s1z = signal_table_row.spin1z
+    s2x = signal_table_row.spin2x
+    s2y = signal_table_row.spin2y
+    s2z = signal_table_row.spin2z
+
+    r=D*lal.PC_SI*1.0e6
+    iota=signal_table_row.inclination
+    #print "WARNING: Defaulting to inj_fref =100Hz. This is hardcoded since xml table does not carry this information\n"
+
+    lambda1=0
+    lambda2=0
+    waveFlags=None
+    nonGRparams=None
+
+    ra=signal_table_row.longitude
+    dec=signal_table_row.latitude
+    psi=signal_table_row.polarization
+
+    hp,hc=lalsim.SimInspiralChooseTDWaveform(phiRef, 1./srate,  m1, m2, s1x, s1y, s1z,s2x,s2y,s2z,f_min, f_ref,   r,   iota, lambda1,  lambda2, waveFlags, nonGRparams, amplitudeO, phaseO, approx, 0.0,0.0,0,0.0,0.0,0)
+    habs=np.absolute(hp.data.data+1j*hc.data.data)
+    t0=np.argmax(habs) * hp.deltaT + hp.epoch
+
+    delta_t0=t0+float(delta_t0_requested)*(M1+M2)*lal.MTSUN_SI
+
+    return time+delta_t0
