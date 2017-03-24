@@ -170,6 +170,7 @@ outerdag=pipeline.CondorDAG(outerdaglog,dax=opts.dax)
 outerdag.set_dag_file(os.path.join(rundir_root,'multidag'))
 
 delta_t0_M=[None]
+str_M=lambda s: '' if s is None else str(s)+'M'
 
 if cp.has_option('input','delta_t0_M'):
     if cp.has_option('input','injection-file') or opts.injections is not None:
@@ -191,14 +192,9 @@ for sampler in samps:
 
         for roq in roq_paths:
 
-          if not os.path.isdir(os.path.join(rundir_root,sampler,app)):
-            os.makedirs(os.path.join(rundir_root,sampler,app))
-          opts.run_path=os.path.abspath(os.path.join(rundir_root,sampler,app))
-
-          if delta_t0 is not None:
-            if not os.path.isdir(os.path.join(rundir_root,sampler,app,delta_t0+'M')):
-              os.makedirs(os.path.join(rundir_root,sampler,app,delta_t0+'M'))
-            opts.run_path=os.path.abspath(os.path.join(rundir_root,sampler,app,delta_t0+'M'))
+          if not os.path.isdir(os.path.join(rundir_root,sampler,app,str_M(delta_t0))):
+            os.makedirs(os.path.join(rundir_root,sampler,app,str_M(delta_t0)))
+          opts.run_path=os.path.abspath(os.path.join(rundir_root,sampler,app,str_M(delta_t0)))
 
           inifile=args[0]
 
@@ -218,7 +214,7 @@ for sampler in samps:
               if 'webdir' in p or 'url' in p or 'basedir' in p or 'daglogdir' in p:
                 out=cp.get('paths',p)
                 # append approximant prefix
-                cp.set('paths',p,os.path.join(out,sampler,app))
+                cp.set('paths',p,os.path.join(out,sampler,app,str_M(delta_t0)))
           else:
             # do the appropriate hacks for ROQ
             if not os.path.isdir(os.path.join(rundir_root,sampler,app,roq)):
