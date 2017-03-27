@@ -1972,6 +1972,7 @@ void LALInferenceSimpleRingdown(LALInferenceModel *model){
 
   //fprintf(stdout,"%g,%g,%g,%g,%g,%g,%g,%g,%g,%g,\n",reomegaqnm_a,imomegaqnm_a,reomegaqnm_b,imomegaqnm_b,amplitude_a,phase_a,t_0_a,amplitude_b,phase_b,t_0_b);
 
+
   if (model->domain == LAL_SIM_DOMAIN_FREQUENCY) {
     memset(model->freqhPlus->data->data,0,sizeof(model->freqhPlus->data->data[0])*model->freqhPlus->data->length);
     memset(model->freqhCross->data->data,0,sizeof(model->freqhCross->data->data[0])*model->freqhCross->data->length);
@@ -1986,6 +1987,9 @@ void LALInferenceSimpleRingdown(LALInferenceModel *model){
     COMPLEX16 den_b = 0.0;
     COMPLEX16 norm_b = 0.0;
     COMPLEX16 time_shift_b = 0.0;
+
+    REAL8 instant = model->freqhPlus->epoch.gpsSeconds + 1e-9*model->freqhPlus->epoch.gpsNanoSeconds;
+    LALInferenceSetVariable(model->params, "time", &instant);
 
     for (i=index_min; i<index_max; ++i) {
       freq = i*deltaF;
@@ -2010,10 +2014,8 @@ void LALInferenceSimpleRingdown(LALInferenceModel *model){
 
       model->freqhPlus->data->data[i] *= (1.+costheta_jn*costheta_jn)/2.;
       model->freqhCross->data->data[i] *= costheta_jn;
-    }
 
-    REAL8 instant = model->freqhPlus->epoch.gpsSeconds + 1e-9*model->freqhPlus->epoch.gpsNanoSeconds;
-    LALInferenceSetVariable(model->params, "time", &instant);
+    }
 
   }else if(model->domain == LAL_SIM_DOMAIN_TIME){
     memset(model->timehPlus->data->data, 0, sizeof(REAL8)*model->timehPlus->data->length);
@@ -2038,7 +2040,6 @@ void LALInferenceSimpleRingdown(LALInferenceModel *model){
       model->timehPlus->data->data[i] *= (1.+costheta_jn*costheta_jn)/2.;
       model->timehCross->data->data[i] *= costheta_jn;
     }
-
     //REAL8 injTc=XLALGPSGetREAL8(&(model->timehPlus->epoch));
     REAL8 injTc=XLALGPSGetREAL8(&(model->timehPlus->epoch))-2.+index_max*deltaT;
     LALInferenceSetVariable(model->params, "time", &injTc);
