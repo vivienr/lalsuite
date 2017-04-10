@@ -166,6 +166,7 @@ void LALInferenceDrawThreads(LALInferenceRunState *run_state) {
         while(isinf(run_state->prior(run_state,
                                      thread->currentParams,
                                      thread->model))) {
+            LALInferencePrintVariables(thread->currentParams);
             LALInferenceDrawApproxPrior(thread,
                                         thread->currentParams,
                                         thread->currentParams);
@@ -1250,10 +1251,23 @@ LALInferenceModel *LALInferenceInitCBCModel(LALInferenceRunState *state) {
   ppt=LALInferenceGetProcParamVal(commandLine,"--template");
   if(ppt) {
     if(!strcmp("RingDown",ppt->value)){
-      //LALInferenceRemoveVariable(model->params,"chirpmass");
-      LALInferenceSetParamVaryType(model->params,"chirpmass", LALINFERENCE_PARAM_FIXED);
-      //LALInferenceRemoveVariable(model->params,"q");
-      LALInferenceSetParamVaryType(model->params,"q", LALINFERENCE_PARAM_FIXED);
+      if(LALInferenceCheckVariable(model->params,"chirpmass")){
+        LALInferenceRemoveVariable(model->params,"chirpmass");
+        LALInferenceRemoveMinMaxPrior(state->priorArgs, "chirpmass");
+      }
+      //LALInferenceSetParamVaryType(model->params,"chirpmass", LALINFERENCE_PARAM_FIXED);
+      if(LALInferenceCheckVariable(model->params,"q")){
+        LALInferenceRemoveVariable(model->params,"q");
+        LALInferenceRemoveMinMaxPrior(state->priorArgs, "q");
+      }
+      //LALInferenceSetParamVaryType(model->params,"q", LALINFERENCE_PARAM_FIXED);
+      LALInferenceRemoveVariable(priorArgs,"mass1_min");
+      LALInferenceRemoveVariable(priorArgs,"mass1_max");
+      LALInferenceRemoveVariable(priorArgs,"mass2_min");
+      LALInferenceRemoveVariable(priorArgs,"mass2_max");
+      LALInferenceRemoveVariable(priorArgs,"MTotMax");
+      LALInferenceRemoveVariable(priorArgs,"MTotMin");
+
       //LALInferenceRemoveVariable(model->params,"costheta_jn");
       //LALInferenceRemoveVariable(model->params,"logdistance");
       //LALInferenceRemoveVariable(model->params,"phase");
