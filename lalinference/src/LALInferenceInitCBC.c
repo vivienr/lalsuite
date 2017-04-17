@@ -1255,12 +1255,10 @@ LALInferenceModel *LALInferenceInitCBCModel(LALInferenceRunState *state) {
         LALInferenceRemoveVariable(model->params,"chirpmass");
         LALInferenceRemoveMinMaxPrior(state->priorArgs, "chirpmass");
       }
-      //LALInferenceSetParamVaryType(model->params,"chirpmass", LALINFERENCE_PARAM_FIXED);
       if(LALInferenceCheckVariable(model->params,"q")){
         LALInferenceRemoveVariable(model->params,"q");
         LALInferenceRemoveMinMaxPrior(state->priorArgs, "q");
       }
-      //LALInferenceSetParamVaryType(model->params,"q", LALINFERENCE_PARAM_FIXED);
       LALInferenceRemoveVariable(priorArgs,"mass1_min");
       LALInferenceRemoveVariable(priorArgs,"mass1_max");
       LALInferenceRemoveVariable(priorArgs,"mass2_min");
@@ -1268,19 +1266,33 @@ LALInferenceModel *LALInferenceInitCBCModel(LALInferenceRunState *state) {
       LALInferenceRemoveVariable(priorArgs,"MTotMax");
       LALInferenceRemoveVariable(priorArgs,"MTotMin");
 
-      //LALInferenceRemoveVariable(model->params,"costheta_jn");
-      //LALInferenceRemoveVariable(model->params,"logdistance");
-      //LALInferenceRemoveVariable(model->params,"phase");
-      LALInferenceRegisterUniformVariableREAL8(state, model->params, "rd_omega_a", 1.0, 50.0, 300.0, LALINFERENCE_PARAM_LINEAR);
-      LALInferenceRegisterUniformVariableREAL8(state, model->params, "rd_decay_a", 1.0, 50.0, 500.0, LALINFERENCE_PARAM_LINEAR);
-      //LALInferenceRegisterUniformVariableREAL8(state, model->params, "logamplitude_a", -45.0, -52.0, -40.0, LALINFERENCE_PARAM_LINEAR);
-      //LALInferenceRegisterUniformVariableREAL8(state, model->params, "phase_a", 0.0, 0.0, LAL_TWOPI, LALINFERENCE_PARAM_LINEAR);
-      //LALInferenceRegisterUniformVariableREAL8(state, model->params, "t0_a", 0.0, 0.0, 0.2, LALINFERENCE_PARAM_LINEAR);
-      LALInferenceRegisterUniformVariableREAL8(state, model->params, "rd_omega_b", 1.0, 50.0, 300.0, LALINFERENCE_PARAM_LINEAR);
-      LALInferenceRegisterUniformVariableREAL8(state, model->params, "rd_decay_b", 1.0, 50.0, 500.0, LALINFERENCE_PARAM_LINEAR);
-      LALInferenceRegisterUniformVariableREAL8(state, model->params, "delta_logamplitude_b", -2.0, -4.0, 0.0, LALINFERENCE_PARAM_LINEAR);
-      LALInferenceRegisterUniformVariableREAL8(state, model->params, "phase_b", 0.0, 0.0, LAL_TWOPI, LALINFERENCE_PARAM_LINEAR);
-      LALInferenceRegisterUniformVariableREAL8(state, model->params, "delta_t0_b", 0.0, -0.01, 0.01, LALINFERENCE_PARAM_LINEAR);
+      UINT4 n_modes=2,m=0;
+      ppt=LALInferenceGetProcParamVal(commandLine,"--n_modes");
+        if(ppt) n_modes=atoi(ppt->value);
+      LALInferenceAddVariable(model->params, "n_modes", &n_modes,
+          LALINFERENCE_UINT4_t, LALINFERENCE_PARAM_FIXED);
+
+      char reomegaqnm_name[VARNAME_MAX];
+      char imomegaqnm_name[VARNAME_MAX];
+      char amplitude_name[VARNAME_MAX];
+      char phase_name[VARNAME_MAX];
+      char time_shift_name[VARNAME_MAX];
+
+      for (m=0; m<n_modes; ++m){
+
+        snprintf(reomegaqnm_name, VARNAME_MAX, "rd_omega_%i",m);
+        LALInferenceRegisterUniformVariableREAL8(state, model->params, reomegaqnm_name, 1.0, 50.0, 300.0, LALINFERENCE_PARAM_LINEAR);
+        snprintf(imomegaqnm_name, VARNAME_MAX, "rd_decay_%i",m);
+        LALInferenceRegisterUniformVariableREAL8(state, model->params, imomegaqnm_name, 1.0, 50.0, 500.0, LALINFERENCE_PARAM_LINEAR);
+        if (m!=0){
+          snprintf(amplitude_name, VARNAME_MAX, "delta_logamplitude_%i",m);
+          LALInferenceRegisterUniformVariableREAL8(state, model->params, amplitude_name, -2.0, -4.0, 0.0, LALINFERENCE_PARAM_LINEAR);
+          snprintf(phase_name, VARNAME_MAX, "phase_%i",m);
+          LALInferenceRegisterUniformVariableREAL8(state, model->params, "phase_1", 0.0, 0.0, LAL_TWOPI, LALINFERENCE_PARAM_CIRCULAR);
+          snprintf(time_shift_name, VARNAME_MAX, "delta_t0_%i",m);
+          LALInferenceRegisterUniformVariableREAL8(state, model->params, time_shift_name, 0.0, -0.01, 0.01, LALINFERENCE_PARAM_LINEAR);
+        }
+      }
     }
   }
 

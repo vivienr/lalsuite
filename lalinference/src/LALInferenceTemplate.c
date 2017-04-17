@@ -1900,9 +1900,49 @@ void LALInferenceTemplateXLALSimBurstSineGaussianF(LALInferenceModel *model)
   return;
 }
 
-void LALInferenceSimpleRingdown(LALInferenceModel *model){
+void LALInferenceSingleRingdownFD(REAL8 *hplus, REAL8 *hcross, REAL8 deltaF, UINT4 index_min, UINT4 index_max, REAL8 reomegaqnm, REAL8 imomegaqnm, REAL8 amplitude, REAL8 phase, REAL8 time_shift);
+void LALInferenceSingleRingdownFD(REAL8 *hplus, REAL8 *hcross, REAL8 deltaF, UINT4 index_min, UINT4 index_max, REAL8 reomegaqnm, REAL8 imomegaqnm, REAL8 amplitude, REAL8 phase, REAL8 time_shift){
 
   UINT4 i=0;
+  REAL8 freq = 0.0;
+  COMPLEX16 D = 0.0;
+  COMPLEX16 C = 0.0;
+  COMPLEX16 freq_shift = 0.0;
+
+  for (i=index_min; i<index_max; ++i) {
+    freq = i*deltaF;
+    D = 1 + (4.0j * LAL_PI * freq / imomegaqnm) - (4 * LAL_PI * LAL_PI * ( freq*freq - reomegaqnm*reomegaqnm) / (imomegaqnm*imomegaqnm));
+    C = amplitude / ( imomegaqnm * D );
+    freq_shift = exp(-1.0j * LAL_TWOPI * freq * time_shift);
+    C *= freq_shift;
+
+    hplus[i] = C * ( (1.0 + 2.0j * LAL_PI * freq / imomegaqnm) * cos(phase)
+                              - LAL_TWOPI * reomegaqnm / imomegaqnm * sin(phase) );
+    hcross[i] = C * ( (1.0 + 2.0j * LAL_PI * freq / imomegaqnm) * sin(phase)
+                              + LAL_TWOPI * reomegaqnm / imomegaqnm * cos(phase) );
+  }
+  return;
+}
+
+void LALInferenceSingleRingdownTD(REAL8 *hplus, REAL8 *hcross, REAL8 deltaT, UINT4 index_min, UINT4 index_max, REAL8 reomegaqnm, REAL8 imomegaqnm, REAL8 amplitude, REAL8 phase, REAL8 time_shift);
+void LALInferenceSingleRingdownTD(REAL8 *hplus, REAL8 *hcross, REAL8 deltaT, UINT4 index_min, UINT4 index_max, REAL8 reomegaqnm, REAL8 imomegaqnm, REAL8 amplitude, REAL8 phase, REAL8 time_shift){
+
+  UINT4 i=0;
+  REAL8 t = 0.0;
+
+  for (i=index_min; i<index_max; ++i){
+    t = (i-index_min)*deltaT;
+    if (t+time_shift>0.0){
+      hplus[i]=amplitude * exp(-(t+time_shift)*imomegaqnm) * cos(LAL_TWOPI*reomegaqnm*(t+time_shift) + phase);
+      hcross[i]=amplitude * exp(-(t+time_shift)*imomegaqnm) * sin(LAL_TWOPI*reomegaqnm*(t+time_shift) + phase);
+    }
+  }
+  return;
+}
+
+void LALInferenceSimpleRingdown(LALInferenceModel *model){
+
+  UINT4 i=0,m=0;
   REAL8 deltaF=0.0;
   REAL8 deltaT=0.0;
   REAL8 f_min=0.0;
@@ -1929,49 +1969,64 @@ void LALInferenceSimpleRingdown(LALInferenceModel *model){
   else
     f_min = model->fLow;
 
-  REAL8 reomegaqnm_a=0.0;
-  REAL8 imomegaqnm_a=0.0;
-  REAL8 reomegaqnm_b=0.0;
-  REAL8 imomegaqnm_b=0.0;
-
-  if(LALInferenceCheckVariable(model->params, "rd_omega_a"))
-    reomegaqnm_a = *(REAL8*) LALInferenceGetVariable(model->params, "rd_omega_a");
-    //reomegaqnm_a *= 1. / (finalMass * LAL_MTSUN_SI);
-  if(LALInferenceCheckVariable(model->params, "rd_decay_a"))
-    imomegaqnm_a = *(REAL8*) LALInferenceGetVariable(model->params, "rd_decay_a");
-    //imomegaqnm_a *= 1. / (finalMass * LAL_MTSUN_SI);
-  if(LALInferenceCheckVariable(model->params, "rd_omega_b"))
-    reomegaqnm_b = *(REAL8*) LALInferenceGetVariable(model->params, "rd_omega_b");
-  if(LALInferenceCheckVariable(model->params, "rd_decay_b"))
-    imomegaqnm_b = *(REAL8*) LALInferenceGetVariable(model->params, "rd_decay_b");
-
   REAL8 logdistance=1.0;
   REAL8 costheta_jn=1.0;
-  REAL8 amplitude_a=0.0;
-  REAL8 phase_a=0.0;
-  REAL8 t_0_a=0.0; //set by tc
-  REAL8 amplitude_b=0.0;
-  REAL8 phase_b=0.0;
-  REAL8 t_0_b=0.0;
+
+  UINT4 n_modes=2;
+  if(LALInferenceCheckVariable(model->params, "n_modes"))
+    n_modes = *(UINT4*) LALInferenceGetVariable(model->params, "n_modes");
+
+  REAL8 reomegaqnm[n_modes];
+  REAL8 imomegaqnm[n_modes];
+  REAL8 amplitude[n_modes];
+  REAL8 phase[n_modes];
+  REAL8 time_shift[n_modes];
+
+  char reomegaqnm_name[VARNAME_MAX];
+  char imomegaqnm_name[VARNAME_MAX];
+  char amplitude_name[VARNAME_MAX];
+  char phase_name[VARNAME_MAX];
+  char time_shift_name[VARNAME_MAX];
+
+  for (m=0; m<n_modes; ++m){
+
+    snprintf(reomegaqnm_name, VARNAME_MAX, "rd_omega_%i",m);
+    if(LALInferenceCheckVariable(model->params, reomegaqnm_name))
+      reomegaqnm[m] = *(REAL8*) LALInferenceGetVariable(model->params, reomegaqnm_name);
+    else
+      reomegaqnm[m] = 0.0;
+    snprintf(imomegaqnm_name, VARNAME_MAX, "rd_decay_%i",m);
+    if(LALInferenceCheckVariable(model->params, imomegaqnm_name))
+      imomegaqnm[m] = *(REAL8*) LALInferenceGetVariable(model->params, imomegaqnm_name);
+    else
+      imomegaqnm[m] = 0.0;
+    if (m==0){
+      if(LALInferenceCheckVariable(model->params, "logdistance"))
+        logdistance = *(REAL8*) LALInferenceGetVariable(model->params, "logdistance");
+        amplitude[m] = exp(-43.749116766886864-logdistance); //10^-21 as fiducial amplitude at 100 Mpc, log(10^-21)-(log(1/100))=-43.749116766886864
+    }else{
+      snprintf(amplitude_name, VARNAME_MAX, "delta_logamplitude_%i",m);
+      if(LALInferenceCheckVariable(model->params, amplitude_name))
+        amplitude[m] = amplitude[0]*exp(*(REAL8*) LALInferenceGetVariable(model->params,  amplitude_name));
+      else
+        amplitude[m] = 0.0;
+    }
+    snprintf(phase_name, VARNAME_MAX, "phase_%i",m);
+    if(m==0)
+      snprintf(phase_name, VARNAME_MAX, "phase");
+    if(LALInferenceCheckVariable(model->params, phase_name))
+      phase[m] = *(REAL8*) LALInferenceGetVariable(model->params, phase_name);
+    else
+      phase[m] = 0.0;
+    snprintf(time_shift_name, VARNAME_MAX, "delta_t0_%i",m);
+    if(LALInferenceCheckVariable(model->params, time_shift_name))
+      time_shift[m] = *(REAL8*) LALInferenceGetVariable(model->params, time_shift_name);
+    else
+      time_shift[m] = 0.0;
+  }
 
   if(LALInferenceCheckVariable(model->params, "costheta_jn"))
     costheta_jn = *(REAL8*) LALInferenceGetVariable(model->params, "costheta_jn");
-  if(LALInferenceCheckVariable(model->params, "logdistance"))
-    logdistance = *(REAL8*) LALInferenceGetVariable(model->params, "logdistance");
-    amplitude_a = exp(-43.749116766886864-logdistance); //10^-21 as fiducial amplitude at 100 Mpc, log(10^-21)-(log(1/100))=-43.749116766886864
-  if(LALInferenceCheckVariable(model->params, "phase"))
-    phase_a = *(REAL8*) LALInferenceGetVariable(model->params, "phase");
-  //if(LALInferenceCheckVariable(model->params, "t0_a"))
-    t_0_a = 0.0; //*(REAL8*) LALInferenceGetVariable(model->params, "t0_a");
-  if(LALInferenceCheckVariable(model->params, "delta_logamplitude_b"))
-    amplitude_b = amplitude_a*exp(*(REAL8*) LALInferenceGetVariable(model->params, "delta_logamplitude_b"));
-  if(LALInferenceCheckVariable(model->params, "phase_b"))
-    phase_b = *(REAL8*) LALInferenceGetVariable(model->params, "phase_b");
-  if(LALInferenceCheckVariable(model->params, "delta_t0_b"))
-    t_0_b = *(REAL8*) LALInferenceGetVariable(model->params, "delta_t0_b");
-
-  //fprintf(stdout,"%g,%g,%g,%g,%g,%g,%g,%g,%g,%g,\n",reomegaqnm_a,imomegaqnm_a,reomegaqnm_b,imomegaqnm_b,amplitude_a,phase_a,t_0_a,amplitude_b,phase_b,t_0_b);
-
 
   if (model->domain == LAL_SIM_DOMAIN_FREQUENCY) {
     memset(model->freqhPlus->data->data,0,sizeof(model->freqhPlus->data->data[0])*model->freqhPlus->data->length);
@@ -1980,41 +2035,30 @@ void LALInferenceSimpleRingdown(LALInferenceModel *model){
     UINT4 index_min = (UINT4)(f_min / deltaF);
     UINT4 index_max = (UINT4)model->freqhPlus->data->length;//int(f_max / deltaF) + 1;
 
-    REAL8 freq = 0.0;
-    COMPLEX16 den_a = 0.0;
-    COMPLEX16 norm_a = 0.0;
-    COMPLEX16 time_shift_a = 0.0;
-    COMPLEX16 den_b = 0.0;
-    COMPLEX16 norm_b = 0.0;
-    COMPLEX16 time_shift_b = 0.0;
-
     REAL8 instant = model->freqhPlus->epoch.gpsSeconds + 1e-9*model->freqhPlus->epoch.gpsNanoSeconds;
     LALInferenceSetVariable(model->params, "time", &instant);
 
+    REAL8 hplus[index_max];
+    REAL8 hcross[index_max];
     for (i=index_min; i<index_max; ++i) {
-      freq = i*deltaF;
-      den_a = 1 + (4.0j * LAL_PI * freq / imomegaqnm_a) - (4 * LAL_PI * LAL_PI * ( freq*freq - reomegaqnm_a*reomegaqnm_a) / (imomegaqnm_a*imomegaqnm_a));
-      norm_a = amplitude_a / ( imomegaqnm_a * den_a );
-      time_shift_a = exp(-1.0j * LAL_TWOPI * freq * t_0_a);
-      norm_a *= time_shift_a;
+      hplus[i]=0.0;
+      hcross[i]=0.0;
+    }
 
-      den_b = 1 + (4.0j * LAL_PI * freq / imomegaqnm_b) - (4 * LAL_PI * LAL_PI * ( freq*freq - reomegaqnm_b*reomegaqnm_b) / (imomegaqnm_b*imomegaqnm_b));
-      norm_b = amplitude_b / ( imomegaqnm_b * den_b );
-      time_shift_b = exp(-1.0j * LAL_TWOPI * freq * t_0_b);
-      norm_b *= time_shift_b;
+    for (m=0; m<n_modes; ++m){
 
-      model->freqhPlus->data->data[i] = norm_a * ( (1.0 + 2.0j * LAL_PI * freq / imomegaqnm_a) * cos(phase_a)
-                                - LAL_TWOPI * reomegaqnm_a / imomegaqnm_a * sin(phase_a) )
-                                + norm_b * ( (1.0 + 2.0j * LAL_PI * freq / imomegaqnm_b) * cos(phase_b)
-                                - LAL_TWOPI * reomegaqnm_b / imomegaqnm_b * sin(phase_b) );
-      model->freqhCross->data->data[i] = norm_a * ( (1.0 + 2.0j * LAL_PI * freq / imomegaqnm_a) * sin(phase_a)
-                                + LAL_TWOPI * reomegaqnm_a / imomegaqnm_a * cos(phase_a) )
-                                + norm_b * ( (1.0 + 2.0j * LAL_PI * freq / imomegaqnm_b) * sin(phase_b)
-                                + LAL_TWOPI * reomegaqnm_b / imomegaqnm_b * cos(phase_b) );
+      LALInferenceSingleRingdownFD(hplus, hcross, deltaF, index_min, index_max,
+        reomegaqnm[m], imomegaqnm[m], amplitude[m], phase[m], time_shift[m]);
 
+      for (i=index_min; i<index_max; ++i) {
+        model->freqhPlus->data->data[i] += hplus[i];
+        model->freqhCross->data->data[i] += hcross[i];
+      }
+    }
+
+    for (i=index_min; i<index_max; ++i) {
       model->freqhPlus->data->data[i] *= (1.+costheta_jn*costheta_jn)/2.;
       model->freqhCross->data->data[i] *= costheta_jn;
-
     }
 
   }else if(model->domain == LAL_SIM_DOMAIN_TIME){
@@ -2024,26 +2068,31 @@ void LALInferenceSimpleRingdown(LALInferenceModel *model){
     UINT4 index_max = (UINT4)model->timehPlus->data->length;
     UINT4 index_min = index_max-(UINT4)(2./deltaT);
 
-    REAL8 t = 0.0;
+    REAL8 hplus[index_max];
+    REAL8 hcross[index_max];
+    for (i=index_min; i<index_max; ++i) {
+      hplus[i]=0.0;
+      hcross[i]=0.0;
+    }
+
+    for (m=0; m<n_modes; ++m){
+
+      LALInferenceSingleRingdownTD(hplus, hcross, deltaT, index_min, index_max,
+        reomegaqnm[m], imomegaqnm[m], amplitude[m], phase[m], time_shift[m]);
+
+      for (i=index_min; i<index_max; ++i) {
+        model->timehPlus->data->data[i] += hplus[i];
+        model->timehCross->data->data[i] += hcross[i];
+      }
+    }
 
     for (i=index_min; i<index_max; ++i) {
-      //t = i*deltaT;
-      t = (i-index_min)*deltaT;
-      if (t+t_0_a>0.0){
-        model->timehPlus->data->data[i] += amplitude_a * exp(-(t+t_0_a)*imomegaqnm_a) * cos(LAL_TWOPI*reomegaqnm_a*(t+t_0_a) + phase_a);
-        model->timehCross->data->data[i] += amplitude_a * exp(-(t+t_0_a)*imomegaqnm_a) * sin(LAL_TWOPI*reomegaqnm_a*(t+t_0_a) + phase_a);
-      }
-      if (t+t_0_b>0.0){
-        model->timehPlus->data->data[i] += amplitude_b * exp(-(t+t_0_b)*imomegaqnm_b) * cos(LAL_TWOPI*reomegaqnm_b*(t+t_0_b) + phase_b);
-        model->timehCross->data->data[i] += amplitude_b * exp(-(t+t_0_b)*imomegaqnm_b) * sin(LAL_TWOPI*reomegaqnm_b*(t+t_0_b) + phase_b);
-      }
       model->timehPlus->data->data[i] *= (1.+costheta_jn*costheta_jn)/2.;
       model->timehCross->data->data[i] *= costheta_jn;
     }
-    //REAL8 injTc=XLALGPSGetREAL8(&(model->timehPlus->epoch));
+
     REAL8 injTc=XLALGPSGetREAL8(&(model->timehPlus->epoch))-2.+index_max*deltaT;
     LALInferenceSetVariable(model->params, "time", &injTc);
-    //fprintf(stdout,"%g,%g\n",model->timehPlus->data->data[index_min],model->timehCross->data->data[index_min]);
   }
 
   return;
