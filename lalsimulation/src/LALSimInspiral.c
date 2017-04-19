@@ -526,7 +526,7 @@ int XLALSimInspiralChooseTDWaveform(
                 XLALPrintWarning("XLAL Warning - %s: This approximant does use f_ref. The reference phase will be defined at coalescence.\n", __func__);
             /* Call the waveform driver routine */
             ret = XLALSimIMREOBNRv2DominantMode(hplus, hcross, phiRef, deltaT,
-                    m1, m2, f_min, r, i);
+                    m1, m2, f_min, r, i, reomegaqnm_a, imomegaqnm_a, modeqnm_a, reomegaqnm_b, imomegaqnm_b, modeqnm_b);
             break;
 
         /* spinning inspiral-only models */

@@ -1706,12 +1706,18 @@ XLALSimIMREOBNRv2DominantMode(
               const REAL8       m2SI,       /**<< Second component mass (in kg) */
               const REAL8       fLower,     /**<< Starting frequency (in Hz) */
               const REAL8       distance,   /**<< Distance to source (in metres) */
-              const REAL8       inclination /**<< Inclination of the source (in radians) */
+              const REAL8       inclination,/**<< Inclination of the source (in radians) */
+              REAL8 reomegaqnm_a,
+              REAL8 imomegaqnm_a,
+              INT4 modeqnm_a,
+              REAL8 reomegaqnm_b,
+              REAL8 imomegaqnm_b,
+              INT4 modeqnm_b
               )
 {
 
   if ( XLALSimIMREOBNRv2Generator(hplus, hcross, NULL, phiC, deltaT, m1SI, m2SI,
-              fLower, distance, inclination, 0 , 0.0, 0.0, 0, 0.0, 0.0, 0) == XLAL_FAILURE )
+              fLower, distance, inclination, 0, reomegaqnm_a, imomegaqnm_a, modeqnm_a, reomegaqnm_b, imomegaqnm_b, modeqnm_b) == XLAL_FAILURE )
   {
     XLAL_ERROR( XLAL_EFUNC );
   }
