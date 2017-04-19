@@ -1288,7 +1288,7 @@ LALInferenceModel *LALInferenceInitCBCModel(LALInferenceRunState *state) {
           snprintf(amplitude_name, VARNAME_MAX, "delta_logamplitude_%i",m);
           LALInferenceRegisterUniformVariableREAL8(state, model->params, amplitude_name, -2.0, -4.0, 0.0, LALINFERENCE_PARAM_LINEAR);
           snprintf(phase_name, VARNAME_MAX, "phase_%i",m);
-          LALInferenceRegisterUniformVariableREAL8(state, model->params, "phase_1", 0.0, 0.0, LAL_TWOPI, LALINFERENCE_PARAM_CIRCULAR);
+          LALInferenceRegisterUniformVariableREAL8(state, model->params, phase_name, 0.0, 0.0, LAL_TWOPI, LALINFERENCE_PARAM_CIRCULAR);
           snprintf(time_shift_name, VARNAME_MAX, "delta_t0_%i",m);
           LALInferenceRegisterUniformVariableREAL8(state, model->params, time_shift_name, 0.0, -0.01, 0.01, LALINFERENCE_PARAM_LINEAR);
         }
