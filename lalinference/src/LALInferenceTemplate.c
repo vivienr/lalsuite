@@ -1900,8 +1900,8 @@ void LALInferenceTemplateXLALSimBurstSineGaussianF(LALInferenceModel *model)
   return;
 }
 
-void LALInferenceSingleRingdownFD(REAL8 *hplus, REAL8 *hcross, REAL8 deltaF, UINT4 index_min, UINT4 index_max, REAL8 reomegaqnm, REAL8 imomegaqnm, REAL8 amplitude, REAL8 phase, REAL8 time_shift);
-void LALInferenceSingleRingdownFD(REAL8 *hplus, REAL8 *hcross, REAL8 deltaF, UINT4 index_min, UINT4 index_max, REAL8 reomegaqnm, REAL8 imomegaqnm, REAL8 amplitude, REAL8 phase, REAL8 time_shift){
+void LALInferenceSingleRingdownFD(COMPLEX16 *hplus, COMPLEX16 *hcross, REAL8 deltaF, UINT4 index_min, UINT4 index_max, REAL8 reomegaqnm, REAL8 imomegaqnm, REAL8 amplitude, REAL8 phase, REAL8 time_shift);
+void LALInferenceSingleRingdownFD(COMPLEX16 *hplus, COMPLEX16 *hcross, REAL8 deltaF, UINT4 index_min, UINT4 index_max, REAL8 reomegaqnm, REAL8 imomegaqnm, REAL8 amplitude, REAL8 phase, REAL8 time_shift){
 
   UINT4 i=0;
   REAL8 freq = 0.0;
@@ -1920,6 +1920,7 @@ void LALInferenceSingleRingdownFD(REAL8 *hplus, REAL8 *hcross, REAL8 deltaF, UIN
                               - LAL_TWOPI * reomegaqnm / imomegaqnm * sin(phase) );
     hcross[i] = C * ( (1.0 + 2.0j * LAL_PI * freq / imomegaqnm) * sin(phase)
                               + LAL_TWOPI * reomegaqnm / imomegaqnm * cos(phase) );
+
   }
   return;
 }
@@ -2038,8 +2039,8 @@ void LALInferenceSimpleRingdown(LALInferenceModel *model){
     REAL8 instant = model->freqhPlus->epoch.gpsSeconds + 1e-9*model->freqhPlus->epoch.gpsNanoSeconds;
     LALInferenceSetVariable(model->params, "time", &instant);
 
-    REAL8 hplus[index_max];
-    REAL8 hcross[index_max];
+    COMPLEX16 hplus[index_max];
+    COMPLEX16 hcross[index_max];
     for (i=index_min; i<index_max; ++i) {
       hplus[i]=0.0;
       hcross[i]=0.0;
