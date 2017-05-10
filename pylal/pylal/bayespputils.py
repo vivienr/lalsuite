@@ -829,7 +829,13 @@ class Posterior(object):
                             'h1_end_time':lambda inj:float(inj.get_end('H')),
                             'l1_end_time':lambda inj:float(inj.get_end('L')),
                             'v1_end_time':lambda inj:float(inj.get_end('V')),
-                            'lal_amporder':lambda inj:inj.amp_order}
+                            'lal_amporder':lambda inj:inj.amp_order,
+                            'reomegaqnm_a':lambda inj:inj.reomegaqnm_a,
+                            'imomegaqnm_a':lambda inj:inj.reomegaqnm_a,
+                            'modeqnm_a':lambda inj:inj.reomegaqnm_a,
+                            'reomegaqnm_b':lambda inj:inj.reomegaqnm_b,
+                            'imomegaqnm_b':lambda inj:inj.reomegaqnm_b,
+                            'modeqnm_b':lambda inj:inj.reomegaqnm_b}
 
         # Add on all spin parameterizations
         for key, val in self._inj_spins(self._injection, frame=inj_spin_frame).items():

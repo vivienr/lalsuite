@@ -334,25 +334,34 @@ SimInspiralTable* XLALSetInjectionRingDownFrequencies(
   COMPLEX16Vector *modefreqs;
   REAL8 spin1[3] = { 0.0, 0.0, 0.0 };
   REAL8 spin2[3] = { 0.0, 0.0, 0.0 };
-  INT4 l,m;
+  UINT4 l,i;
+  INT4 m,signm;
   REAL8 finalMass, finalSpin;
 
   nmodes = 8;
   modefreqs = XLALCreateCOMPLEX16Vector(nmodes);
 
-  l=(INT4)(modeqnm_a/100);
-  m=(INT4)((modeqnm_a-l*100)/10);
+  signm = modeqnm_a < 0 ? -1 : 1;
+  modeqnm_a=abs(modeqnm_a);
+  l=(UINT4)(modeqnm_a/100);
+  m=(INT4)(signm*((modeqnm_a-l*100)/10));
+  i=(UINT4)((modeqnm_a-l*100-abs(m)*10));
   XLALSimIMREOBGenerateQNMFreqV2(modefreqs, inj->mass1, inj->mass2, spin1, spin2, l, m, nmodes, EOBNRv2HM, 0.0, 0.0, 0, 0.0, 0.0, 0);
   XLALSimIMREOBFinalMassSpin(&finalMass, &finalSpin, inj->mass1, inj->mass2, spin1, spin2, EOBNRv2HM);
-  inj->reomegaqnm_a = creal(modefreqs->data[0])*(finalMass * LAL_MTSUN_SI)*deltaGR;
-  inj->imomegaqnm_a = cimag(modefreqs->data[0])*(finalMass * LAL_MTSUN_SI)*deltaGR;
+  finalMass *= ( inj->mass1 + inj->mass2 );
+  inj->reomegaqnm_a = creal(modefreqs->data[i])*(finalMass * LAL_MTSUN_SI)*deltaGR;
+  inj->imomegaqnm_a = cimag(modefreqs->data[i])*(finalMass * LAL_MTSUN_SI)*deltaGR;
 
-  l=(INT4)(modeqnm_b/100);
-  m=(INT4)((modeqnm_b-l*100)/10);
+  signm = modeqnm_b < 0 ? -1 : 1;
+  modeqnm_b=abs(modeqnm_b);
+  l=(UINT4)(modeqnm_b/100);
+  m=(INT4)(signm*((modeqnm_b-l*100)/10));
+  i=(UINT4)((modeqnm_b-l*100-abs(m)*10));
   XLALSimIMREOBGenerateQNMFreqV2(modefreqs, inj->mass1, inj->mass2, spin1, spin2, l, m, nmodes, EOBNRv2HM, 0.0, 0.0, 0, 0.0, 0.0, 0);
   XLALSimIMREOBFinalMassSpin(&finalMass, &finalSpin, inj->mass1, inj->mass2, spin1, spin2, EOBNRv2HM);
-  inj->reomegaqnm_b = creal(modefreqs->data[0])*(finalMass * LAL_MTSUN_SI)*deltaGR;
-  inj->imomegaqnm_b = cimag(modefreqs->data[0])*(finalMass * LAL_MTSUN_SI)*deltaGR;
+  finalMass *= ( inj->mass1 + inj->mass2 );
+  inj->reomegaqnm_b = creal(modefreqs->data[i])*(finalMass * LAL_MTSUN_SI)*deltaGR;
+  inj->imomegaqnm_b = cimag(modefreqs->data[i])*(finalMass * LAL_MTSUN_SI)*deltaGR;
 
   inj->modeqnm_a = modeqnm_a;
   inj->modeqnm_b = modeqnm_b;

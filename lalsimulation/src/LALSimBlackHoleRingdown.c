@@ -881,7 +881,6 @@ INT4 XLALSimIMREOBGenerateQNMFreqV2(COMPLEX16Vector * modefreqs,
     ) {
 
     REAL8 totalMass, finalMass, finalSpin;
-
     /* Call XLALSimIMREOBFinalMassSpin() to get mass and spin of the final black hole */
     if (XLALSimIMREOBFinalMassSpin(&finalMass, &finalSpin, mass1, mass2, spin1, spin2, approximant) == XLAL_FAILURE) {
         XLAL_ERROR(XLAL_EFUNC);
@@ -2468,11 +2467,11 @@ INT4 XLALSimIMREOBGenerateQNMFreqV2fromFinal(COMPLEX16Vector * modefreqs,
     }
     /* Now get the QNM frequencies from interpolating the above data */
     for (i = 0; i < nmodes; i++) {
-        if (modeqnm_a==copysign(1.0, m)*((INT4)l*100+abs(m)*10+(INT4)i)) {
+        if (modeqnm_a==signm*((INT4)l*100+abs(m)*10+(INT4)i)) {
           modefreqs->data[i] = reomegaqnm_a_nk;
           modefreqs->data[i] += I * imomegaqnm_a_nk;
           //printf("(%d,%d,%d)\tomega=%g\t1/tau=%g\n",l,m,i,creal(modefreqs->data[i]),cimag(modefreqs->data[i]));
-        }else if (modeqnm_b==copysign(1.0, m)*((INT4)l*100+abs(m)*10+(INT4)i)) {
+        }else if (modeqnm_b==signm*((INT4)l*100+abs(m)*10+(INT4)i)) {
           modefreqs->data[i] = reomegaqnm_b_nk;
           modefreqs->data[i] += I * imomegaqnm_b_nk;
         }else{
