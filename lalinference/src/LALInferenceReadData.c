@@ -1584,6 +1584,27 @@ void LALInferenceInjectInspiralSignal(LALInferenceIFOData *IFOdata, ProcessParam
         fprintf(stdout,"lambda1 set to %f\n",lambda1);
         fprintf(stdout,"lambda2 set to %f\n",lambda2);
       }
+      /*REAL8 reomegaqnm_a = 0.0;
+      REAL8 imomegaqnm_a = 0.0;
+      INT4 modeqnm_a = 0;
+      REAL8 reomegaqnm_b = 0.0;
+      REAL8 imomegaqnm_b = 0.0;
+      INT4 modeqnm_b = 0;
+      if(LALInferenceGetProcParamVal(commandLine,"--inj-QNM")) {
+        reomegaqnm_a= atof(LALInferenceGetProcParamVal(commandLine,"--inj-reomegaqnm_a")->value);
+        imomegaqnm_a= atof(LALInferenceGetProcParamVal(commandLine,"--inj-imomegaqnm_a")->value);
+        modeqnm_a= atoi(LALInferenceGetProcParamVal(commandLine,"--inj-modegaqnm_a")->value);
+        reomegaqnm_b= atof(LALInferenceGetProcParamVal(commandLine,"--inj-reomegaqnm_b")->value);
+        imomegaqnm_b= atof(LALInferenceGetProcParamVal(commandLine,"--inj-imomegaqnm_b")->value);
+        modeqnm_b= atoi(LALInferenceGetProcParamVal(commandLine,"--inj-modeqnm_b")->value);
+
+        fprintf(stdout,"Injection reomegaqnm_a set to %f\n",reomegaqnm_a);
+        fprintf(stdout,"Injection imomegaqnm_a set to %f\n",imomegaqnm_a);
+        fprintf(stdout,"Injection modeqnm_a set to %d\n",modeqnm_a);
+        fprintf(stdout,"Injection reomegaqnm_b set to %f\n",reomegaqnm_b);
+        fprintf(stdout,"Injection imomegaqnm_b set to %f\n",imomegaqnm_b);
+        fprintf(stdout,"Injection modenm_b set to %d\n",modeqnm_b);
+      }*/
 
       REAL8 fref = 100.;
       if(LALInferenceGetProcParamVal(commandLine,"--inj-fref")) {
@@ -1626,7 +1647,7 @@ void LALInferenceInjectInspiralSignal(LALInferenceIFOData *IFOdata, ProcessParam
                                       injEvent->spin1y, injEvent->spin1z, injEvent->spin2x, injEvent->spin2y,
                                       injEvent->spin2z, f_min, fref, injEvent->distance*LAL_PC_SI * 1.0e6,
                                       injEvent->inclination, lambda1, lambda2, waveFlags,
-                                      nonGRparams, amporder, order, approximant, 0.0, 0.0, 0, 0.0, 0.0, 0);
+                                      nonGRparams, amporder, order, approximant, injEvent->reomegaqnm_a, injEvent->imomegaqnm_a, injEvent->modeqnm_a, injEvent->reomegaqnm_b, injEvent->imomegaqnm_b, injEvent->modeqnm_b);
       if(!hplus || !hcross) {
         fprintf(stderr,"Error: XLALSimInspiralChooseWaveform() failed to produce waveform.\n");
         exit(-1);

@@ -195,6 +195,11 @@ SimInspiralTable* XLALRandomInspiralMasses( SimInspiralTable *inj,
     REAL4  minTotalMass,
     REAL4  maxTotalMass  );
 
+SimInspiralTable* XLALSetInjectionRingDownFrequencies( SimInspiralTable *inj,
+    REAL4  deltaGR,
+    INT4 modeqnm_a,
+    INT4 modeqnm_b  );
+
 SimInspiralTable* XLALGaussianInspiralMasses( SimInspiralTable *inj,
     RandomParams *randParams,
     REAL4  mass1Min,
@@ -268,4 +273,3 @@ COMPLEX8FrequencySeries *generateActuation(
 #ifdef  __cplusplus
 }                /* Close C++ protection */
 #endif
-

@@ -823,7 +823,7 @@ class ExperimentTable(table.Table):
 
 	def write_new_expr_id(self, search_group, search, lars_id, instruments, gps_start_time, gps_end_time, comments = None):
 		"""
-		Creates a new def_id for the given arguments and returns it. 
+		Creates a new def_id for the given arguments and returns it.
 		If an entry already exists with these, will just return that id.
 
 		@search_group: string representing the search group (e.g., cbc)
@@ -833,7 +833,7 @@ class ExperimentTable(table.Table):
 		@gps_start_time: string or int representing the gps_start_time of the experiment
 		@gps_end_time: string or int representing the gps_end_time of the experiment
 		"""
-		
+
 		# check if id already exists
 		check_id = self.get_expr_id( search_group, search, lars_id, instruments, gps_start_time, gps_end_time, comments = comments )
 		if check_id:
@@ -920,7 +920,7 @@ class ExperimentSummaryTable(table.Table):
 	next_id = ExpSummID(0)
 
 	datatypes = ['slide', 'all_data', 'playground', 'exclude_play', 'simulation']
-		
+
 
 	def as_id_dict(self):
 		"""
@@ -940,7 +940,7 @@ class ExperimentSummaryTable(table.Table):
 
 	def get_expr_summ_id(self, experiment_id, time_slide_id, veto_def_name, datatype, sim_proc_id = None):
 		"""
-		Return the expr_summ_id for the row in the table whose experiment_id, 
+		Return the expr_summ_id for the row in the table whose experiment_id,
 		time_slide_id, veto_def_name, and datatype match the given. If sim_proc_id,
 		will retrieve the injection run matching that sim_proc_id.
 		If a matching row is not found, returns None.
@@ -978,19 +978,19 @@ class ExperimentSummaryTable(table.Table):
 		row.nevents = None
 		row.duration = None
 		self.append(row)
-		
+
 		return row.experiment_summ_id
 
 	def write_non_injection_summary(self, experiment_id, time_slide_dict, veto_def_name, write_all_data = True, write_playground = True, write_exclude_play = True, return_dict = False):
 		"""
 		Method for writing a new set of non-injection experiments to the experiment
-		summary table. This ensures that for every entry in the 
+		summary table. This ensures that for every entry in the
 		experiment table, an entry for every slide is added to
 		the experiment_summ table, rather than just an entry for slides that
 		have events in them. Default is to write a 3 rows for zero-lag: one for
 		all_data, playground, and exclude_play. (If all of these are set to false,
 		will only slide rows.)
-		
+
 		Note: sim_proc_id is hard-coded to None because time-slides
 		are not performed with injections.
 
@@ -1040,7 +1040,7 @@ class ExperimentSummaryTable(table.Table):
 			else:
 				row.nevents = num_events
 				return row.nevents
-				
+
 		# if get to here, couldn't find experiment_summ_id in the table
 		raise ValueError("'%s' could not be found in the table" % (str(experiment_summ_id)))
 
@@ -1875,8 +1875,8 @@ class SnglInspiralTable(table.Table):
 
 	def get_new_snr(self, index=6.0):
 		# kwarg 'index' is assigned to the parameter chisq_index
-		# nhigh gives the asymptotic large  rho behaviour of d (ln chisq) / d (ln rho) 
-		# for fixed new_snr eg nhigh = 2 -> chisq ~ rho^2 at large rho 
+		# nhigh gives the asymptotic large  rho behaviour of d (ln chisq) / d (ln rho)
+		# for fixed new_snr eg nhigh = 2 -> chisq ~ rho^2 at large rho
 		snr = self.get_column('snr')
 		rchisq = self.get_column('reduced_chisq')
 		nhigh = 2.
@@ -1935,7 +1935,7 @@ class SnglInspiralTable(table.Table):
 			else:
 				keep.append(row)
 		return keep
-	
+
 	def vetoed(self, seglist):
 		"""
 		Return the inverse of what veto returns, i.e., return the triggers
@@ -1950,7 +1950,7 @@ class SnglInspiralTable(table.Table):
 			else:
 				keep.append(row)
 		return vetoed
-	
+
 	def veto_seglistdict(self, seglistdict):
 		vetoed = self.copy()
 		keep = self.copy()
@@ -1961,7 +1961,7 @@ class SnglInspiralTable(table.Table):
 			else:
 				keep.append(row)
 		return keep
-	
+
 	def vetoed_seglistdict(self, seglistdict):
 		vetoed = self.copy()
 		keep = self.copy()
@@ -1972,7 +1972,7 @@ class SnglInspiralTable(table.Table):
 			else:
 				keep.append(row)
 		return vetoed
-	
+
 	def getslide(self,slide_num):
 		"""
 		Return the triggers with a specific slide number.
@@ -2048,7 +2048,7 @@ class SnglInspiral(table.TableRow):
 
 	def get_effective_snr(self,fac=250.0):
 		return self.snr/ (1 + self.snr**2/fac)**(0.25)/ self.get_reduced_chisq()**0.25
-	
+
 	def get_bank_effective_snr(self,fac=250.0):
 		return self.snr/ (1 + self.snr**2/fac)**(0.25)/ self.get_reduced_bank_chisq()**0.25
 
@@ -2507,8 +2507,8 @@ class MultiInspiralTable(table.Table):
 	def get_new_snr(self, index=4.0,nhigh = 3.0, column='chisq'):
 		# kwarg 'index' is assigned to the parameter chisq_index
 		# nhigh gives the asymptotic large rho behaviour of
-		# d (ln chisq) / d (ln rho) 
-		# for fixed new_snr eg nhigh = 2 -> chisq ~ rho^2 at large rho 
+		# d (ln chisq) / d (ln rho)
+		# for fixed new_snr eg nhigh = 2 -> chisq ~ rho^2 at large rho
 		snr = self.get_column('snr')
 		rchisq = self.get_column('reduced_%s' % column)
 		newsnr = snr/ (0.5*(1+rchisq**(index/nhigh)))**(1./index)
@@ -2994,6 +2994,12 @@ class SimInspiralTable(table.Table):
 		"spin2z": "real_4",
 		"theta0": "real_4",
 		"phi0": "real_4",
+        "reomegaqnm_a": "real_4",
+        "imomegaqnm_a": "real_4",
+        "modeqnm_a": "int_4s",
+        "reomegaqnm_b": "real_4",
+        "imomegaqnm_b": "real_4",
+        "modeqnm_b": "int_4s",
 		"f_lower": "real_4",
 		"f_final": "real_4",
 		"eff_dist_h": "real_4",

@@ -847,6 +847,12 @@ LALWriteLIGOLwXMLTable (
               tablePtr.simInspiralTable->spin2z,
               tablePtr.simInspiralTable->theta0,
               tablePtr.simInspiralTable->phi0,
+              tablePtr.simInspiralTable->reomegaqnm_a,
+              tablePtr.simInspiralTable->imomegaqnm_a,
+              tablePtr.simInspiralTable->modeqnm_a,
+              tablePtr.simInspiralTable->reomegaqnm_b,
+              tablePtr.simInspiralTable->imomegaqnm_b,
+              tablePtr.simInspiralTable->modeqnm_b,
               tablePtr.simInspiralTable->f_lower,
               tablePtr.simInspiralTable->f_final,
               tablePtr.simInspiralTable->eff_dist_h,
@@ -1492,7 +1498,7 @@ int XLALWriteLIGOLwXMLSnglInspiralTable(
 			   sngl_inspiral->Gamma[7],
 			   sngl_inspiral->Gamma[8],
 			   sngl_inspiral->Gamma[9],
-			   sngl_inspiral->spin1x,  
+			   sngl_inspiral->spin1x,
 			   sngl_inspiral->spin1y,
 			   sngl_inspiral->spin1z,
 			   sngl_inspiral->spin2x,
@@ -1797,4 +1803,3 @@ int XLALCreateLIGODataFileName(
       /* return success */
       return 0;
 }
-

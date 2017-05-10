@@ -2468,11 +2468,11 @@ INT4 XLALSimIMREOBGenerateQNMFreqV2fromFinal(COMPLEX16Vector * modefreqs,
     }
     /* Now get the QNM frequencies from interpolating the above data */
     for (i = 0; i < nmodes; i++) {
-        if (modeqnm_a==(INT4)l*100+m*10+(INT4)i) {
+        if (modeqnm_a==copysign(1.0, m)*((INT4)l*100+abs(m)*10+(INT4)i)) {
           modefreqs->data[i] = reomegaqnm_a_nk;
           modefreqs->data[i] += I * imomegaqnm_a_nk;
           //printf("(%d,%d,%d)\tomega=%g\t1/tau=%g\n",l,m,i,creal(modefreqs->data[i]),cimag(modefreqs->data[i]));
-        }else if (modeqnm_b==(INT4)l*100+m*10+(INT4)i) {
+        }else if (modeqnm_b==copysign(1.0, m)*((INT4)l*100+abs(m)*10+(INT4)i)) {
           modefreqs->data[i] = reomegaqnm_b_nk;
           modefreqs->data[i] += I * imomegaqnm_b_nk;
         }else{

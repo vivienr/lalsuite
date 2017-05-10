@@ -41,6 +41,9 @@
 #include <lal/TimeDelay.h>
 #include <lal/InspiralInjectionParams.h>
 #include <lal/VectorOps.h>
+#include <lal/LALConstants.h>
+
+#include <lal/LALSimBlackHoleRingdown.h>
 
 /**
  * Generates the geocent_end_time for an inspiral injection, based on the
@@ -220,7 +223,7 @@ SimInspiralTable* XLALm1m2SquareGridInspiralMasses(
     REAL4  mass2Delta,       /**< m2 grid spacing */
     INT4   mass1Pnt,         /**< number of grid points along m1 */
     INT4   mass2Pnt,         /**< number of grid points along m2 */
-    INT4   injNum,           /**< injection number */  
+    INT4   injNum,           /**< injection number */
     INT4   *count            /**< unsuccessful injection counter */
     )
 {
@@ -239,7 +242,7 @@ SimInspiralTable* XLALm1m2SquareGridInspiralMasses(
 
   inj->eta = inj->mass1 * inj->mass2 / ( mTotal * mTotal );
   inj->mchirp = mTotal * pow(inj->eta, 0.6);
-  
+
   return ( inj );
 }
 
@@ -257,7 +260,7 @@ SimInspiralTable* XLALFixedInspiralMasses(
   mTotal = inj->mass1 + inj->mass2 ;
   inj->eta = inj->mass1 * inj->mass2 / ( mTotal * mTotal );
   inj->mchirp = mTotal * pow(inj->eta, 0.6);
-  
+
   return ( inj );
 }
 
@@ -315,6 +318,46 @@ SimInspiralTable* XLALRandomInspiralMasses(
 
   inj->eta = inj->mass1 * inj->mass2 / ( mTotal * mTotal );
   inj->mchirp = mTotal * pow(inj->eta, 0.6);
+
+  return ( inj );
+}
+
+/** Generates ringdown frequencies for an inspiral injection. */
+SimInspiralTable* XLALSetInjectionRingDownFrequencies(
+    SimInspiralTable *inj,
+    REAL4  deltaGR,
+    INT4 modeqnm_a,
+    INT4 modeqnm_b
+    )
+{
+  UINT4 nmodes;
+  COMPLEX16Vector *modefreqs;
+  REAL8 spin1[3] = { 0.0, 0.0, 0.0 };
+  REAL8 spin2[3] = { 0.0, 0.0, 0.0 };
+  INT4 l,m;
+  REAL8 finalMass, finalSpin;
+
+  nmodes = 8;
+  modefreqs = XLALCreateCOMPLEX16Vector(nmodes);
+
+  l=(INT4)(modeqnm_a/100);
+  m=(INT4)((modeqnm_a-l*100)/10);
+  XLALSimIMREOBGenerateQNMFreqV2(modefreqs, inj->mass1, inj->mass2, spin1, spin2, l, m, nmodes, EOBNRv2HM, 0.0, 0.0, 0, 0.0, 0.0, 0);
+  XLALSimIMREOBFinalMassSpin(&finalMass, &finalSpin, inj->mass1, inj->mass2, spin1, spin2, EOBNRv2HM);
+  inj->reomegaqnm_a = creal(modefreqs->data[0])*(finalMass * LAL_MTSUN_SI)*deltaGR;
+  inj->imomegaqnm_a = cimag(modefreqs->data[0])*(finalMass * LAL_MTSUN_SI)*deltaGR;
+
+  l=(INT4)(modeqnm_b/100);
+  m=(INT4)((modeqnm_b-l*100)/10);
+  XLALSimIMREOBGenerateQNMFreqV2(modefreqs, inj->mass1, inj->mass2, spin1, spin2, l, m, nmodes, EOBNRv2HM, 0.0, 0.0, 0, 0.0, 0.0, 0);
+  XLALSimIMREOBFinalMassSpin(&finalMass, &finalSpin, inj->mass1, inj->mass2, spin1, spin2, EOBNRv2HM);
+  inj->reomegaqnm_b = creal(modefreqs->data[0])*(finalMass * LAL_MTSUN_SI)*deltaGR;
+  inj->imomegaqnm_b = cimag(modefreqs->data[0])*(finalMass * LAL_MTSUN_SI)*deltaGR;
+
+  inj->modeqnm_a = modeqnm_a;
+  inj->modeqnm_b = modeqnm_b;
+
+  XLALDestroyCOMPLEX16Vector(modefreqs);
 
   return ( inj );
 }
@@ -497,7 +540,7 @@ SimInspiralTable* XLALRandomInspiralSpins(
   {
 	case uniformSpinDist:  spin1Mag =  spin1Min + XLALUniformDeviate( randParams ) *(spin1Max - spin1Min);
 	break;
-	case gaussianSpinDist:  
+	case gaussianSpinDist:
 	  do spin1Mag = spin1Mean + spin1Std*XLALNormalDeviate(randParams);
       while ( spin1Mag > spin1Max || spin1Mag < spin1Min );
     break;
@@ -584,7 +627,7 @@ SimInspiralTable* XLALRandomInspiralSpins(
   {
 	case uniformSpinDist:  spin2Mag =  spin2Min + XLALUniformDeviate( randParams ) *(spin2Max - spin2Min);
 	break;
-	case gaussianSpinDist:  
+	case gaussianSpinDist:
 	  do spin2Mag = spin2Mean + spin2Std*XLALNormalDeviate(randParams);
       while ( spin2Mag > spin2Max || spin2Mag < spin2Min );
     break;

@@ -570,6 +570,12 @@ tagSimInspiralTable
   REAL4          spin2z;
   REAL4          theta0;
   REAL4          phi0;
+  REAL4          reomegaqnm_a;
+  REAL4          imomegaqnm_a;
+  INT4           modeqnm_a;
+  REAL4          reomegaqnm_b;
+  REAL4          imomegaqnm_b;
+  INT4           modeqnm_b;
   REAL4          f_lower;
   REAL4          f_final;
   REAL4          mchirp;
@@ -971,7 +977,7 @@ tagSegmentTable
   LIGOTimeGPS start_time;
   LIGOTimeGPS end_time;
   long segment_def_id;
-  INT4 segment_def_cdb; 
+  INT4 segment_def_cdb;
 }
 SegmentTable;
 

@@ -1419,20 +1419,26 @@ SimInspiralTableFromLIGOLw (
     {"spin2z",              -1, 39},
     {"theta0",              -1, 40},
     {"phi0",                -1, 41},
-    {"f_lower",             -1, 42},
-    {"f_final",             -1, 43},
-    {"mchirp",              -1, 44},
-    {"eff_dist_h",          -1, 45},
-    {"eff_dist_l",          -1, 46},
-    {"eff_dist_g",          -1, 47},
-    {"eff_dist_t",          -1, 48},
-    {"eff_dist_v",          -1, 49},
-    {"numrel_mode_min",     -1, 50},
-    {"numrel_mode_max",     -1, 51},
-    {"numrel_data",         -1, 52},
-    {"amp_order",           -1, 53},
-    {"taper",               -1, 54},
-    {"bandpass",            -1, 55},
+    {"reomegaqnm_a",        -1, 42},
+    {"imomegaqnm_a",        -1, 43},
+    {"modeqnm_a",           -1, 44},
+    {"reomegaqnm_b",        -1, 45},
+    {"imomegaqnm_b",        -1, 46},
+    {"modeqnm_b",           -1, 47},
+    {"f_lower",             -1, 48},
+    {"f_final",             -1, 49},
+    {"mchirp",              -1, 50},
+    {"eff_dist_h",          -1, 51},
+    {"eff_dist_l",          -1, 52},
+    {"eff_dist_g",          -1, 53},
+    {"eff_dist_t",          -1, 54},
+    {"eff_dist_v",          -1, 55},
+    {"numrel_mode_min",     -1, 56},
+    {"numrel_mode_max",     -1, 57},
+    {"numrel_data",         -1, 58},
+    {"amp_order",           -1, 59},
+    {"taper",               -1, 60},
+    {"bandpass",            -1, 61},
     {NULL,                   0, 0}
   };
 
@@ -1675,66 +1681,90 @@ SimInspiralTableFromLIGOLw (
         }
         else if ( tableDir[j].idx == 42 )
         {
-          thisSim->f_lower = r4colData;
+          thisSim->reomegaqnm_a = r4colData;
         }
         else if ( tableDir[j].idx == 43 )
         {
-          thisSim->f_final = r4colData;
+          thisSim->imomegaqnm_a = r4colData;
         }
         else if ( tableDir[j].idx == 44 )
         {
-          thisSim->mchirp = r4colData;
+          thisSim->modeqnm_a = i4colData;
         }
         else if ( tableDir[j].idx == 45 )
         {
-          thisSim->eff_dist_h = r4colData;
+          thisSim->reomegaqnm_b = r4colData;
         }
         else if ( tableDir[j].idx == 46 )
         {
-          thisSim->eff_dist_l = r4colData;
+          thisSim->imomegaqnm_b = r4colData;
         }
         else if ( tableDir[j].idx == 47 )
         {
-          thisSim->eff_dist_g = r4colData;
+          thisSim->modeqnm_b = i4colData;
         }
         else if ( tableDir[j].idx == 48 )
         {
-          thisSim->eff_dist_t = r4colData;
+          thisSim->f_lower = r4colData;
         }
         else if ( tableDir[j].idx == 49 )
         {
+          thisSim->f_final = r4colData;
+        }
+        else if ( tableDir[j].idx == 50 )
+        {
+          thisSim->mchirp = r4colData;
+        }
+        else if ( tableDir[j].idx == 51 )
+        {
+          thisSim->eff_dist_h = r4colData;
+        }
+        else if ( tableDir[j].idx == 52 )
+        {
+          thisSim->eff_dist_l = r4colData;
+        }
+        else if ( tableDir[j].idx == 53 )
+        {
+          thisSim->eff_dist_g = r4colData;
+        }
+        else if ( tableDir[j].idx == 54 )
+        {
+          thisSim->eff_dist_t = r4colData;
+        }
+        else if ( tableDir[j].idx == 55 )
+        {
           thisSim->eff_dist_v = r4colData;
         }
-	else if ( tableDir[j].idx == 50 )
+	else if ( tableDir[j].idx == 56 )
 	{
 	  thisSim->numrel_mode_min = i4colData;
 	}
-	else if ( tableDir[j].idx == 51 )
+	else if ( tableDir[j].idx == 57 )
 	{
 	  thisSim->numrel_mode_max = i4colData;
 	}
-	else if ( tableDir[j].idx == 52 )
+	else if ( tableDir[j].idx == 58 )
 	{
           snprintf(thisSim->numrel_data, LIGOMETA_STRING_MAX * sizeof(CHAR),
               "%s", env->ligo_lw.table.elt[tableDir[j].pos].data.lstring.data);
 	}
-        else if ( tableDir[j].idx == 53 )
+        else if ( tableDir[j].idx == 59 )
         {
             thisSim->amp_order = i4colData;
         }
-        else if ( tableDir[j].idx == 54 )
+        else if ( tableDir[j].idx == 60 )
         {
             snprintf(thisSim->taper, LIGOMETA_INSPIRALTAPER_MAX * sizeof(CHAR),
                     "%s", env->ligo_lw.table.elt[tableDir[j].pos].data.lstring.data);
         }
-        else if ( tableDir[j].idx == 55 )
+        else if ( tableDir[j].idx == 61 )
         {
             thisSim->bandpass = i4colData;
         }
-        else if ( tableDir[j].idx == 56 ) {
+        else if ( tableDir[j].idx == 62 ) {
         	thisSim->qmParameter1 = r4colData;
         }
-        else if ( tableDir[j].idx == 57 ) {
+        else if ( tableDir[j].idx == 63 ) {
         	thisSim->qmParameter2 = r4colData;
         }
         else
@@ -3066,15 +3096,15 @@ LALMultiInspiralTableFromLIGOLw (
       else if ( tableDir[j].idx == 74 )
       {
         thisEvent->cont_chisq_h1 = r4colData;
-      } 
+      }
       else if ( tableDir[j].idx == 75 )
       {
         thisEvent->cont_chisq_h2 = r4colData;
-      } 
+      }
       else if ( tableDir[j].idx == 76 )
       {
         thisEvent->cont_chisq_l = r4colData;
-      } 
+      }
       else if ( tableDir[j].idx == 77 )
       {
         thisEvent->cont_chisq_g = r4colData;
