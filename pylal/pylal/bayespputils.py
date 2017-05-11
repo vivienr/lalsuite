@@ -831,11 +831,11 @@ class Posterior(object):
                             'v1_end_time':lambda inj:float(inj.get_end('V')),
                             'lal_amporder':lambda inj:inj.amp_order,
                             'reomegaqnm_a':lambda inj:inj.reomegaqnm_a,
-                            'imomegaqnm_a':lambda inj:inj.reomegaqnm_a,
-                            'modeqnm_a':lambda inj:inj.reomegaqnm_a,
+                            'imomegaqnm_a':lambda inj:inj.imomegaqnm_a,
+                            'modeqnm_a':lambda inj:inj.modeqnm_a,
                             'reomegaqnm_b':lambda inj:inj.reomegaqnm_b,
-                            'imomegaqnm_b':lambda inj:inj.reomegaqnm_b,
-                            'modeqnm_b':lambda inj:inj.reomegaqnm_b}
+                            'imomegaqnm_b':lambda inj:inj.imomegaqnm_b,
+                            'modeqnm_b':lambda inj:inj.modeqnm_b}
 
         # Add on all spin parameterizations
         for key, val in self._inj_spins(self._injection, frame=inj_spin_frame).items():
