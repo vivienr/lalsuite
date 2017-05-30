@@ -2928,14 +2928,10 @@ UINT8 coh_PTF_add_sngl_triggers(
           &eventId,pValues,bankVeto,autoVeto,chiSquare,PTFM,i);
 
       /* Check trigger against trig times */
-      if (coh_PTF_trig_time_check(params,currEvent->end_time,\
-                                         currEvent->end_time))
+      if (coh_PTF_trig_time_check(params,currEvent->end,\
+                                         currEvent->end))
       {
-        if (currEvent->event_id)
-        {
-          LALFree(currEvent->event_id);
-        }
-        LALFree(currEvent);
+        XLALFreeSnglInspiral(&currEvent);
         continue;
       }
       /* And add the trigger to the lists. IF it passes clustering! */
@@ -2958,11 +2954,7 @@ UINT8 coh_PTF_add_sngl_triggers(
         }
         else
         {
-          if (currEvent->event_id)
-          {
-            LALFree(currEvent->event_id);
-          }
-          LALFree(currEvent);
+          XLALFreeSnglInspiral(&currEvent);
         }
       }
     }
@@ -2993,16 +2985,13 @@ SnglInspiralTable* coh_PTF_create_sngl_event(
   SnglInspiralTable *thisEvent;
   thisEvent = (SnglInspiralTable *)
       LALCalloc(1, sizeof(SnglInspiralTable));
-  thisEvent->event_id = (EventIDColumn *)
-      LALCalloc(1, sizeof(EventIDColumn));
-  thisEvent->event_id->id=*eventId;
-  (*eventId)++;
+  thisEvent->event_id = (*eventId)++;
   /* Set end times */
   trigTime = cohSNR->epoch;
   XLALGPSAdd(&trigTime,currPos*cohSNR->deltaT);
-  thisEvent->end_time = trigTime;
+  thisEvent->end = trigTime;
   thisEvent->end_time_gmst = fmod(XLALGreenwichMeanSiderealTime(
-      &thisEvent->end_time), LAL_TWOPI) * 24.0 / LAL_TWOPI;     /* hours */
+      &thisEvent->end), LAL_TWOPI) * 24.0 / LAL_TWOPI;     /* hours */
 
   /* Set SNR, chisqs, sigmasq, eff_distance */
   REAL8 sigmasqCorrFac;
@@ -3046,7 +3035,7 @@ SnglInspiralTable* coh_PTF_create_sngl_event(
     }
   }
   /* FIXME: NOt sure about this one either, inspiral just copies end_time */
-  thisEvent->impulse_time = thisEvent->end_time;
+  thisEvent->impulse_time = thisEvent->end;
 
   /* copy the template into the event */
   thisEvent->mass1   = (REAL4) PTFTemplate.mass1;
@@ -3092,16 +3081,16 @@ UINT4 coh_PTF_accept_sngl_trig_check(
 
   /* for each trigger, find out whether a louder trigger is within the
  *    * clustering time */
-  time1.gpsSeconds=thisEvent.end_time.gpsSeconds;
-  time1.gpsNanoSeconds = thisEvent.end_time.gpsNanoSeconds;
+  time1.gpsSeconds=thisEvent.end.gpsSeconds;
+  time1.gpsNanoSeconds = thisEvent.end.gpsNanoSeconds;
   while (currEvent)
   {
-    time2.gpsSeconds=currEvent->end_time.gpsSeconds;
-    time2.gpsNanoSeconds=currEvent->end_time.gpsNanoSeconds;
+    time2.gpsSeconds=currEvent->end.gpsSeconds;
+    time2.gpsNanoSeconds=currEvent->end.gpsNanoSeconds;
     if (fabs(XLALGPSDiff(&time1,&time2)) < params->clusterWindow)
     {
       if (thisEvent.snr < currEvent->snr\
-          && (thisEvent.event_id->id != currEvent->event_id->id))
+          && (thisEvent.event_id != currEvent->event_id))
       {
         if ( XLALGPSDiff(&time1,&time2) < 0 )
           loudTrigBefore = 1;
@@ -3184,12 +3173,8 @@ void coh_PTF_cluster_sngl_triggers(
     }
     else
     {
-      if (currEvent->event_id)
-      {
-        LALFree(currEvent->event_id);
-      }
       currEvent2 = currEvent->next;
-      LALFree(currEvent);
+      XLALFreeSnglInspiral(&currEvent);
       currEvent = currEvent2;
     }
     triggerNum+=1;
@@ -3274,11 +3259,7 @@ void coh_PTF_cleanup(
     SnglInspiralTable *thisSnglEvent;
     thisSnglEvent = snglEvents;
     snglEvents = snglEvents->next;
-    if ( thisSnglEvent->event_id )
-    {
-      LALFree( thisSnglEvent->event_id );
-    }
-    LALFree( thisSnglEvent );
+    XLALFreeSnglInspiral( &thisSnglEvent );
   }
 
   while ( PTFbankhead )
@@ -3514,9 +3495,7 @@ SnglInspiralTable *conv_insp_tmpl_to_sngl_table(
 {
   SnglInspiralTable *cnvTemplate;
   cnvTemplate = (SnglInspiralTable *) LALCalloc(1,sizeof(SnglInspiralTable));
-  cnvTemplate->event_id = (EventIDColumn *)
-      LALCalloc(1, sizeof(EventIDColumn) );
-  cnvTemplate->event_id->id=eventNumber;
+  cnvTemplate->event_id = eventNumber;
   cnvTemplate->mass1 = template->mass1;
   cnvTemplate->mass2 = template->mass2;
   cnvTemplate->chi = template->chi;

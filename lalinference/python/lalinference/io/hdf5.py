@@ -17,9 +17,6 @@
 """
 Reading HDF5 posterior sample chain HDF5 files.
 """
-__author__ = "Leo Singer <leo.singer@ligo.org>"
-__all__ = ('read_samples', 'write_samples')
-
 
 import numpy as np
 import h5py
@@ -31,14 +28,16 @@ from lalinference import LALINFERENCE_PARAM_CIRCULAR as CIRCULAR
 from lalinference import LALINFERENCE_PARAM_FIXED as FIXED
 from lalinference import LALINFERENCE_PARAM_OUTPUT as OUTPUT
 
+__all__ = ('read_samples', 'write_samples')
+
 
 _colname_map = (('rightascension', 'ra'),
                 ('declination', 'dec'),
                 ('distance', 'dist'),
-                ('polarisation','psi'),
+                ('polarisation', 'psi'),
                 ('chirpmass', 'mc'),
                 ('a_spin1', 'a1'),
-                ('a_spin2','a2'),
+                ('a_spin2', 'a2'),
                 ('tilt_spin1', 'tilt1'),
                 ('tilt_spin2', 'tilt2'))
 
@@ -104,7 +103,7 @@ def _find_table(group, tablename):
     ...         _find_table(f, 'bat')
     Traceback (most recent call last):
         ...
-    KeyError: 'Multiple tables called bat exist: foo/xyzzy/bat, foo/bat'
+    KeyError: 'Multiple tables called bat exist: foo/bat, foo/xyzzy/bat'
     """
     results = {}
 
@@ -120,7 +119,7 @@ def _find_table(group, tablename):
 
     if len(results) > 1:
         raise KeyError('Multiple tables called {0} exist: {1}'.format(
-            tablename, ', '.join(results.keys())))
+            tablename, ', '.join(sorted(results.keys()))))
 
     table, = results.values()
     return table
@@ -155,7 +154,7 @@ def read_samples(filename, path=None, tablename=POSTERIOR_SAMPLES):
     ... ])
     >>> with TemporaryDirectory() as dir:
     ...     filename = os.path.join(dir, 'test.hdf5')
-    ...     write_samples(table, filename, 'foo/bar/posterior_samples')
+    ...     write_samples(table, filename, path='foo/bar/posterior_samples')
     ...     len(read_samples(filename))
     10
 
@@ -165,9 +164,9 @@ def read_samples(filename, path=None, tablename=POSTERIOR_SAMPLES):
     ['uvw', 'opq', 'lmn', 'ijk', 'def', 'abc', 'rst', 'ghi']
     """
     with h5py.File(filename, 'r') as f:
-        if path is not None: # Look for a given path
+        if path is not None:  # Look for a given path
             table = f[path]
-        else: # Look for a given table name
+        else:  # Look for a given table name
             table = _find_table(f, tablename)
         table = Table.read(table)
 
@@ -184,9 +183,8 @@ def read_samples(filename, path=None, tablename=POSTERIOR_SAMPLES):
         table.add_column(Column([value] * len(table), name=key,
                          meta={'vary': FIXED}))
 
-    # Delete table attributes.
-    for key in table.meta:
-        del table.meta[key]
+    # Delete remaining table attributes.
+    table.meta.clear()
 
     # Normalize column names.
     _remap_colnames(table)
@@ -195,7 +193,7 @@ def read_samples(filename, path=None, tablename=POSTERIOR_SAMPLES):
     return table
 
 
-def write_samples(table, filename, path, metadata=None):
+def write_samples(table, filename, metadata=None, **kwargs):
     """Write an HDF5 sample chain file.
 
     Parameters
@@ -204,11 +202,11 @@ def write_samples(table, filename, path, metadata=None):
         The sample chain as an Astropy table.
     filename : str
         The path of the HDF5 file on the filesystem.
-    path : str
-        The path of the dataset within the HDF5 file.
     metadata: dict (optional)
         Dictionary of (path, value) pairs of metadata attributes
         to add to the output file
+    kwargs: dict
+        Any keyword arguments for `astropy.table.Table.write`.
 
     Check that we catch columns that are supposed to be FIXED but are not:
     >>> table = Table([
@@ -232,13 +230,14 @@ def write_samples(table, filename, path, metadata=None):
     ...     Column(np.arange(10), name='baz', meta={'vary': OUTPUT})
     ... ])
     >>> with TemporaryDirectory() as dir:
-    ...     write_samples(table, os.path.join(dir, 'test.hdf5'), 'bat/baz')
+    ...     write_samples(
+    ...         table, os.path.join(dir, 'test.hdf5'), path='bat/baz')
     """
     # Copy the table so that we do not modify the original.
     table = table.copy()
 
     # Reconstruct table attributes.
-    for colname, column in table.columns.items():
+    for colname, column in tuple(table.columns.items()):
         if column.meta['vary'] == FIXED:
             np.testing.assert_array_equal(column[1:], column[0],
                                           'Column {0} is a fixed column, but '
@@ -248,7 +247,7 @@ def write_samples(table, filename, path, metadata=None):
             del table[colname]
     for i, column in enumerate(table.columns.values()):
         table.meta['FIELD_{0}_VARY'.format(i)] = column.meta['vary']
-    table.write(filename, format='hdf5', path=path)
+    table.write(filename, format='hdf5', **kwargs)
     if metadata:
         with h5py.File(filename) as hdf:
             for internal_path, attributes in metadata.items():
@@ -258,4 +257,4 @@ def write_samples(table, filename, path, metadata=None):
                     except KeyError:
                         raise KeyError(
                             'Unable to set metadata {0}[{1}] = {2}'.format(
-                            internal_path, key, value))
+                                internal_path, key, value))

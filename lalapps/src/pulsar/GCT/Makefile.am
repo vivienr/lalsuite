@@ -1,4 +1,6 @@
+MOSTLYCLEANFILES =
 include $(top_srcdir)/gnuscripts/lalapps.am
+include $(top_srcdir)/gnuscripts/lalsuite_help2man.am
 
 AM_CPPFLAGS += -I$(top_srcdir)/src/pulsar/Fstatistic -I$(top_srcdir)/src/pulsar/EinsteinAtHome -I$(top_srcdir)/src/pulsar/HoughFstat
 
@@ -49,8 +51,8 @@ NVCC ?= nvcc
 .cu.o:
 	$(NVCC) $(CPPFLAGS) -c $< -o $@
 
-EXTRA_DIST = testGCT.sh
+EXTRA_DIST = testGCT.sh testGCT_inject.sh
 
-TESTS = testGCT.sh
+TESTS = testGCT.sh testGCT_inject.sh
 
 CLEANFILES =

@@ -112,17 +112,13 @@ def email_notify(address,path):
         webpath=os.path.join('~%s'%(USER),b,webpath)
         onweb=True
     else:
-        (c,d)=fslocation.split(USER)
-        for k in ['public_html/','WWW/','www_html/']:
-            trypath=os.path.normpath(c+USER+'/'+k+d)
+        (c,d)=outpath.split(os.environ['USER'])
+        for k in ['public_html','WWW','www_html']:
+            trypath=c+os.environ['USER']+'/'+k+d
             #Follow symlinks
-            if os.path.realpath(trypath)==os.path.normpath(fslocation):
+            if os.path.realpath(trypath)==os.path.normpath(outpath):
                 (a,b)=trypath.split(k)
-                print USER
-                print b
-                print webpath
                 webpath=os.path.join('~%s'%(USER),b,webpath)
-                print webpath
                 onweb=True
                 break
             else:
@@ -354,7 +350,7 @@ def cbcBayesPostProc(
     if injfile and eventnum is not None:
         print 'Looking for event %i in %s\n'%(eventnum,injfile)
         xmldoc = utils.load_filename(injfile,contenthandler=ExtractSimInspiralTableLIGOLWContentHandler)
-        siminspiraltable=lsctables.table.get_table(xmldoc,lsctables.SimInspiralTable.tableName)
+        siminspiraltable=lsctables.SimInspiralTable.get_table(xmldoc)
         injection=siminspiraltable[eventnum]
 	#injections = SimInspiralUtils.ReadSimInspiralFromFiles([injfile])
 	#if(len(injections)!=1): raise RuntimeError('Error: something unexpected happened while loading the injection file!\n')

@@ -2,6 +2,7 @@ BUILT_SOURCES =
 MOSTLYCLEANFILES =
 EXTRA_DIST =
 include $(top_srcdir)/gnuscripts/lalsuite_python.am
+include $(top_srcdir)/gnuscripts/lalsuite_help2man.am
 
 SUBDIRS = lalinference
 
@@ -14,6 +15,7 @@ pybin_scripts = \
 	bayestar_lattice_tmpltbank \
 	bayestar_localize_coincs \
 	bayestar_localize_lvalert \
+	bayestar_mess_up_coincs \
 	bayestar_plot_allsky \
 	bayestar_plot_found_injections \
 	bayestar_plot_pileup \

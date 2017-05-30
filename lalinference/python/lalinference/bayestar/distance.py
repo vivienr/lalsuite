@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2016  Leo Singer
+# Copyright (C) 2017  Leo Singer
 #
 # This program is free software; you can redistribute it and/or modify it
 # under the terms of the GNU General Public License as published by the
@@ -18,20 +18,27 @@
 """
 Distance ansatz functions.
 """
-from __future__ import division
-__author__ = "Leo Singer <leo.singer@ligo.org>"
 
+from __future__ import division
 
 import numpy as np
 import healpy as hp
 import scipy.special
-from . import _distance
+try:
+    from . import _distance
+except ImportError:
+    raise ImportError(
+        'Could not import the lalinference.bayestar._distance Python C '
+        'extension module. This probably means that LALInfernece was built '
+        'without HEALPix support. Please install CHEALPix '
+        '(https://sourceforge.net/projects/healpix/files/Healpix_3.30/'
+        'chealpix-3.30.0.tar.gz), rebuild LALInference, and try again.')
 from ._distance import *
 
 
 __all__ = tuple(_ for _ in _distance.__dict__ if not _.startswith('_')) + (
-    'ud_grade', 'conditional_kde', 'cartesian_kde_to_moments', 'principal_axes',
-    'parameters_to_moments', 'find_injection_distance')
+    'ud_grade', 'conditional_kde', 'cartesian_kde_to_moments',
+    'principal_axes', 'parameters_to_moments')
 
 
 def _add_newdoc_ufunc(func, doc):
@@ -41,11 +48,8 @@ def _add_newdoc_ufunc(func, doc):
     try:
         np.lib.add_newdoc_ufunc(func, doc)
     except ValueError as e:
-        if e.message == 'Cannot change docstring of ufunc with non-NULL docstring':
-            pass
-    except AttributeError as e:
-        # FIXME: workaround for Numpy < 1.7.0. Remove when no longer needed.
-        if e.message == "'module' object has no attribute 'add_newdoc_ufunc'":
+        msg = 'Cannot change docstring of ufunc with non-NULL docstring'
+        if e.args[0] == msg:
             pass
 
 
@@ -104,7 +108,7 @@ Test against numerical integral of pdf:
 """)
 
 
-_add_newdoc_ufunc(conditional_ppf, """\
+_add_newdoc_ufunc(conditional_cdf, """\
 Point percent function (inverse cdf) of distribution of distance (ansatz).
 
 Parameters
@@ -129,7 +133,8 @@ Test against numerical estimate:
 >>> distsigma = 5.0
 >>> distnorm = 1.0
 >>> p = 0.16  # "one-sigma" lower limit
->>> expected_r16 = scipy.optimize.brentq(lambda r: conditional_cdf(r, distmu, distsigma, distnorm) - p, 0.0, 100.0)
+>>> expected_r16 = scipy.optimize.brentq(
+... lambda r: conditional_cdf(r, distmu, distsigma, distnorm) - p, 0.0, 100.0)
 >>> r16 = conditional_ppf(p, distmu, distsigma, distnorm)
 >>> np.testing.assert_almost_equal(expected_r16, r16)
 """)
@@ -266,7 +271,54 @@ distnorm : `numpy.ndarray`
 Returns
 -------
 pdf : `numpy.ndarray`
-    Conditional probability density according to ansatz.
+    Marginal probability density according to ansatz.
+""")
+
+
+_add_newdoc_ufunc(marginal_cdf, """\
+Calculate all-sky marginal cdf (ansatz).
+
+Parameters
+----------
+r : `numpy.ndarray`
+    Distance (Mpc)
+prob : `numpy.ndarray`
+    Marginal probability (pix^-2)
+distmu : `numpy.ndarray`
+    Distance location parameter (Mpc)
+distsigma : `numpy.ndarray`
+    Distance scale parameter (Mpc)
+distnorm : `numpy.ndarray`
+    Distance normalization factor (Mpc^-2)
+
+Returns
+-------
+cdf : `numpy.ndarray`
+    Marginal cumulative probability according to ansatz.
+""")
+
+
+_add_newdoc_ufunc(marginal_ppf, """\
+Point percent function (inverse cdf) of marginal distribution of distance
+(ansatz).
+
+Parameters
+----------
+p : `numpy.ndarray`
+    The cumulative distribution function
+prob : `numpy.ndarray`
+    Marginal probability (pix^-2)
+distmu : `numpy.ndarray`
+    Distance location parameter (Mpc)
+distsigma : `numpy.ndarray`
+    Distance scale parameter (Mpc)
+distnorm : `numpy.ndarray`
+    Distance normalization factor (Mpc^-2)
+
+Returns
+-------
+r : `numpy.ndarray`
+    Distance at which the cdf is equal to `p`.
 """)
 
 
@@ -325,7 +377,8 @@ def _conditional_kde(n, X, Cinv, W):
 
 
 def conditional_kde(n, datasets, inverse_covariances, weights):
-    return [_conditional_kde(n, X, Cinv, W)
+    return [
+        _conditional_kde(n, X, Cinv, W)
         for X, Cinv, W in zip(datasets, inverse_covariances, weights)]
 
 
@@ -434,7 +487,7 @@ def cartesian_kde_to_moments(n, datasets, inverse_covariances, weights):
         a = scipy.special.ndtr(x * np.sqrt(cinv))
         b = np.sqrt(0.5 / np.pi * c) * np.exp(-0.5 * cinv * x2)
         r0bar_ = (x2 + c) * a + x * b
-        r1bar_ = x * (x2 + 3 * c) * a + (x2 + 2 * c) * b,
+        r1bar_ = x * (x2 + 3 * c) * a + (x2 + 2 * c) * b
         r2bar_ = (x2 * x2 + 6 * x2 * c + 3 * c * c) * a + x * (x2 + 5 * c) * b
         r0bar += np.mean(w * r0bar_)
         r1bar += np.mean(w * r1bar_)
@@ -461,11 +514,11 @@ def cartesian_kde_to_moments(n, datasets, inverse_covariances, weights):
 def principal_axes(prob, distmu, distsigma, nest=False):
     npix = len(prob)
     nside = hp.npix2nside(npix)
-    bad = ~(np.isfinite(prob) & np.isfinite(distmu) & np.isfinite(distsigma))
-    distmean, diststd, _ = parameters_to_moments(distmu, distsigma)
-    mass = prob * (np.square(diststd) + np.square(distmean))
-    mass[bad] = 0.0
-    xyz = np.asarray(hp.pix2vec(nside, np.arange(npix), nest=nest))
+    good = np.isfinite(prob) & np.isfinite(distmu) & np.isfinite(distsigma)
+    ipix = np.flatnonzero(good)
+    distmean, diststd, _ = parameters_to_moments(distmu[good], distsigma[good])
+    mass = prob[good] * (np.square(diststd) + np.square(distmean))
+    xyz = np.asarray(hp.pix2vec(nside, ipix, nest=nest))
     cov = np.dot(xyz * mass, xyz.T)
     L, V = np.linalg.eigh(cov)
     if np.linalg.det(V) < 0:
@@ -501,8 +554,3 @@ def parameters_to_marginal_moments(prob, distmu, distsigma):
     rbar = (prob * distmean).sum()
     r2bar = (prob * (np.square(diststd) + np.square(distmean))).sum()
     return rbar, np.sqrt(r2bar - np.square(rbar))
-
-
-def find_injection_distance(true_dist, prob, distmu, distsigma, distnorm):
-    return np.sum(prob * conditional_cdf(
-        true_dist, distmu, distsigma, distnorm))

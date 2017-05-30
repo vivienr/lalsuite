@@ -72,7 +72,8 @@ const FstatOptionalArgs FstatOptionalArgsDefaults = {
   .injectSqrtSX = NULL,
   .assumeSqrtSX = NULL,
   .prevInput = NULL,
-  .collectTiming = 0
+  .collectTiming = 0,
+  .resampFFTPowerOf2 = 1
 };
 
 // hidden global variables used to pass timings to test/benchmark programs
@@ -651,26 +652,19 @@ XLALComputeFstat ( FstatResults **Fstats,               ///< [in/out] Address of
         }
 
       // Enlarge F-atoms per detector arrays, and initialise to NULL
-      if ( (whatToCompute & FSTATQ_ATOMS_PER_DET) && (moreFreqBins || moreDetectors) )
+      if ( (whatToCompute & FSTATQ_ATOMS_PER_DET) && moreFreqBins )
         {
-              (*Fstats)->multiFatoms = XLALRealloc ( (*Fstats)->multiFatoms, numFreqBins*sizeof((*Fstats)->multiFatoms[0]) );
-              XLAL_CHECK ( (*Fstats)->multiFatoms != NULL, XLAL_EINVAL, "Failed to (re)allocate (*Fstats)->multiFatoms to length %u", numFreqBins );
+          UINT4 kPrev = 0;
+          if ( (*Fstats)->multiFatoms != NULL ) {
+            kPrev = (*Fstats)->internalalloclen; // leave previously-used frequency-bins untouched
+          }
 
-              // If more detectors are needed, destroy multi-F-atom vectors so they can be re-allocated later
-              if ( moreDetectors )
-                {
-                  for ( UINT4 k = 0; k < numFreqBins; ++k )
-                    {
-                      XLALDestroyMultiFstatAtomVector ( (*Fstats)->multiFatoms[k] );
-                      (*Fstats)->multiFatoms[k] = NULL;
-                    }
-                }
-              else
-                {
-                  for ( UINT4 k = (*Fstats)->internalalloclen; k < numFreqBins; ++k ) {
-                    (*Fstats)->multiFatoms[k] = NULL;
-                  }
-                }
+          (*Fstats)->multiFatoms = XLALRealloc ( (*Fstats)->multiFatoms, numFreqBins*sizeof((*Fstats)->multiFatoms[0]) );
+          XLAL_CHECK ( (*Fstats)->multiFatoms != NULL, XLAL_EINVAL, "Failed to (re)allocate (*Fstats)->multiFatoms to length %u", numFreqBins );
+
+          for ( UINT4 k = kPrev; k < numFreqBins; ++k ) {
+            (*Fstats)->multiFatoms[k] = NULL;
+          }
 
         } // if Atoms_per_det to enlarge
 
@@ -769,14 +763,14 @@ XLALDestroyFstatResults ( FstatResults* Fstats  ///< [in] #FstatResults structur
       XLALFree ( Fstats->twoFPerDet[X] );
       XLALFree ( Fstats->FaPerDet[X] );
       XLALFree ( Fstats->FbPerDet[X] );
-      if ( Fstats->multiFatoms != NULL )
+    }
+  if ( Fstats->multiFatoms != NULL )
+    {
+      for ( UINT4 n = 0; n < Fstats->internalalloclen; ++n )
         {
-          for ( UINT4 n = 0; n < Fstats->internalalloclen; ++n )
-            {
-              XLALDestroyMultiFstatAtomVector ( Fstats->multiFatoms[n] );
-            }
-          XLALFree ( Fstats->multiFatoms );
+          XLALDestroyMultiFstatAtomVector ( Fstats->multiFatoms[n] );
         }
+      XLALFree ( Fstats->multiFatoms );
     }
 
   XLALFree ( Fstats );
