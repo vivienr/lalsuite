@@ -316,7 +316,7 @@ int XLALSimInspiralChooseTDWaveform(
     const REAL8 f_min,                          /**< starting GW frequency (Hz) */
     REAL8 f_ref,                                /**< reference GW frequency (Hz) */
     LALDict *LALparams,                         /**< LAL dictionary containing accessory parameters */
-    const Approximant approximant               /**< post-Newtonian approximant to use for waveform production */
+    const Approximant approximant,              /**< post-Newtonian approximant to use for waveform production */
     REAL8 reomegaqnm_a,
     REAL8 imomegaqnm_a,
     INT4 modeqnm_a,
@@ -5849,7 +5849,7 @@ int XLALSimInspiralChooseTDWaveformOLD(
             /* Call the waveform driver routine */
             // FIXME: need to create a function to take in different modes or produce an error if all modes not given
             ret = XLALSimIMREOBNRv2AllModes(hplus, hcross, phiRef, deltaT,
-                    m1, m2, f_min, distance, inclination);
+                    m1, m2, f_min, distance, inclination, 0.0, 0.0, 0, 0.0, 0.0, 0);
             break;
 
         case EOBNRv2:
@@ -5864,7 +5864,7 @@ int XLALSimInspiralChooseTDWaveformOLD(
                 XLALPrintWarning("XLAL Warning - %s: This approximant does use f_ref. The reference phase will be defined at coalescence.\n", __func__);
             /* Call the waveform driver routine */
             ret = XLALSimIMREOBNRv2DominantMode(hplus, hcross, phiRef, deltaT,
-                    m1, m2, f_min, distance, inclination);
+                    m1, m2, f_min, distance, inclination, 0.0, 0.0, 0, 0.0, 0.0, 0);
             break;
 
         /* spinning inspiral-only models */
