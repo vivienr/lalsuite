@@ -563,7 +563,7 @@ def get_roq_constraints(roq_paths,trigger_mchirp=None,event_id=None,roq_force_fl
             if mc_priors[roq][0]*roq_mass_freq_scale_factor <= trigger_mchirp <= mc_priors[roq][1]*roq_mass_freq_scale_factor:
                 trigger_bins = np.append(trigger_bins,roq)
 
-        if not trigger_bins:
+        if trigger_bins.size == 0:
             print 'No trigger bin found for trigger_mchirp='+str(trigger_mchirp)+' !'
             for roq,roq_path in zip([os.path.basename(roq_path) for roq_path in roq_paths],roq_paths):
                 print 'Using basis: '+roq_path
