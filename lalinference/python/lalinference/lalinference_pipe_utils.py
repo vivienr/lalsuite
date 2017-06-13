@@ -2783,16 +2783,13 @@ def compute_delta_t0(signal_table_row,delta_t0_requested,srate=8192,f_ref=100.0)
     iota=signal_table_row.inclination
     #print "WARNING: Defaulting to inj_fref =100Hz. This is hardcoded since xml table does not carry this information\n"
 
-    lambda1=0
-    lambda2=0
-    waveFlags=None
-    nonGRparams=None
+    LALpars=lal.CreateDict()
 
     ra=signal_table_row.longitude
     dec=signal_table_row.latitude
     psi=signal_table_row.polarization
 
-    hp,hc=lalsim.SimInspiralChooseTDWaveform(phiRef, 1./srate,  m1, m2, s1x, s1y, s1z,s2x,s2y,s2z,f_min, f_ref,   r,   iota, lambda1,  lambda2, waveFlags, nonGRparams, amplitudeO, phaseO, approx, 0.0,0.0,0,0.0,0.0,0)
+    hp,hc=lalsim.SimInspiralChooseTDWaveform(m1, m2, s1x,s1y,s1z,s2x,s2y,s2z, r, iota, phiRef, 0.0, 0.0, 0.0, 1./srate, f_min, f_ref, LALpars, approx, 0.0,0.0,0,0.0,0.0,0)
     habs=np.absolute(hp.data.data+1j*hc.data.data)
     t0=np.argmax(habs) * hp.deltaT + hp.epoch
 
