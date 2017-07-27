@@ -2048,6 +2048,7 @@ void LALInferenceSimpleRingdown(LALInferenceModel *model){
     }
 
     for (i=index_min; i<index_max; ++i) {
+      //The following is ONLY VALID for l=m modes, and for l=m>2 the amplitude is redefined as a function of thetaJN.
       model->freqhPlus->data->data[i] *= (1.+costheta_jn*costheta_jn)/2.;
       model->freqhCross->data->data[i] *= costheta_jn;
     }
