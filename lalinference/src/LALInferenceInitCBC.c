@@ -1436,7 +1436,7 @@ LALInferenceModel *LALInferenceInitCBCModel(LALInferenceRunState *state) {
         
         char reomegaqnm_name[VARNAME_MAX];
         char imomegaqnm_name[VARNAME_MAX];
-        //    char phase_name[VARNAME_MAX];
+        char phase_name[VARNAME_MAX];
         char time_shift_name[VARNAME_MAX];
         
         for (m=0; m<n_modes; ++m){
@@ -1446,8 +1446,8 @@ LALInferenceModel *LALInferenceInitCBCModel(LALInferenceRunState *state) {
             snprintf(imomegaqnm_name, VARNAME_MAX, "rd_decay_%i",m);
             LALInferenceRegisterUniformVariableREAL8(state, model->params, imomegaqnm_name, 1.0, 50.0, 300.0, LALINFERENCE_PARAM_LINEAR);
             if (m!=0){
-                //   snprintf(phase_name, VARNAME_MAX, "phase_%i",m);
-                //   LALInferenceRegisterUniformVariableREAL8(state, model->params, phase_name, 0.0, 0.0, LAL_TWOPI, LALINFERENCE_PARAM_CIRCULAR);
+                   snprintf(phase_name, VARNAME_MAX, "phase_%i",m);
+                   LALInferenceRegisterUniformVariableREAL8(state, model->params, phase_name, 0.0, 0.0, LAL_TWOPI, LALINFERENCE_PARAM_CIRCULAR);
                 snprintf(time_shift_name, VARNAME_MAX, "delta_t0_%i",m);
                 LALInferenceRegisterUniformVariableREAL8(state, model->params, time_shift_name, 0.0, -0.01, 0.01, LALINFERENCE_PARAM_LINEAR);
             }

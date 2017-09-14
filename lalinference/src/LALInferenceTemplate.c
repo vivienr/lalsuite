@@ -2488,8 +2488,8 @@ void LALInferenceSingleRingdownTDKama(REAL8 *hplus, REAL8 *hcross, REAL8 deltaT,
     for (i=index_min; i<index_max; ++i){
         t = (i-index_min)*deltaT;
         if (t+time_shift>0.0){
-            hplus[i]=A * Yplus * exp(-(t+time_shift)*imomegaqnm) * cos(LAL_TWOPI*reomegaqnm*(t+time_shift) +  m*phase);
-            hcross[i]=- A * Ycross * exp(-(t+time_shift)*imomegaqnm) * sin(LAL_TWOPI*reomegaqnm*(t+time_shift) + m*phase);
+            hplus[i]=A * Yplus * exp(-(t+time_shift)*imomegaqnm) * cos(LAL_TWOPI*reomegaqnm*(t+time_shift) +  phase);
+            hcross[i]=- A * Ycross * exp(-(t+time_shift)*imomegaqnm) * sin(LAL_TWOPI*reomegaqnm*(t+time_shift) + phase);
         }
     }
     return;
@@ -2517,8 +2517,6 @@ void LALInferenceSimpleRingdownKama(LALInferenceModel *model){
     REAL8 Mtotal=0.0;
     REAL8 m1=0.0;
     REAL8 m2=0.0;
-    REAL8 phase=0.0;
-    
     
     UINT4 n_modes=2;
     if(LALInferenceCheckVariable(model->params, "n_modes"))
@@ -2526,12 +2524,12 @@ void LALInferenceSimpleRingdownKama(LALInferenceModel *model){
     
     REAL8 reomegaqnm[n_modes];
     REAL8 imomegaqnm[n_modes];
-    //   REAL8 phase[n_modes];
+    REAL8 phase[n_modes];
     REAL8 time_shift[n_modes];
     
     char reomegaqnm_name[VARNAME_MAX];
     char imomegaqnm_name[VARNAME_MAX];
-    //   char phase_name[VARNAME_MAX];
+    char phase_name[VARNAME_MAX];
     char time_shift_name[VARNAME_MAX];
     
     for (m=0; m<n_modes; ++m){
@@ -2546,23 +2544,19 @@ void LALInferenceSimpleRingdownKama(LALInferenceModel *model){
             imomegaqnm[m] = *(REAL8*) LALInferenceGetVariable(model->params, imomegaqnm_name);
         else
             imomegaqnm[m] = 0.0;
-        //     snprintf(phase_name, VARNAME_MAX, "phase_%i",m);
-        //     if(m==0)
-        //         snprintf(phase_name, VARNAME_MAX, "phase");
-        //     if(LALInferenceCheckVariable(model->params, phase_name))
-        //         phase[m] = *(REAL8*) LALInferenceGetVariable(model->params, phase_name);
-        //     else
-        //         phase[m] = 0.0;
+        snprintf(phase_name, VARNAME_MAX, "phase_%i",m);
+        if(m==0)
+            snprintf(phase_name, VARNAME_MAX, "phase");
+        if(LALInferenceCheckVariable(model->params, phase_name))
+           phase[m] = *(REAL8*) LALInferenceGetVariable(model->params, phase_name);
+        else
+           phase[m] = 0.0;
         snprintf(time_shift_name, VARNAME_MAX, "delta_t0_%i",m);
         if(LALInferenceCheckVariable(model->params, time_shift_name))
             time_shift[m] = *(REAL8*) LALInferenceGetVariable(model->params, time_shift_name);
         else
             time_shift[m] = 0.0;
     }
-    
-    
-    if(LALInferenceCheckVariable(model->params, "phase"))
-        phase = *(REAL8*) LALInferenceGetVariable(model->params, "phase");
     
     if(LALInferenceCheckVariable(model->params, "costheta_jn"))
         costheta_jn = *(REAL8*) LALInferenceGetVariable(model->params, "costheta_jn");
@@ -2602,7 +2596,7 @@ void LALInferenceSimpleRingdownKama(LALInferenceModel *model){
         for (m=0; m<n_modes; ++m){
             
             LALInferenceSingleRingdownTDKama(hplus, hcross, deltaT, index_min, index_max,
-                                             reomegaqnm[m], imomegaqnm[m], 0*phase, time_shift[m], 2+m, 2+m, theta_jn, eta, distance, Mtotal);
+                                             reomegaqnm[m], imomegaqnm[m], phase[m], time_shift[m], 2+m, 2+m, theta_jn, eta, distance, Mtotal);
             
             
             for (i=index_min; i<index_max; ++i) {
