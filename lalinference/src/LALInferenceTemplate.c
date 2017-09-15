@@ -2258,11 +2258,21 @@ void LALInferenceSingleRingdownTDLondon(REAL8 *hplus, REAL8 *hcross, REAL8 delta
     phi_relative = carg(Amplitude(eta, l, m, n));
     
     
+    REAL8 Mfsec = 0.0;
+    Mfsec=Mf*LAL_G_SI/pow(LAL_C_SI,3);
+    
+    REAL8 omegaR = 0.0;
+    REAL8 omegaI = 0.0;
+    omegaR=reomegaqnm/Mfsec;
+    omegaI=imomegaqnm/Mfsec;
+    
     for (i=index_min; i<index_max; ++i){
         t = (i-index_min)*deltaT;
         if (t+time_shift>0.0){
-            hplus[i]=A * Yplus * exp(-(t+time_shift)*imomegaqnm) * cos(LAL_TWOPI*reomegaqnm*(t+time_shift) + phi_relative + m*phase);
-            hcross[i]=-A * Ycross * exp(-(t+time_shift)*imomegaqnm) * sin(LAL_TWOPI*reomegaqnm*(t+time_shift) + phi_relative + m*phase);
+    //        hplus[i]=A * Yplus * exp(-(t+time_shift)*imomegaqnm) * cos(LAL_TWOPI*reomegaqnm*(t+time_shift) + phi_relative + m*phase);
+  //          hcross[i]=-A * Ycross * exp(-(t+time_shift)*imomegaqnm) * sin(LAL_TWOPI*reomegaqnm*(t+time_shift) + phi_relative + m*phase);
+            hplus[i]=A * Yplus * exp(-(t+time_shift)*omegaI) * cos(omegaR*(t+time_shift) + phi_relative + m*phase);
+            hcross[i]=- A * Ycross * exp(-(t+time_shift)*omegaI) * sin(omegaR*(t+time_shift) + phi_relative + m*phase);
         }
     }
     return;
@@ -2444,7 +2454,6 @@ REAL8 AmplitudeKama( REAL8 eta, UINT4 l, INT4 m){
 }
 
 
-
 void LALInferenceSingleRingdownTDKama(REAL8 *hplus, REAL8 *hcross, REAL8 deltaT, UINT4 index_min, UINT4 index_max, REAL8 reomegaqnm, REAL8 imomegaqnm, REAL8 phase, REAL8 time_shift, UINT4 l, INT4 m, REAL8 theta, REAL8 eta, REAL8 distance, REAL8 Mtotal);
 void LALInferenceSingleRingdownTDKama(REAL8 *hplus, REAL8 *hcross, REAL8 deltaT, UINT4 index_min, UINT4 index_max, REAL8 reomegaqnm, REAL8 imomegaqnm, REAL8 phase, REAL8 time_shift, UINT4 l, INT4 m, REAL8 theta, REAL8 eta, REAL8 distance, REAL8 Mtotal){
     
@@ -2484,12 +2493,18 @@ void LALInferenceSingleRingdownTDKama(REAL8 *hplus, REAL8 *hcross, REAL8 deltaT,
     //    fprintf(fp, "%.10e", A);
     //    fclose(fp);
     
+    REAL8 Mfsec = Mf*LAL_MSUN_SI*LAL_G_SI/pow(LAL_C_SI,3);
+    
+    REAL8 omegaR = reomegaqnm/Mfsec;
+    REAL8 omegaI = imomegaqnm/Mfsec;
     
     for (i=index_min; i<index_max; ++i){
         t = (i-index_min)*deltaT;
         if (t+time_shift>0.0){
-            hplus[i]=A * Yplus * exp(-(t+time_shift)*imomegaqnm) * cos(LAL_TWOPI*reomegaqnm*(t+time_shift) +  phase);
-            hcross[i]=- A * Ycross * exp(-(t+time_shift)*imomegaqnm) * sin(LAL_TWOPI*reomegaqnm*(t+time_shift) + phase);
+      //      hplus[i]=A * Yplus * exp(-(t+time_shift)*imomegaqnm) * cos(LAL_TWOPI*reomegaqnm*(t+time_shift) +  phase);
+      //      hcross[i]=- A * Ycross * exp(-(t+time_shift)*imomegaqnm) * sin(LAL_TWOPI*reomegaqnm*(t+time_shift) + phase);
+            hplus[i]=A * Yplus * exp(-(t+time_shift)*omegaI) * cos(omegaR*(t+time_shift) +  phase);
+            hcross[i]=- A * Ycross * exp(-(t+time_shift)*omegaI) * sin(omegaR*(t+time_shift) + phase);
         }
     }
     return;
@@ -2597,6 +2612,133 @@ void LALInferenceSimpleRingdownKama(LALInferenceModel *model){
             
             LALInferenceSingleRingdownTDKama(hplus, hcross, deltaT, index_min, index_max,
                                              reomegaqnm[m], imomegaqnm[m], phase[m], time_shift[m], 2+m, 2+m, theta_jn, eta, distance, Mtotal);
+            
+            
+            for (i=index_min; i<index_max; ++i) {
+                model->timehPlus->data->data[i] += hplus[i];
+                model->timehCross->data->data[i] += hcross[i];
+            }
+        }
+        
+        REAL8 injTc=XLALGPSGetREAL8(&(model->timehPlus->epoch))-2.+index_max*deltaT;
+        LALInferenceSetVariable(model->params, "time", &injTc);
+        
+    }
+    
+    return;
+}
+
+void LALInferenceSimpleRingdownGR(LALInferenceModel *model){
+    
+    UINT4 i=0,m=0;
+    REAL8 deltaT=0.0;
+    
+    if (model->domain == LAL_SIM_DOMAIN_TIME) {
+        deltaT = model->deltaT;
+        if ((model->timehPlus==NULL) || (model->timehCross==NULL)) {
+            XLALPrintError(" ERROR in LALInferenceRingdown(): encountered unallocated 'timeModelhPlus/-Cross'.\n");
+            XLAL_ERROR_VOID(XLAL_EFAULT);
+        }
+    }
+    
+    REAL8 distance=0.0;
+    REAL8 logdistance=1.0;
+    REAL8 costheta_jn=0.0;
+    REAL8 theta_jn=0.0;
+    REAL8 q=0.0;
+    REAL8 Mtotal=0.0;
+    REAL8 m1=0.0;
+    REAL8 m2=0.0;
+    
+    UINT4 n_modes=2;
+    if(LALInferenceCheckVariable(model->params, "n_modes"))
+        n_modes = *(UINT4*) LALInferenceGetVariable(model->params, "n_modes");
+    
+    REAL8 reomegaqnm[n_modes];
+    REAL8 imomegaqnm[n_modes];
+    REAL8 phase[n_modes];
+    REAL8 time_shift[n_modes];
+    
+    REAL8 omegaR[n_modes];
+    REAL8 omegaI[n_modes];
+    
+    char reomegaqnm_name[VARNAME_MAX];
+    char imomegaqnm_name[VARNAME_MAX];
+    char phase_name[VARNAME_MAX];
+    char time_shift_name[VARNAME_MAX];
+    
+    for (m=0; m<n_modes; ++m){
+        
+        snprintf(reomegaqnm_name, VARNAME_MAX, "rd_omega_%i",m);
+        if(LALInferenceCheckVariable(model->params, reomegaqnm_name))
+            reomegaqnm[m] = *(REAL8*) LALInferenceGetVariable(model->params, reomegaqnm_name);
+        else
+            reomegaqnm[m] = 0.0;
+        snprintf(imomegaqnm_name, VARNAME_MAX, "rd_decay_%i",m);
+        if(LALInferenceCheckVariable(model->params, imomegaqnm_name))
+            imomegaqnm[m] = *(REAL8*) LALInferenceGetVariable(model->params, imomegaqnm_name);
+        else
+            imomegaqnm[m] = 0.0;
+        snprintf(phase_name, VARNAME_MAX, "phase_%i",m);
+        if(m==0)
+            snprintf(phase_name, VARNAME_MAX, "phase");
+        if(LALInferenceCheckVariable(model->params, phase_name))
+            phase[m] = *(REAL8*) LALInferenceGetVariable(model->params, phase_name);
+        else
+            phase[m] = 0.0;
+        snprintf(time_shift_name, VARNAME_MAX, "delta_t0_%i",m);
+        if(LALInferenceCheckVariable(model->params, time_shift_name))
+            time_shift[m] = *(REAL8*) LALInferenceGetVariable(model->params, time_shift_name);
+        else
+            time_shift[m] = 0.0;
+    }
+    
+    if(LALInferenceCheckVariable(model->params, "costheta_jn"))
+        costheta_jn = *(REAL8*) LALInferenceGetVariable(model->params, "costheta_jn");
+    
+    if(LALInferenceCheckVariable(model->params, "logdistance"))
+        logdistance = *(REAL8*) LALInferenceGetVariable(model->params, "logdistance");
+    distance=exp(logdistance);
+    
+    if(LALInferenceCheckVariable(model->params, "q"))
+        q = *(REAL8*) LALInferenceGetVariable(model->params, "q");
+    
+    m1 = *(REAL8 *)LALInferenceGetVariable(model->params,"mass1");
+    m2 = *(REAL8 *)LALInferenceGetVariable(model->params,"mass2");
+
+    REAL8 eta= 0.0;
+    eta=q/((1+q)*(1+q));
+    REAL8 af= 0.0;
+    af= eta*(3.4339 - eta*(3.7988 - eta*(5.7733 - 6.3780*eta)));
+    
+    omegaR[0]=1.5251 - 1.1568*pow((1 - af),0.1292);
+    omegaR[1]=1.8956 - 1.3043*pow((1 - af),0.1818);
+    omegaI[0]=(1/2)*omegaR[0]/(0.7000 + 1.4187*pow((1 - af),-0.4990));
+    omegaI[1]=(1/2)*omegaR[1]/(0.9000 + 2.3430*pow((1 - af),-0.4810));
+
+    
+    Mtotal= m1+m2;
+    
+    theta_jn=acos(costheta_jn);
+    
+    if(model->domain == LAL_SIM_DOMAIN_TIME){
+        memset(model->timehPlus->data->data, 0, sizeof(REAL8)*model->timehPlus->data->length);
+        memset(model->timehCross->data->data, 0, sizeof(REAL8)*model->timehCross->data->length);
+        
+        UINT4 index_max = (UINT4)model->timehPlus->data->length;
+        UINT4 index_min = index_max-(UINT4)(2./deltaT);
+        
+        REAL8 hplus[index_max];
+        REAL8 hcross[index_max];
+        for (i=index_min; i<index_max; ++i) {
+            hplus[i]=0.0;
+            hcross[i]=0.0;
+        }
+        
+        for (m=0; m<2; ++m){
+            
+            LALInferenceSingleRingdownTDKama(hplus, hcross, deltaT, index_min, index_max,
+                                             omegaR[m]*(1+reomegaqnm[m]), omegaI[m]*(1+imomegaqnm[m]), phase[m], time_shift[m], 2+m, 2+m, theta_jn, eta, distance, Mtotal);
             
             
             for (i=index_min; i<index_max; ++i) {
