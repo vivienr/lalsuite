@@ -2259,7 +2259,7 @@ void LALInferenceSingleRingdownTDLondon(REAL8 *hplus, REAL8 *hcross, REAL8 delta
     
     
     REAL8 Mfsec = 0.0;
-    Mfsec=Mf*LAL_G_SI/pow(LAL_C_SI,3);
+    Mfsec=Mf*LAL_MSUN_SI*LAL_G_SI/pow(LAL_C_SI,3);
     
     REAL8 omegaR = 0.0;
     REAL8 omegaI = 0.0;
@@ -2360,8 +2360,10 @@ void LALInferenceSimpleRingdownLondon(LALInferenceModel *model){
     //    if(LALInferenceCheckVariable(model->params, "chirpmass"))
     //        mchirp = *(REAL8*) LALInferenceGetVariable(model->params, "chirpmass");
     
-    m1 = *(REAL8 *)LALInferenceGetVariable(model->params,"mass1");
-    m2 = *(REAL8 *)LALInferenceGetVariable(model->params,"mass2");
+    if(LALInferenceCheckVariable(model->params, "mass1"))
+        m1 = *(REAL8 *)LALInferenceGetVariable(model->params,"mass1");
+    if(LALInferenceCheckVariable(model->params, "mass2"))
+        m2 = *(REAL8 *)LALInferenceGetVariable(model->params,"mass2");
     
     
     REAL8 eta= 0.0;
@@ -2583,8 +2585,10 @@ void LALInferenceSimpleRingdownKama(LALInferenceModel *model){
     if(LALInferenceCheckVariable(model->params, "q"))
         q = *(REAL8*) LALInferenceGetVariable(model->params, "q");
     
-    m1 = *(REAL8 *)LALInferenceGetVariable(model->params,"mass1");
-    m2 = *(REAL8 *)LALInferenceGetVariable(model->params,"mass2");
+    if(LALInferenceCheckVariable(model->params, "mass1"))
+        m1 = *(REAL8 *)LALInferenceGetVariable(model->params,"mass1");
+    if(LALInferenceCheckVariable(model->params, "mass2"))
+        m2 = *(REAL8 *)LALInferenceGetVariable(model->params,"mass2");
     
     
     REAL8 eta= 0.0;
@@ -2703,8 +2707,10 @@ void LALInferenceSimpleRingdownGR(LALInferenceModel *model){
     if(LALInferenceCheckVariable(model->params, "q"))
         q = *(REAL8*) LALInferenceGetVariable(model->params, "q");
     
-    m1 = *(REAL8 *)LALInferenceGetVariable(model->params,"mass1");
-    m2 = *(REAL8 *)LALInferenceGetVariable(model->params,"mass2");
+    if(LALInferenceCheckVariable(model->params, "mass1"))
+       m1 = *(REAL8 *)LALInferenceGetVariable(model->params,"mass1");
+    if(LALInferenceCheckVariable(model->params, "mass2"))
+       m2 = *(REAL8 *)LALInferenceGetVariable(model->params,"mass2");
 
     REAL8 eta= 0.0;
     eta=q/((1+q)*(1+q));
@@ -2713,8 +2719,13 @@ void LALInferenceSimpleRingdownGR(LALInferenceModel *model){
     
     omegaR[0]=1.5251 - 1.1568*pow((1 - af),0.1292);
     omegaR[1]=1.8956 - 1.3043*pow((1 - af),0.1818);
-    omegaI[0]=(1/2)*omegaR[0]/(0.7000 + 1.4187*pow((1 - af),-0.4990));
-    omegaI[1]=(1/2)*omegaR[1]/(0.9000 + 2.3430*pow((1 - af),-0.4810));
+    omegaI[0]=(1/2.)*omegaR[0]/(0.7000 + 1.4187*pow((1 - af),-0.4990));
+    omegaI[1]=(1/2.)*omegaR[1]/(0.9000 + 2.3430*pow((1 - af),-0.4810));
+    
+ //       FILE * fp;
+ //       fp = fopen ("file.txt", "w+");
+ //       fprintf(fp, "%f,%f,%f,%f", omegaR[0],omegaR[1],omegaI[0],omegaI[1]);
+ //       fclose(fp);
 
     
     Mtotal= m1+m2;
@@ -2740,7 +2751,7 @@ void LALInferenceSimpleRingdownGR(LALInferenceModel *model){
             LALInferenceSingleRingdownTDKama(hplus, hcross, deltaT, index_min, index_max,
                                              omegaR[m]*(1+reomegaqnm[m]), omegaI[m]*(1+imomegaqnm[m]), phase[m], time_shift[m], 2+m, 2+m, theta_jn, eta, distance, Mtotal);
             
-            
+        
             for (i=index_min; i<index_max; ++i) {
                 model->timehPlus->data->data[i] += hplus[i];
                 model->timehCross->data->data[i] += hcross[i];
