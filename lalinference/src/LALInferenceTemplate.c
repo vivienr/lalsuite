@@ -2715,17 +2715,16 @@ void LALInferenceSimpleRingdownGR(LALInferenceModel *model){
     REAL8 eta= 0.0;
     eta=q/((1+q)*(1+q));
     REAL8 af= 0.0;
+    /* final spin fit from arXiv:1404.3197 */
     af= eta*(3.4339 - eta*(3.7988 - eta*(5.7733 - 6.3780*eta)));
     
+    
+    /*220 and 330 QNM fits from Berti et al: gr-qc/0512160*/
     omegaR[0]=1.5251 - 1.1568*pow((1 - af),0.1292);
     omegaR[1]=1.8956 - 1.3043*pow((1 - af),0.1818);
     omegaI[0]=(1/2.)*omegaR[0]/(0.7000 + 1.4187*pow((1 - af),-0.4990));
     omegaI[1]=(1/2.)*omegaR[1]/(0.9000 + 2.3430*pow((1 - af),-0.4810));
-    
- //       FILE * fp;
- //       fp = fopen ("file.txt", "w+");
- //       fprintf(fp, "%f,%f,%f,%f", omegaR[0],omegaR[1],omegaI[0],omegaI[1]);
- //       fclose(fp);
+
 
     
     Mtotal= m1+m2;
