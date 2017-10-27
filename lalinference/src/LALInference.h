@@ -643,6 +643,10 @@ tagLALInferenceIFOData
   COMPLEX16FrequencySeries  *freqData,      /** Buffer for frequency domain data */
                             *whiteFreqData; /* Over-white. */
   COMPLEX16TimeSeries       *compTimeData;  /** Complex time series data buffers */
+  COMPLEX16FrequencySeries  *freq_residuals; /** Freq series residuals */
+  COMPLEX16FrequencySeries  *freq_signal; /** Freq series residuals */
+  REAL8TimeSeries           *signal; /** Time series signal */
+  REAL8TimeSeries           *residuals; /** Time series residuals */
   LALInferenceVariables     *dataParams;    /* Optional data parameters */
   REAL8FrequencySeries      *oneSidedNoisePowerSpectrum;  /** one-sided Noise Power Spectrum */
   REAL8FrequencySeries      *noiseASD;  /** (one-sided Noise Power Spectrum)^{-1/2} */

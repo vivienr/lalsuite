@@ -575,6 +575,16 @@ static REAL8 LALInferenceFusedFreqDomainLogLikelihood(LALInferenceVariables *cur
 	/* t_c corresponds to the "time" parameter in                    */
 	/* model->params (set, e.g., from the trigger value).     */
 
+    for(i=0;i<(INT4)dataPtr->freqData->data->length;i++) {
+        dataPtr->freq_signal->data->data[i] = 0.0;
+        dataPtr->freq_residuals->data->data[i] = 0.0;
+    }
+
+    for(i=0;i<(INT4)dataPtr->timeData->data->length;i++) {
+        dataPtr->signal->data->data[i] = 0.0;
+        dataPtr->residuals->data->data[i] = 0.0;
+    }
+
     /* Reset log-likelihood */
     model->ifo_loglikelihoods[ifo] = 0.0;
     model->ifo_SNRs[ifo] = 0.0;
@@ -915,6 +925,8 @@ static REAL8 LALInferenceFusedFreqDomainLogLikelihood(LALInferenceVariables *cur
       }
 
       diff -= template;
+      dataPtr->freq_signal->data->data[i] = template;
+      dataPtr->freq_residuals->data->data[i] = diff;
 
       }//end signal subtraction
 
@@ -986,6 +998,10 @@ static REAL8 LALInferenceFusedFreqDomainLogLikelihood(LALInferenceVariables *cur
 
 
     } /* End loop over freq bins */
+
+    XLALREAL8FreqTimeFFT(dataPtr->signal,dataPtr->freq_signal,dataPtr->freqToTimeFFTPlan);
+    XLALREAL8FreqTimeFFT(dataPtr->residuals,dataPtr->freq_residuals,dataPtr->freqToTimeFFTPlan);
+
     switch(marginalisationflags)
     {
     case GAUSSIAN:

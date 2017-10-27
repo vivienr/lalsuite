@@ -1169,6 +1169,11 @@ LALInferenceIFOData *LALInferenceReadData(ProcessParamsTable *commandLine)
         XLALDestroyCache(cache); // Clean up cache
         } /* End of data reading process */
 
+        IFOdata[i].freq_signal=(COMPLEX16FrequencySeries *)XLALCreateCOMPLEX16FrequencySeries("freqSignal",&(IFOdata[i].freqData->epoch),0.0,IFOdata[i].freqData->deltaF,&lalDimensionlessUnit,IFOdata[i].freqData->data->length);
+        IFOdata[i].freq_residuals=(COMPLEX16FrequencySeries *)XLALCreateCOMPLEX16FrequencySeries("freqResiduals",&(IFOdata[i].freqData->epoch),0.0,IFOdata[i].freqData->deltaF,&lalDimensionlessUnit,IFOdata[i].freqData->data->length);
+        IFOdata[i].signal=(REAL8TimeSeries *)XLALCreateREAL8TimeSeries("timeSignal",&(IFOdata[i].timeData->epoch),0.0,IFOdata[i].timeData->deltaT,&lalDimensionlessUnit,IFOdata[i].timeData->data->length);
+        IFOdata[i].residuals=(REAL8TimeSeries *)XLALCreateREAL8TimeSeries("timeResiduals",&(IFOdata[i].timeData->epoch),0.0,IFOdata[i].timeData->deltaT,&lalDimensionlessUnit,IFOdata[i].timeData->data->length);
+
         makeWhiteData(&(IFOdata[i]));
 
       /* Store ASD of noise spectrum to whiten glitch model */
