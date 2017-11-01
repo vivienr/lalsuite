@@ -78,6 +78,13 @@ typedef struct tagSpinWeightedSphericalHarmonic_l2 {
   COMPLEX16 Y2m2, Y2m1, Y20, Y21, Y22;
 } SpinWeightedSphericalHarmonic_l2;
 
+typedef struct tagLEAplus_coefficients {
+  REAL8 C;
+  REAL8 a0;
+  REAL8 a1;
+  REAL8 G;
+} LEAplus_coefficients;
+
 /* Internal core function to calculate PhenomP polarizations for a sequence of frequences. */
 static int PhenomPCore(
   COMPLEX16FrequencySeries **hptilde,   /**< Output: Frequency-domain waveform h+ */
@@ -124,7 +131,9 @@ static int PhenomPCoreOneFrequency(
   REAL8 *phasing,                         /**< Output: overall phasing */
   const UINT4 IMRPhenomP_version,         /**< Version number: 1 uses IMRPhenomC, 2 uses IMRPhenomD */
   AmpInsPrefactors *amp_prefactors,       /**< pre-calculated (cached for saving runtime) coefficients for amplitude. See LALSimIMRPhenomD_internals.c*/
-  PhiInsPrefactors *phi_prefactors        /**< pre-calculated (cached for saving runtime) coefficients for phase. See LALSimIMRPhenomD_internals.*/
+  PhiInsPrefactors *phi_prefactors,       /**< pre-calculated (cached for saving runtime) coefficients for phase. See LALSimIMRPhenomD_internals.*/
+  const REAL8 Lambda,                     /**< dimensionless tidal deformability for LackeyTidal2013 model for NSBH correction */
+  LEAplus_coefficients *LEAplus_coeff     /**< pre-calculated (cached for saving runtime) coefficients for NSBH tidal correction. See LALSimIMRLackeyTidal2013.c */
 );
 
 /* Simple 2PN version of L, without any spin terms expressed as a function of v */
@@ -189,5 +198,6 @@ static REAL8 FinalSpinBarausse2009(  /* Barausse & Rezzolla, Astrophys.J.Lett.70
 
 static bool approximately_equal(REAL8 x, REAL8 y, REAL8 epsilon);
 static void nudge(REAL8 *x, REAL8 X, REAL8 epsilon);
+
 
 #endif	// of #ifndef _LALSIM_IMR_PHENOMP_H

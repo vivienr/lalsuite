@@ -49,6 +49,8 @@
 #include "LALSimIMRPhenomC_internals.c"
 #include "LALSimIMRPhenomD_internals.c"
 
+#include "LALSimIMRLackeyTidal2013.h"
+
 #include "LALSimIMRPhenomP.h"
 
 #ifndef _OPENMP
@@ -196,6 +198,7 @@ int XLALSimIMRPhenomPCalculateModelParametersOld(
       L0 = M*M * L2PNR_v1(v_ref, eta); /* Use 2PN approximation for L. */
       break;
     case IMRPhenomPv2_V:
+    case IMRPhenomPv2_LEAplus_V:
       L0 = M*M * L2PNR(v_ref, eta);   /* Use 2PN approximation for L. */
       break;
     default:
@@ -331,6 +334,7 @@ int XLALSimIMRPhenomPCalculateModelParametersFromSourceFrame(
       L0 = M*M * L2PNR_v1(v_ref, eta); /* Use 2PN approximation for L. */
       break;
     case IMRPhenomPv2_V:
+    case IMRPhenomPv2_LEAplus_V:
       L0 = M*M * L2PNR(v_ref, eta);   /* Use 2PN approximation for L. */
       break;
     default:
@@ -608,17 +612,22 @@ static int PhenomPCore(
   // Enforce convention m2 >= m1
   REAL8 chi1_l, chi2_l;
   REAL8 m1_SI, m2_SI;
+  REAL8 Lambda = 0;
   if (m2_SI_in >= m1_SI_in) {
     m1_SI = m1_SI_in;
     m2_SI = m2_SI_in;
     chi1_l = chi1_l_in;
     chi2_l = chi2_l_in;
+    if (IMRPhenomP_version == IMRPhenomPv2_LEAplus_V)
+      Lambda = XLALSimInspiralWaveformParamsLookupTidalLambda1(extraParams);
   }
   else { // swap bodies 1 <-> 2
     m1_SI = m2_SI_in;
     m2_SI = m1_SI_in;
     chi1_l = chi2_l_in;
     chi2_l = chi1_l_in;
+    if (IMRPhenomP_version == IMRPhenomPv2_LEAplus_V)
+      Lambda = XLALSimInspiralWaveformParamsLookupTidalLambda2(extraParams);
   }
 
   errcode = init_useful_powers(&powers_of_pi, LAL_PI);
@@ -661,6 +670,7 @@ static int PhenomPCore(
           XLAL_ERROR(XLAL_EDOM, "IMRPhenomP(v1): Effective spin chi_eff = %g outside the range [-0.9,0.9] is not supported!\n", chi_eff);
       break;
     case IMRPhenomPv2_V:
+    case IMRPhenomPv2_LEAplus_V:
       if (q > 18.0)
         XLAL_PRINT_WARNING("IMRPhenomPv2: Warning: The underlying non-precessing model is calibrated up to m1/m2 <= 18.\n");
       else if (q > 100.0)
@@ -712,6 +722,9 @@ static int PhenomPCore(
   REAL8 finspin = 0.0;
   REAL8 f_final = 0.0;
 
+
+  LEAplus_coefficients LEAplus_coeff;
+
   switch (IMRPhenomP_version) {
     case IMRPhenomPv1_V:
       XLAL_PRINT_INFO("*** IMRPhenomP version 1: based on IMRPhenomC ***");
@@ -725,7 +738,12 @@ static int PhenomPCore(
       f_final = PCparams->fRingDown;
       break;
     case IMRPhenomPv2_V:
-      XLAL_PRINT_INFO("*** IMRPhenomP version 2: based on IMRPhenomD ***");
+    case IMRPhenomPv2_LEAplus_V: // avoid duplicate code; the tidal coefficients are computed after the switch statement
+      if (IMRPhenomP_version == IMRPhenomPv2_V)
+        XLAL_PRINT_INFO("*** IMRPhenomP version 2: based on IMRPhenomD ***");
+      else if (IMRPhenomP_version == IMRPhenomPv2_LEAplus_V)
+          XLAL_PRINT_INFO("*** IMRPhenomP version 2: based on IMRPhenomD + tidal LEA+ correction for NSBH ***");
+
       // PhenomD uses FinalSpin0815() to calculate the final spin if the spins are aligned.
       // We use a generalized version of FinalSpin0815() that includes the in-plane spin chip.
       finspin = FinalSpinIMRPhenomD_all_in_plane_spin_on_larger_BH(m1, m2, chi1_l, chi2_l, chip);
@@ -767,6 +785,13 @@ static int PhenomPCore(
       errcode = XLAL_EINVAL;
       goto cleanup;
       break;
+  }
+
+  if (IMRPhenomP_version == IMRPhenomPv2_LEAplus_V) {
+    // Precompute LEA+ coefficients that do not depend on frequency
+    double chi_BH = chi2_l; // using convention m2 >= m1
+    XLALLackeyTidal2013tidalPNAmplitudeCoefficient(&LEAplus_coeff.C, eta, chi_BH, Lambda);
+    XLALLackeyTidal2013tidalPNPhaseCoefficients(&LEAplus_coeff.a0, &LEAplus_coeff.a1, &LEAplus_coeff.G, eta, chi_BH, Lambda);
   }
 
   XLAL_CHECK ( fCut > f_min, XLAL_EDOM, "fCut = %.2g/M <= f_min", fCut );
@@ -878,7 +903,7 @@ static int PhenomPCore(
   AmpInsPrefactors amp_prefactors;
   PhiInsPrefactors phi_prefactors;
 
-  if (IMRPhenomP_version == IMRPhenomPv2_V) {
+  if ((IMRPhenomP_version == IMRPhenomPv2_V) || (IMRPhenomP_version == IMRPhenomPv2_LEAplus_V)) {
     errcode = init_amp_ins_prefactors(&amp_prefactors, pAmp);
     XLAL_CHECK(XLAL_SUCCESS == errcode, errcode, "init_amp_ins_prefactors() failed.");
     errcode = init_phi_ins_prefactors(&phi_prefactors, pPhi, pn);
@@ -908,7 +933,8 @@ static int PhenomPCore(
     per_thread_errcode = PhenomPCoreOneFrequency(f, eta, chi1_l, chi2_l, chip, distance, M, phic,
                               pAmp, pPhi, PCparams, pn, &angcoeffs, &Y2m,
                               alphaNNLOoffset - alpha0, epsilonNNLOoffset,
-                              &hp_val, &hc_val, &phasing, IMRPhenomP_version, &amp_prefactors, &phi_prefactors);
+                              &hp_val, &hc_val, &phasing, IMRPhenomP_version, &amp_prefactors, &phi_prefactors,
+                              Lambda, &LEAplus_coeff);
 
     if (per_thread_errcode != XLAL_SUCCESS) {
       errcode = per_thread_errcode;
@@ -1073,7 +1099,9 @@ static int PhenomPCoreOneFrequency(
   REAL8 *phasing,                             /**< [out] overall phasing */
   IMRPhenomP_version_type IMRPhenomP_version, /**< IMRPhenomP(v1) uses IMRPhenomC, IMRPhenomPv2 uses IMRPhenomD */
   AmpInsPrefactors *amp_prefactors,           /**< pre-calculated (cached for saving runtime) coefficients for amplitude. See LALSimIMRPhenomD_internals.c*/
-  PhiInsPrefactors *phi_prefactors            /**< pre-calculated (cached for saving runtime) coefficients for phase. See LALSimIMRPhenomD_internals.*/)
+  PhiInsPrefactors *phi_prefactors,           /**< pre-calculated (cached for saving runtime) coefficients for phase. See LALSimIMRPhenomD_internals.*/
+  const REAL8 Lambda,                         /**< dimensionless tidal deformability for LackeyTidal2013 model for NSBH correction */
+  LEAplus_coefficients *LEAplus_coeff         /**< pre-calculated (cached for saving runtime) coefficients for NSBH tidal correction. See LALSimIMRLackeyTidal2013.c */)
 {
   XLAL_CHECK(angcoeffs != NULL, XLAL_EFAULT);
   XLAL_CHECK(hp != NULL, XLAL_EFAULT);
@@ -1104,6 +1132,7 @@ static int PhenomPCoreOneFrequency(
       SL = chi_eff*m2;        /* Dimensionfull aligned spin of the largest BH. SL = m2^2 chil = m2*M*chi_eff */
       break;
     case IMRPhenomPv2_V:
+    case IMRPhenomPv2_LEAplus_V: // avoid duplicate code; the tidal correction is applied after the switch statement
       XLAL_CHECK(pAmp != NULL, XLAL_EFAULT);
       XLAL_CHECK(pPhi != NULL, XLAL_EFAULT);
       XLAL_CHECK(PNparams != NULL, XLAL_EFAULT);
@@ -1118,6 +1147,16 @@ static int PhenomPCoreOneFrequency(
     default:
       XLAL_ERROR( XLAL_EINVAL, "Unknown IMRPhenomP version!\nAt present only v1 and v2 are available." );
       break;
+  }
+
+  if (IMRPhenomP_version == IMRPhenomPv2_LEAplus_V) {
+    XLAL_CHECK(LEAplus_coeff != NULL, XLAL_EFAULT);
+    double ampC = XLALLackeyTidal2013tidalCorrectionAmplitude(f, LEAplus_coeff->C, eta, Lambda);
+    double phsC = XLALLackeyTidal2013tidalCorrectionPhase(f, LEAplus_coeff->a0, LEAplus_coeff->a1, LEAplus_coeff->G, eta, Lambda);
+    // Now apply tidal amplitude and phase corrections to IMRPhenomD
+    aPhenom *= ampC;
+    // FIXME: What is the correct sign of the phasing? Compare with and without the correction for PhenomP; also compare SEOBNRv2ROM and LEA+ phasing
+    phPhenom += phsC; // FIXME: plus or minus?
   }
 
   phPhenom -= 2.*phic; /* Note: phic is orbital phase */
@@ -1149,10 +1188,11 @@ static int PhenomPCoreOneFrequency(
       WignerdCoefficients_SmallAngleApproximation(&cBetah, &sBetah, omega_cbrt, SL, eta, Sperp);
       break;
     case IMRPhenomPv2_V:
+    case IMRPhenomPv2_LEAplus_V:
       WignerdCoefficients(&cBetah, &sBetah, omega_cbrt, SL, eta, Sperp);
       break;
   default:
-    XLAL_ERROR( XLAL_EINVAL, " Unknown IMRPhenomP version!\nAt present only v1 and v2 are available." );
+    XLAL_ERROR( XLAL_EINVAL, "Unknown IMRPhenomP version!\nAt present only v1 and v2 are available." );
     break;
   }
 

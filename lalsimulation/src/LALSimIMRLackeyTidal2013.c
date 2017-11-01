@@ -40,6 +40,37 @@
 #include "LALSimIMRLackeyTidal2013.h"
 
 
+/********************* Internal function declarations ********************/
+
+UNUSED static double tidalPNPhase(
+  const double mf,
+  const double a0,
+  const double a1,
+  const double eta
+);
+
+UNUSED static double tidalPNPhaseDeriv(
+  const double mf,
+  const double a0,
+  const double a1,
+  const double eta
+);
+
+UNUSED static int LackeyTidal2013SEOBNRv2ROMCore(
+  struct tagCOMPLEX16FrequencySeries **hptilde, /**< Output: Frequency-domain waveform h+ */
+  struct tagCOMPLEX16FrequencySeries **hctilde, /**< Output: Frequency-domain waveform hx */
+  REAL8 phiRef,                                 /**< Phase at reference time */
+  REAL8 fRef,                                   /**< Reference frequency (Hz); 0 defaults to fLow */
+  REAL8 distance,                               /**< Distance of source (m) */
+  REAL8 inclination,                            /**< Inclination of source (rad) */
+  REAL8 mBH_SI,                                 /**< Mass of black hole (kg) */
+  REAL8 mNS_SI,                                 /**< Mass of neutron star (kg) */
+  REAL8 chi_BH,                                 /**< Dimensionless aligned component spin of the BH */
+  REAL8 Lambda,                                 /**< Dimensionless tidal deformability (Eq 1  of Lackey et al) */
+  const REAL8Sequence *freqs,                   /**< Frequency points at which to evaluate the waveform (Hz) */
+  REAL8 deltaF                                  /**< Sampling frequency (Hz) */
+);
+
 /*************** Model coefficients ******************/
 
 // Amplitude correction factors for SEOBNRv2
@@ -59,7 +90,7 @@ const double g3 = -41.741;
 
 /********************* Definitions begin here ********************/
 
-static void tidalPNAmplitudeCoefficient(
+void XLALLackeyTidal2013tidalPNAmplitudeCoefficient(
   double *C,
   const double eta,
   const double chi_BH,
@@ -70,7 +101,7 @@ static void tidalPNAmplitudeCoefficient(
      + Lambda * exp(c0 + c1*eta + c2*chi_BH);
 }
 
-static double tidalCorrectionAmplitude(
+double XLALLackeyTidal2013tidalCorrectionAmplitude(
   const double Mf,
   const double C,
   const double eta,
@@ -89,7 +120,7 @@ static double tidalCorrectionAmplitude(
 }
 
 // precompute a0, a1 and G which do not depend on frequency
-static void tidalPNPhaseCoefficients(
+void XLALLackeyTidal2013tidalPNPhaseCoefficients(
   double *a0,
   double *a1,
   double *G,
@@ -142,7 +173,7 @@ static double tidalPNPhaseDeriv(
 }
 
 // Implements Eq. 34 of Lackey et al
-static double tidalCorrectionPhase(
+double XLALLackeyTidal2013tidalCorrectionPhase(
   const double Mf,
   const double a0,
   const double a1,
@@ -166,7 +197,7 @@ static double tidalCorrectionPhase(
   return psiT + DpsiT - psiFit; // Eq 34 of Lackey et al
 }
 
-int LackeyTidal2013SEOBNRv2ROMCore(
+static int LackeyTidal2013SEOBNRv2ROMCore(
   struct tagCOMPLEX16FrequencySeries **hptilde, /**< Output: Frequency-domain waveform h+ */
   struct tagCOMPLEX16FrequencySeries **hctilde, /**< Output: Frequency-domain waveform hx */
   REAL8 phiRef,                                 /**< Phase at reference time */
@@ -257,16 +288,16 @@ int LackeyTidal2013SEOBNRv2ROMCore(
 
   // Precompute coefficients that do not depend on frequency
   double C, a0, a1, G;
-  tidalPNAmplitudeCoefficient(&C, eta, chi_BH, Lambda);
-  tidalPNPhaseCoefficients(&a0, &a1, &G, eta, chi_BH, Lambda);
+  XLALLackeyTidal2013tidalPNAmplitudeCoefficient(&C, eta, chi_BH, Lambda);
+  XLALLackeyTidal2013tidalPNPhaseCoefficients(&a0, &a1, &G, eta, chi_BH, Lambda);
 
   // Assemble waveform from aplitude and phase
   for (size_t i=0; i<freqs->length; i++) { // loop over frequency points in sequence
     double Mf = freqs->data[i];
     int j = i + offset; // shift index for frequency series if needed
     // Tidal corrections to be incorporated
-    double ampC = tidalCorrectionAmplitude(Mf, C, eta, Lambda);
-    double phsC = tidalCorrectionPhase(Mf, a0, a1, G, eta, Lambda);
+    double ampC = XLALLackeyTidal2013tidalCorrectionAmplitude(Mf, C, eta, Lambda);
+    double phsC = XLALLackeyTidal2013tidalCorrectionPhase(Mf, a0, a1, G, eta, Lambda);
     COMPLEX16 Corr = ampC * cexp(-I*phsC);
     pdata[j] *= Corr;
     cdata[j] *= Corr;

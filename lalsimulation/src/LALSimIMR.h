@@ -63,7 +63,8 @@ extern "C" {
 
 typedef enum tagIMRPhenomP_version_type {
  IMRPhenomPv1_V, /**< version 1: based on IMRPhenomC */
- IMRPhenomPv2_V  /**< version 2: based on IMRPhenomD */
+ IMRPhenomPv2_V, /**< version 2: based on IMRPhenomD */
+ IMRPhenomPv2_LEAplus_V /**< version 2: based on IMRPhenomD with tidal corrections for NSBH systems using LackeyTidal2013 */
 } IMRPhenomP_version_type;
 
 /** @} */
