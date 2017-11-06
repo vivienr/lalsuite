@@ -1449,9 +1449,9 @@ LALInferenceModel *LALInferenceInitCBCModel(LALInferenceRunState *state) {
         for (m=0; m<n_modes; ++m){
             
             snprintf(reomegaqnm_name, VARNAME_MAX, "rd_omega_%i",m);
-            LALInferenceRegisterUniformVariableREAL8(state, model->params, reomegaqnm_name, 0.5, 0.3, 1.0, LALINFERENCE_PARAM_LINEAR);
+            LALInferenceRegisterUniformVariableREAL8(state, model->params, reomegaqnm_name, 200.0, 50.0, 500.0, LALINFERENCE_PARAM_LINEAR);
             snprintf(imomegaqnm_name, VARNAME_MAX, "rd_decay_%i",m);
-            LALInferenceRegisterUniformVariableREAL8(state, model->params, imomegaqnm_name, 0.08, 0.03, 0.2, LALINFERENCE_PARAM_LINEAR);
+            LALInferenceRegisterUniformVariableREAL8(state, model->params, imomegaqnm_name, 200.0, 50.0, 500.0, LALINFERENCE_PARAM_LINEAR);
             if (m!=0){
                    snprintf(phase_name, VARNAME_MAX, "phase_%i",m);
                    LALInferenceRegisterUniformVariableREAL8(state, model->params, phase_name, 0.0, 0.0, LAL_TWOPI, LALINFERENCE_PARAM_CIRCULAR);

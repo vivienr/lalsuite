@@ -2495,18 +2495,18 @@ void LALInferenceSingleRingdownTDKama(REAL8 *hplus, REAL8 *hcross, REAL8 deltaT,
     
     A 	     = Almn*Mf_sch/distance_meter;
     
-    REAL8 Mfsec = Mf*LAL_MSUN_SI*LAL_G_SI/pow(LAL_C_SI,3);
+  //  REAL8 Mfsec = Mf*LAL_MSUN_SI*LAL_G_SI/pow(LAL_C_SI,3);
     
-    REAL8 omegaR = reomegaqnm/Mfsec;
-    REAL8 omegaI = imomegaqnm/Mfsec;
+  //  REAL8 omegaR = reomegaqnm/Mfsec;
+ //   REAL8 omegaI = imomegaqnm/Mfsec;
     
     for (i=index_min; i<index_max; ++i){
         t = (i-index_min)*deltaT;
         if (t+time_shift>0.0){
-      //      hplus[i]=A * Yplus * exp(-(t+time_shift)*imomegaqnm) * cos(LAL_TWOPI*reomegaqnm*(t+time_shift) +  phase);
-      //      hcross[i]=- A * Ycross * exp(-(t+time_shift)*imomegaqnm) * sin(LAL_TWOPI*reomegaqnm*(t+time_shift) + phase);
-            hplus[i]=A * Yplus * exp(-(t+time_shift)*omegaI) * cos(omegaR*(t+time_shift) +  phase);
-            hcross[i]=- A * Ycross * exp(-(t+time_shift)*omegaI) * sin(omegaR*(t+time_shift) + phase);
+            hplus[i]=A * Yplus * exp(-(t+time_shift)*imomegaqnm) * cos(LAL_TWOPI*reomegaqnm*(t+time_shift) +  phase);
+            hcross[i]=- A * Ycross * exp(-(t+time_shift)*imomegaqnm) * sin(LAL_TWOPI*reomegaqnm*(t+time_shift) + phase);
+      //      hplus[i]=A * Yplus * exp(-(t+time_shift)*omegaI) * cos(omegaR*(t+time_shift) +  phase);
+      //      hcross[i]=- A * Ycross * exp(-(t+time_shift)*omegaI) * sin(omegaR*(t+time_shift) + phase);
         }
     }
     return;
