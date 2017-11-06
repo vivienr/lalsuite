@@ -2532,8 +2532,9 @@ void LALInferenceSimpleRingdownKama(LALInferenceModel *model){
     REAL8 theta_jn=0.0;
     REAL8 q=0.0;
     REAL8 Mtotal=0.0;
-    REAL8 m1=0.0;
-    REAL8 m2=0.0;
+   // REAL8 m1=0.0;
+   // REAL8 m2=0.0;
+    REAL8 mchirp=0.0;
     
     UINT4 n_modes=2;
     if(LALInferenceCheckVariable(model->params, "n_modes"))
