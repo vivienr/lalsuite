@@ -2416,6 +2416,11 @@ void LALInferenceSimpleRingdownLondon(LALInferenceModel *model){
         LALInferenceSetVariable(model->params, "time", &injTc);
         
     }
+    else
+    {
+        fprintf(stderr,"Only time domain version is available for this template!");
+        exit(0);
+    }
     
     return;
 }
@@ -2489,11 +2494,6 @@ void LALInferenceSingleRingdownTDKama(REAL8 *hplus, REAL8 *hcross, REAL8 deltaT,
     Almn     = AmplitudeKama(eta, l, m);
     
     A 	     = Almn*Mf_sch/distance_meter;
-    
-    //    FILE * fp;
-    //    fp = fopen ("file.txt", "w+");
-    //    fprintf(fp, "%.10e", A);
-    //    fclose(fp);
     
     REAL8 Mfsec = Mf*LAL_MSUN_SI*LAL_G_SI/pow(LAL_C_SI,3);
     
@@ -2585,16 +2585,22 @@ void LALInferenceSimpleRingdownKama(LALInferenceModel *model){
     if(LALInferenceCheckVariable(model->params, "q"))
         q = *(REAL8*) LALInferenceGetVariable(model->params, "q");
     
-    if(LALInferenceCheckVariable(model->params, "mass1"))
-        m1 = *(REAL8 *)LALInferenceGetVariable(model->params,"mass1");
-    if(LALInferenceCheckVariable(model->params, "mass2"))
-        m2 = *(REAL8 *)LALInferenceGetVariable(model->params,"mass2");
+    if(LALInferenceCheckVariable(model->params, "chirpmass"))
+        mchirp = *(REAL8*) LALInferenceGetVariable(model->params, "chirpmass");
+    
+    //if(LALInferenceCheckVariable(model->params, "mass1"))
+    //    m1 = *(REAL8 *)LALInferenceGetVariable(model->params,"mass1");
+    //if(LALInferenceCheckVariable(model->params, "mass2"))
+    //    m2 = *(REAL8 *)LALInferenceGetVariable(model->params,"mass2");
     
     
     REAL8 eta= 0.0;
     eta=q/((1+q)*(1+q));
     
-    Mtotal= m1+m2;
+    REAL8 root = sqrt(0.25-eta);
+    REAL8 fraction = (0.5+root) / (0.5-root);
+    Mtotal=mchirp * (pow(1+1.0/fraction,0.2) / pow(1.0/fraction,0.6)) + mchirp * (pow(1+fraction,0.2) / pow(fraction,0.6));
+
     
     theta_jn=acos(costheta_jn);
     
@@ -2627,6 +2633,11 @@ void LALInferenceSimpleRingdownKama(LALInferenceModel *model){
         REAL8 injTc=XLALGPSGetREAL8(&(model->timehPlus->epoch))-2.+index_max*deltaT;
         LALInferenceSetVariable(model->params, "time", &injTc);
         
+    }
+    else
+    {
+        fprintf(stderr,"Only time domain version is available for this template!");
+        exit(0);
     }
     
     return;
@@ -2760,6 +2771,11 @@ void LALInferenceSimpleRingdownGR(LALInferenceModel *model){
         REAL8 injTc=XLALGPSGetREAL8(&(model->timehPlus->epoch))-2.+index_max*deltaT;
         LALInferenceSetVariable(model->params, "time", &injTc);
         
+    }
+    else
+    {
+        fprintf(stderr,"Only time domain version is available for this template!");
+        exit(0);
     }
     
     return;
