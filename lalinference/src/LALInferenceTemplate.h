@@ -200,6 +200,12 @@ void LALInferenceTemplateXLALSimBurstSineGaussianF(LALInferenceModel *model);
 
 void LALInferenceSimpleRingdown(LALInferenceModel *model);
 
+void LALInferenceSimpleRingdownLondon(LALInferenceModel *model);
+
+void LALInferenceSimpleRingdownKama(LALInferenceModel *model);
+
+void LALInferenceSimpleRingdownGR(LALInferenceModel *model);
+
 /*@}*/
 
 #endif

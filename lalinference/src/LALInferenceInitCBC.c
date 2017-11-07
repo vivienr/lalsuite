@@ -264,7 +264,7 @@ void LALInferenceInitCBCThreads(LALInferenceRunState *run_state, INT4 nthreads) 
 /* Defaults to using LALSimulation */
 LALInferenceTemplateFunction LALInferenceInitCBCTemplate(LALInferenceRunState *runState)
 {
-  char help[]="(--template [LAL,PhenSpin,LALGenerateInspiral,LALSim,multiband,RingDown]\tSpecify template (default LAL)\n";
+  char help[]="(--template [LAL,PhenSpin,LALGenerateInspiral,LALSim,multiband,RingDown,RingDownLondon,RingDownKama,RingDownGR]\tSpecify template (default LAL)\n";
   ProcessParamsTable *ppt=NULL;
   ProcessParamsTable *commandLine=runState->commandLine;
   /* Print command line arguments if help requested */
@@ -290,6 +290,18 @@ LALInferenceTemplateFunction LALInferenceInitCBCTemplate(LALInferenceRunState *r
   else if(!strcmp("RingDown",ppt->value)){
         templt=&LALInferenceSimpleRingdown;
         fprintf(stdout,"Template function called is \"LALInferenceSimpleRingdown\"\n");
+  }
+  else if(!strcmp("RingDownLondon",ppt->value)){
+        templt=&LALInferenceSimpleRingdownLondon;
+        fprintf(stdout,"Template function called is \"LALInferenceSimpleRingdownLondon\"\n");
+  }
+  else if(!strcmp("RingDownKama",ppt->value)){
+        templt=&LALInferenceSimpleRingdownKama;
+        fprintf(stdout,"Template function called is \"LALInferenceSimpleRingdownKamaretsos\"\n");
+  }
+  else if(!strcmp("RingDownGR",ppt->value)){
+      templt=&LALInferenceSimpleRingdownGR;
+      fprintf(stdout,"Template function called is \"LALInferenceSimpleRingdownGR\"\n");
   }
     else {
         XLALPrintError("Error: unknown template %s\n",ppt->value);
@@ -961,6 +973,15 @@ LALInferenceModel *LALInferenceInitCBCModel(LALInferenceRunState *state) {
     if(!strcmp("RingDown",ppt->value)){
       model->domain = LAL_SIM_DOMAIN_FREQUENCY;
     }
+    else if(!strcmp("RingDownLondon",ppt->value)){
+      model->domain = LAL_SIM_DOMAIN_TIME;
+     }
+    else if(!strcmp("RingDownKama",ppt->value)){
+      model->domain = LAL_SIM_DOMAIN_TIME;
+     }
+    else if(!strcmp("RingDownGR",ppt->value)){
+        model->domain = LAL_SIM_DOMAIN_TIME;
+    }
   }
 
   ppt=LALInferenceGetProcParamVal(commandLine, "--fref");
@@ -1384,6 +1405,87 @@ LALInferenceModel *LALInferenceInitCBCModel(LALInferenceRunState *state) {
           LALInferenceRegisterUniformVariableREAL8(state, model->params, time_shift_name, 0.0, -0.01, 0.01, LALINFERENCE_PARAM_LINEAR);
         }
       }
+    }
+    else if(!strcmp("RingDownLondon",ppt->value)){
+        
+        UINT4 n_modes=2,m=0;
+        ppt=LALInferenceGetProcParamVal(commandLine,"--n_modes");
+        if(ppt) n_modes=atoi(ppt->value);
+        LALInferenceAddVariable(model->params, "n_modes", &n_modes,
+                                LALINFERENCE_UINT4_t, LALINFERENCE_PARAM_FIXED);
+        
+        char reomegaqnm_name[VARNAME_MAX];
+        char imomegaqnm_name[VARNAME_MAX];
+        //    char phase_name[VARNAME_MAX];
+        char time_shift_name[VARNAME_MAX];
+        
+        for (m=0; m<n_modes; ++m){
+            
+            snprintf(reomegaqnm_name, VARNAME_MAX, "rd_omega_%i",m);
+            LALInferenceRegisterUniformVariableREAL8(state, model->params, reomegaqnm_name,  0.5, 0.3, 1.0, LALINFERENCE_PARAM_LINEAR);
+            snprintf(imomegaqnm_name, VARNAME_MAX, "rd_decay_%i",m);
+            LALInferenceRegisterUniformVariableREAL8(state, model->params, imomegaqnm_name,  0.08, 0.03, 0.2, LALINFERENCE_PARAM_LINEAR);
+            if (m!=0){
+                //   snprintf(phase_name, VARNAME_MAX, "phase_%i",m);
+                //   LALInferenceRegisterUniformVariableREAL8(state, model->params, phase_name, 0.0, 0.0, LAL_TWOPI, LALINFERENCE_PARAM_CIRCULAR);
+                snprintf(time_shift_name, VARNAME_MAX, "delta_t0_%i",m);
+                LALInferenceRegisterUniformVariableREAL8(state, model->params, time_shift_name, 0.0, -0.01, 0.01, LALINFERENCE_PARAM_LINEAR);
+            }
+        }
+    }
+    else if(!strcmp("RingDownKama",ppt->value)){
+        
+        UINT4 n_modes=2,m=0;
+        ppt=LALInferenceGetProcParamVal(commandLine,"--n_modes");
+        if(ppt) n_modes=atoi(ppt->value);
+        LALInferenceAddVariable(model->params, "n_modes", &n_modes,
+                                LALINFERENCE_UINT4_t, LALINFERENCE_PARAM_FIXED);
+        
+        char reomegaqnm_name[VARNAME_MAX];
+        char imomegaqnm_name[VARNAME_MAX];
+        char phase_name[VARNAME_MAX];
+        char time_shift_name[VARNAME_MAX];
+           
+        for (m=0; m<n_modes; ++m){
+            
+            snprintf(reomegaqnm_name, VARNAME_MAX, "rd_omega_%i",m);
+            LALInferenceRegisterUniformVariableREAL8(state, model->params, reomegaqnm_name, 200.0, 50.0, 500.0, LALINFERENCE_PARAM_LINEAR);
+            snprintf(imomegaqnm_name, VARNAME_MAX, "rd_decay_%i",m);
+            LALInferenceRegisterUniformVariableREAL8(state, model->params, imomegaqnm_name, 200.0, 50.0, 500.0, LALINFERENCE_PARAM_LINEAR);
+            if (m!=0){
+                   snprintf(phase_name, VARNAME_MAX, "phase_%i",m);
+                   LALInferenceRegisterUniformVariableREAL8(state, model->params, phase_name, 0.0, 0.0, LAL_TWOPI, LALINFERENCE_PARAM_CIRCULAR);
+                snprintf(time_shift_name, VARNAME_MAX, "delta_t0_%i",m);
+                LALInferenceRegisterUniformVariableREAL8(state, model->params, time_shift_name, 0.0, -0.01, 0.01, LALINFERENCE_PARAM_LINEAR);
+            }
+        }
+    }
+    else if(!strcmp("RingDownGR",ppt->value)){
+        
+        UINT4 n_modes=2,m=0;
+        ppt=LALInferenceGetProcParamVal(commandLine,"--n_modes");
+        if(ppt) n_modes=atoi(ppt->value);
+        LALInferenceAddVariable(model->params, "n_modes", &n_modes,
+                                LALINFERENCE_UINT4_t, LALINFERENCE_PARAM_FIXED);
+        
+        char reomegaqnm_name[VARNAME_MAX];
+        char imomegaqnm_name[VARNAME_MAX];
+        char phase_name[VARNAME_MAX];
+        char time_shift_name[VARNAME_MAX];
+        
+        for (m=0; m<n_modes; ++m){
+            
+            snprintf(reomegaqnm_name, VARNAME_MAX, "rd_omega_%i",m);
+            LALInferenceRegisterUniformVariableREAL8(state, model->params, reomegaqnm_name, 0.0, -0.4, 0.4, LALINFERENCE_PARAM_LINEAR);
+            snprintf(imomegaqnm_name, VARNAME_MAX, "rd_decay_%i",m);
+            LALInferenceRegisterUniformVariableREAL8(state, model->params, imomegaqnm_name, 0.0, -0.4, 0.4, LALINFERENCE_PARAM_LINEAR);
+            if (m!=0){
+                snprintf(phase_name, VARNAME_MAX, "phase_%i",m);
+                LALInferenceRegisterUniformVariableREAL8(state, model->params, phase_name, 0.0, 0.0, LAL_TWOPI, LALINFERENCE_PARAM_CIRCULAR);
+                snprintf(time_shift_name, VARNAME_MAX, "delta_t0_%i",m);
+                LALInferenceRegisterUniformVariableREAL8(state, model->params, time_shift_name, 0.0, -0.01, 0.01, LALINFERENCE_PARAM_LINEAR);
+            }
+        }
     }
   }
 
