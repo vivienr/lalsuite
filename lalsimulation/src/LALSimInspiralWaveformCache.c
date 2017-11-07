@@ -1119,7 +1119,7 @@ int XLALSimInspiralChooseFDWaveformSequence(
             }
             break;
 
-        case IMRPhenomPv2_LEAplus_V:
+        case IMRPhenomPv2_LEAplus:
             /* Waveform-specific sanity checks */
             if( !XLALSimInspiralWaveformParamsFrameAxisIsDefault(LALpars) )
                 ABORT_NONDEFAULT_FRAME_AXIS(LALpars);/* Default is LAL_SIM_INSPIRAL_FRAME_AXIS_ORBITAL_L : z-axis along direction of orbital angular momentum. */
