@@ -271,7 +271,7 @@ static double fixReferenceFrequency(const double f_ref, const double f_min, cons
         case SpinTaylorF2:
         case IMRPhenomP:
         case IMRPhenomPv2:
-	case IMRPhenomPv2_LEAplus:
+        case IMRPhenomPv2_LEAplus:
         case NRSur4d2s:
             return f_min;
         default:
@@ -750,6 +750,10 @@ int XLALSimInspiralChooseTDWaveform(
 	    break;
 
 	case IMRPhenomPv2:
+	    ret = XLALSimInspiralTDFromFD(hplus, hcross, m1, m2, S1x, S1y, S1z, S2x, S2y, S2z, distance, inclination, phiRef, longAscNodes, eccentricity, meanPerAno, deltaT, f_min, f_ref, LALparams, approximant);
+	    break;
+
+	case IMRPhenomPv2_LEAplus:
 	    ret = XLALSimInspiralTDFromFD(hplus, hcross, m1, m2, S1x, S1y, S1z, S2x, S2y, S2z, distance, inclination, phiRef, longAscNodes, eccentricity, meanPerAno, deltaT, f_min, f_ref, LALparams, approximant);
 	    break;
 
